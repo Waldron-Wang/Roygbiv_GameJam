@@ -1,0 +1,36 @@
+using UnityEngine;
+
+namespace Roygbiv
+{
+    /// <summary>PLACEHOLDER pause menu (IMGUI). Esc / Start toggles while in a level.</summary>
+    public class PauseMenu : MonoBehaviour
+    {
+        public bool IsPaused { get; private set; }
+
+        void Update()
+        {
+            if (Game.Input.Intent.pausePressed && LevelController.Current != null && !Game.Scenes.IsLoading)
+                SetPaused(!IsPaused);
+        }
+
+        public void SetPaused(bool paused)
+        {
+            if (paused == IsPaused) return;
+            IsPaused = paused;
+            Time.timeScale = paused ? 0f : 1f;
+            if (paused) Game.Input.BlockGameplay(); else Game.Input.UnblockGameplay();
+            GameEvents.RaisePauseChanged(paused);
+        }
+
+        void OnGUI()
+        {
+            if (!IsPaused) return;
+            GUILayout.BeginArea(new Rect(Screen.width / 2f - 100, Screen.height / 2f - 70, 200, 140), GUI.skin.box);
+            GUILayout.Label("Paused");
+            if (GUILayout.Button("Resume")) SetPaused(false);
+            if (GUILayout.Button("Restart level")) { SetPaused(false); Game.Scenes.Reload(); }
+            if (GUILayout.Button("Back to hub")) { SetPaused(false); Game.Manager.ReturnToHub(); }
+            GUILayout.EndArea();
+        }
+    }
+}
