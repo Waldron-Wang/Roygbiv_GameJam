@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b799ece2a201d4870ab6f32f19862da5, type: 3}
+  m_Name: Color_1_Yellow
+  m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.ColorData
+  id: 2
+  displayName: Yellow
+  tint: {r: 1, g: 0.85, b: 0.15, a: 1}
+  emotion: Warmth, joy, happiness
+  sceneName: Level_Yellow
+  grantedAbility: 1
+  storyFragment: {fileID: 11400000, guid: 66b345654e4dc4fdc9ca78dac5f7cae3, type: 2}
+  musicLayer: {fileID: 0}

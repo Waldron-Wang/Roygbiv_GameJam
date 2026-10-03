@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2c7db0a01698d438984d54de79684099, type: 3}
+  m_Name: GameConfig
+  m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.GameConfig
+  colorOrder:
+  - {fileID: 11400000, guid: d41b41b3f779d456db50cda3d3e06f47, type: 2}
+  - {fileID: 11400000, guid: fd42dfba9f8db446d98d099e6ec911e6, type: 2}
+  - {fileID: 11400000, guid: 193bd98979044402a8ad4675aab5758e, type: 2}
+  - {fileID: 11400000, guid: cf412b803b8e94b188239fde50ead870, type: 2}
+  - {fileID: 11400000, guid: 4ab82e18ecb644c15b25418edfad28b1, type: 2}
+  - {fileID: 11400000, guid: 9bff4855cbdcd491eb4a663f5197e9dd, type: 2}
+  - {fileID: 11400000, guid: 60b8fc8aff72f40b09f488da9d766725, type: 2}
+  mainMenuScene: MainMenu
+  hubScene: Hub
+  endingScene: Ending
+  returnToHubDelay: 2.5
+  recolorDuration: 2
+  respawnDelay: 1.5
