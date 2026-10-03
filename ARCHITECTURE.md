@@ -1,7 +1,8 @@
 # ROYGBIV — Architecture
 
 A short guide to how the project is organized and how the pieces talk to each other.
-**Read sections 1–4 before writing code.**
+**Read sections 1–4 before writing code.** For a per-script reference, dependency tables,
+runtime traces and recipes, see **[DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)**.
 
 ---
 

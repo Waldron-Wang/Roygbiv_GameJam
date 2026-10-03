@@ -14,7 +14,7 @@ namespace Roygbiv
         [SerializeField] Action action;
         [SerializeField] bool once = true;
         [Tooltip("Extra hooks: open doors, play dialogue, start music...")]
-        [SerializeField] UnityEvent onTriggered;
+        [SerializeField] UnityEvent onTriggered = new();
 
         bool fired;
 

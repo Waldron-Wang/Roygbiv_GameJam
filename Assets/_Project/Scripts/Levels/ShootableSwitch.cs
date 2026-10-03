@@ -10,7 +10,7 @@ namespace Roygbiv
     public class ShootableSwitch : MonoBehaviour, IDamageable
     {
         [SerializeField] bool once = true;
-        [SerializeField] UnityEvent onActivated;
+        [SerializeField] UnityEvent onActivated = new();
 
         bool used;
 
