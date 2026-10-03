@@ -229,7 +229,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.Health
   team: 2
-  maxHealth: 6
+  maxHealth: 8
   hitInvulnerability: 0.2
 --- !u!114 &3330547317606462125
 MonoBehaviour:
@@ -246,7 +246,6 @@ MonoBehaviour:
   color: 2
   displayName: Sun-Construct
   phaseThresholds:
-  - 0.66
-  - 0.33
-  orbPrefab: {fileID: 8066445332528177978, guid: 5325d2bc32a8b421b98c9c1653e8fbab, type: 3}
-  timeBetweenVolleys: 2
+  - 0.7
+  - 0.35
+  orbPrefab: {fileID: 8066445332528177978, guid: f2a4236f4ba54db2bf116aa8935ae13b, type: 3}
