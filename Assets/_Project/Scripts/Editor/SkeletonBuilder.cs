@@ -39,7 +39,7 @@ namespace Roygbiv.EditorTools
 
         static readonly Dictionary<ColorId, ColorSpec> Specs = new()
         {
-            [ColorId.Yellow] = new ColorSpec { name = "Yellow", emotion = "Warmth, joy, happiness", boss = "Sun-Construct", tint = new Color(1f, .85f, .15f), ability = AbilityId.LightShot, bossHp = 6, bossType = typeof(YellowBoss) },
+            [ColorId.Yellow] = new ColorSpec { name = "Yellow", emotion = "Warmth, joy, happiness", boss = "Sun-Construct", tint = new Color(1f, .85f, .15f), ability = AbilityId.LightShot, bossHp = 8, bossType = typeof(YellowBoss) },
             [ColorId.Orange] = new ColorSpec { name = "Orange", emotion = "Excitement, enthusiasm, youth", boss = "Orange Runner", tint = new Color(1f, .55f, .1f), ability = AbilityId.Dash, bossHp = 3, bossType = typeof(OrangeBoss) },
             [ColorId.Red] = new ColorSpec { name = "Red", emotion = "Hot-blooded, anger", boss = "Red Rager", tint = new Color(.9f, .15f, .15f), ability = AbilityId.BlazeStrike, bossHp = 10, bossType = typeof(RedBoss) },
             [ColorId.Green] = new ColorSpec { name = "Green", emotion = "Envy, disgust", boss = "Bramble Thief", tint = new Color(.2f, .75f, .3f), ability = AbilityId.None, bossHp = 12, bossType = typeof(GreenBoss) },

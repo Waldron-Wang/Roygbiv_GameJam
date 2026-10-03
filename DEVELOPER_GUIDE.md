@@ -284,7 +284,7 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
 #### `Health.cs` — implements `IDamageable`
 - **Purpose:** HP for anything.
 - **API:**
-  - Properties: `Current`, `Max`, `Fraction`, `IsDead`, `Invulnerable` (settable)
+  - Properties: `Current`, `Max`, `Fraction`, `IsDead`, `Invulnerable` (settable), `DamageFilter` (optional veto; Yellow uses it to take damage only from reflected orbs)
   - Methods: `TakeDamage`, `Heal`, `Kill`
 - **Events (local C#, not global):** `Changed(current, max)`, `Damaged(DamageInfo)`, `Died`.
 - **Inspector:** `team`, `maxHealth`, `hitInvulnerability`.
@@ -303,14 +303,14 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
 
 #### `Projectile.cs` — implements `IReflectable`
 - **Purpose:** Anything that flies: Light Shot, enemy orbs, fire.
-- **API:** `Launch(direction, team)`, `Reflect(team, direction)`. Public fields: `damage`, `speed`, `lifetime`, `reflectable`, `reflectSpeedMultiplier`, `destroyOnWorld`.
+- **API:** `Launch(direction, team, shooter = null)`, `Arc(velocity, gravityScale)` (lobbed shots, call after `Launch`), `Reflect(team, direction)`, `WasReflected`. Public fields: `damage`, `speed`, `lifetime`, `reflectable`, `reflectSpeedMultiplier`, `reflectHomesOnShooter`, `destroyOnWorld`, `bounces`.
 - **What it does on contact:**
 
   | Touches | Result |
   |---|---|
   | A non-trigger collider with an `IDamageable` it can hurt | Deals damage and is destroyed |
   | A friendly target | Passes through |
-  | A solid with no `IDamageable` (wall or ground) | Is destroyed if `destroyOnWorld` |
+  | A solid with no `IDamageable` (wall or ground) | Bounces while it has `bounces` left, then is destroyed if `destroyOnWorld` |
   | A trigger | Ignored |
 
 - **Gotchas:**
@@ -407,7 +407,7 @@ Interactions to know about:
 
 | Script | Mechanic implemented in the stub | Depends on | Owner TODO |
 |---|---|---|---|
-| `YellowBoss` | Fires `1 + phase` reflectable orbs at the player per volley | Projectile (`orbPrefab` must have `reflectable = true`) | Bouncy orbs, juice |
+| `YellowBoss` | Each cycle: drifts to the player's other side, winds up (`onWindUp`, `CurrentAttack`), fires, rests. Phase 0 aimed orb, phase 1 adds a spread fan, phase 2 adds lobbed orbs. Only reflected orbs hurt it (they home back onto it). 8 HP | Projectile (`Projectile_YellowOrb`: reflectable, bouncy, homes on reflect), `Health.DamageFilter` | Art on `onWindUp`, playtest tuning |
 | `OrangeBoss` | Starts `startLead` ahead of the player and runs at scroll speed (stays on screen). `Stun(seconds)` stops it; touching it while stunned = "caught" (1 damage), then it sprints ahead to re-open the gap. Invulnerable otherwise. 3 HP = 3 catches | PlayerController, ShootableSwitch (via UnityEvent) | Harder laps per phase, bridges |
 | `RedBoss` | Sprays fire; `Rage` builds each cycle; at max it **overheats** (vulnerable for `overheatDuration`) | Projectile, `Health.Invulnerable` | Charge attack, rage from damage, UI via `RageFraction` |
 | `GreenBoss` | On fight start and each phase, steals the next ability in `stealOrder` (only if the player owns it) and uses its own copy; returns all on defeat or destroy | AbilityLoadout (own), `Game.Progress`, `AbilityStolen` / `AbilityReturned` | Real patterns, visuals |

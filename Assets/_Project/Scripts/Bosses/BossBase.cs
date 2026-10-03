@@ -123,7 +123,7 @@ namespace Roygbiv
         protected Projectile Fire(Projectile prefab, Vector2 direction, Vector2? from = null)
         {
             var p = Instantiate(prefab, from ?? (Vector2)transform.position, Quaternion.identity);
-            p.Launch(direction, Team);
+            p.Launch(direction, Team, transform);
             return p;
         }
 

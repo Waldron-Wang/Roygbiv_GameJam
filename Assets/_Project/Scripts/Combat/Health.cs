@@ -25,6 +25,9 @@ namespace Roygbiv
         /// <summary>Set by abilities/bosses for i-frames or armored phases.</summary>
         public bool Invulnerable { get; set; }
 
+        /// <summary>Optional veto checked on every hit: return false to ignore it (Yellow: only reflected orbs hurt).</summary>
+        public Func<DamageInfo, bool> DamageFilter { get; set; }
+
         public event Action<int, int> Changed;      // current, max
         public event Action<DamageInfo> Damaged;
         public event Action Died;
@@ -35,6 +38,7 @@ namespace Roygbiv
         {
             if (IsDead || Invulnerable || Time.time < invulnerableUntil) return false;
             if (!Combat.CanHurt(info.sourceTeam, team)) return false;
+            if (DamageFilter != null && !DamageFilter(info)) return false;
 
             Current = Mathf.Max(0, Current - info.amount);
             invulnerableUntil = Time.time + hitInvulnerability;
