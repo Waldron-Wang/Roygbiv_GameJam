@@ -327,10 +327,14 @@ namespace Roygbiv.EditorTools
                     motor.autoRunSpeed = 6f;
                     PrefabUtility.RecordPrefabInstancePropertyModifications(motor);
                     cam.GetComponent<CameraFollow>().autoScrollSpeed = 6f;
-                    boss.transform.position = new Vector3(4, -1.5f, 0);
-                    var sw = Block(env, "ShootableSwitch (stuns boss)", new Vector2(30, 1), new Vector2(0.6f, 0.6f), Color.white, id);
-                    var switchComp = sw.gameObject.AddComponent<ShootableSwitch>();
-                    UnityEventTools.AddFloatPersistentListener(switchComp.OnActivated, boss.GetComponent<OrangeBoss>().Stun, 2f);
+                    boss.transform.position = new Vector3(-3, -1.5f, 0); // OrangeBoss repositions itself on fight start
+                    // Switches float just above head height: jump + shoot (or jump + melee) to stun the boss.
+                    for (int i = 0; i < 6; i++)
+                    {
+                        var sw = Block(env, "ShootableSwitch (stuns boss)", new Vector2(8 + i * 22, -0.6f), new Vector2(0.6f, 0.6f), Color.white, id);
+                        var switchComp = sw.gameObject.AddComponent<ShootableSwitch>();
+                        UnityEventTools.AddFloatPersistentListener(switchComp.OnActivated, boss.GetComponent<OrangeBoss>().Stun, 2f);
+                    }
                     break;
 
                 case ColorId.Blue: // rising platformer, finish at the top

@@ -408,7 +408,7 @@ Interactions to know about:
 | Script | Mechanic implemented in the stub | Depends on | Owner TODO |
 |---|---|---|---|
 | `YellowBoss` | Fires `1 + phase` reflectable orbs at the player per volley | Projectile (`orbPrefab` must have `reflectable = true`) | Bouncy orbs, juice |
-| `OrangeBoss` | Runs right; `Stun(seconds)` stops it; touching it while stunned = "caught" (1 damage). Invulnerable otherwise. 3 HP = 3 catches | PlayerController, ShootableSwitch (via UnityEvent) | Chase pacing, bridges |
+| `OrangeBoss` | Starts `startLead` ahead of the player and runs at scroll speed (stays on screen). `Stun(seconds)` stops it; touching it while stunned = "caught" (1 damage), then it sprints ahead to re-open the gap. Invulnerable otherwise. 3 HP = 3 catches | PlayerController, ShootableSwitch (via UnityEvent) | Harder laps per phase, bridges |
 | `RedBoss` | Sprays fire; `Rage` builds each cycle; at max it **overheats** (vulnerable for `overheatDuration`) | Projectile, `Health.Invulnerable` | Charge attack, rage from damage, UI via `RageFraction` |
 | `GreenBoss` | On fight start and each phase, steals the next ability in `stealOrder` (only if the player owns it) and uses its own copy; returns all on defeat or destroy | AbilityLoadout (own), `Game.Progress`, `AbilityStolen` / `AbilityReturned` | Real patterns, visuals |
 | `BlueBoss` | A rising kill-trigger (invulnerable). The level is won at the top through `LevelTrigger(CompleteLevel)` | PlayerController | The climb itself |
@@ -452,7 +452,8 @@ Interactions to know about:
 
 #### `CameraFollow.cs`
 - **Purpose:** A smooth follow for `PlayerController.Instance`. If `autoScrollSpeed > 0`, the camera scrolls on its own and **kills the player if they fall off the left edge**.
-- **Gotchas:** Needs a camera tagged `MainCamera`. It's fine to replace with Cinemachine later, since nothing depends on this script.
+- **Auto-scroll:** On `Start` the camera snaps so the player is `autoScrollLead` units left of center, so they start on screen at any aspect ratio.
+- **Gotchas:** It's fine to replace with Cinemachine later, since nothing depends on this script.
 
 ### 3.8 Presentation (`Scripts/World`, `Scripts/Audio`, `Scripts/UI`, `Scripts/Debug`)
 
@@ -637,7 +638,7 @@ Environment        Ground / Walls / Platforms (BoxCollider2D + Recolorable) · K
 Player             prefab instance
 Boss_<Color>       prefab instance
 ```
-Variants: **Orange** has long ground, auto-run 6, auto-scroll 6, and a ShootableSwitch wired to `OrangeBoss.Stun(2)`.
+Variants: **Orange** has long ground, auto-run 6, auto-scroll 6, and six ShootableSwitches just above head height (jump + shoot) wired to `OrangeBoss.Stun(2)`. Keep `OrangeBoss.runSpeed` equal to the scroll speed.
 **Blue** is a vertical ledge climb with a Goal `LevelTrigger(CompleteLevel)` at the top.
 
 ### Other scenes
