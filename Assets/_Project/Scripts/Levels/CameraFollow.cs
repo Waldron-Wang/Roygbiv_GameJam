@@ -4,7 +4,8 @@ namespace Roygbiv
 {
     /// <summary>
     /// Minimal 2D follow camera. Set autoScrollSpeed > 0 for the Orange chase (the camera moves on its
-    /// own and the player dies if left behind). Swap for Cinemachine later if you want — nothing depends on it.
+    /// own and the player dies if left behind; ChaseDirector drives the speed there).
+    /// Swap for Cinemachine later if you want — only the Orange chase reads ScrollX / KillLineX.
     /// </summary>
     [RequireComponent(typeof(Camera))]
     public class CameraFollow : MonoBehaviour
@@ -14,13 +15,25 @@ namespace Roygbiv
         public float autoScrollSpeed;
         [Tooltip("Auto-scroll: how far (world units) the player starts left of the screen center.")]
         public float autoScrollLead = 4f;
+        [Tooltip("Auto-scroll: how far (world units) past the left screen edge the player may fall before dying.")]
+        public float leftBehindGrace = 1f;
 
         Camera cam;
         Vector3 velocity;
         float shakeAmplitude, shakeDuration, shakeLeft;
         Vector3 shakeOffset;
 
-        void Awake() => cam = GetComponent<Camera>();
+        /// <summary>Steady camera X (no shake). In auto-scroll this is the scroll position.</summary>
+        public float ScrollX { get; private set; }
+        public float HalfWidth => cam.orthographicSize * cam.aspect;
+        /// <summary>Auto-scroll: the player dies once they are left of this.</summary>
+        public float KillLineX => ScrollX - HalfWidth - leftBehindGrace;
+
+        void Awake()
+        {
+            cam = GetComponent<Camera>();
+            ScrollX = transform.position.x;
+        }
 
         void Start()
         {
@@ -30,6 +43,7 @@ namespace Roygbiv
             var p = player.transform.position;
             float x = autoScrollSpeed > 0f ? p.x + autoScrollLead : p.x + offset.x;
             transform.position = new Vector3(x, p.y + offset.y, transform.position.z);
+            ScrollX = x;
         }
 
         /// <summary>Jitters the view for a moment. A weaker shake never cuts a stronger one short.</summary>
@@ -46,6 +60,7 @@ namespace Roygbiv
         {
             transform.position -= shakeOffset; // follow from the steady position, not last frame's jitter
             Follow();
+            ScrollX = transform.position.x;
 
             shakeLeft = Mathf.Max(0f, shakeLeft - Time.deltaTime);
             shakeOffset = (Vector3)(Random.insideUnitCircle * CurrentShakeStrength);
@@ -60,7 +75,7 @@ namespace Roygbiv
             if (autoScrollSpeed > 0f)
             {
                 pos.x += autoScrollSpeed * Time.deltaTime;
-                if (player && player.transform.position.x < LeftEdge(pos.x) - 1f)
+                if (player && player.transform.position.x < pos.x - HalfWidth - leftBehindGrace)
                     player.Health.Kill();
                 if (player) pos.y = Mathf.SmoothDamp(pos.y, player.transform.position.y + offset.y, ref velocity.y, smoothTime);
                 transform.position = pos;
@@ -71,7 +86,5 @@ namespace Roygbiv
             var target = new Vector3(player.transform.position.x + offset.x, player.transform.position.y + offset.y, pos.z);
             transform.position = Vector3.SmoothDamp(pos, target, ref velocity, smoothTime);
         }
-
-        float LeftEdge(float centerX) => centerX - cam.orthographicSize * cam.aspect;
     }
 }

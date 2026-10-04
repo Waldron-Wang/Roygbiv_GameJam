@@ -83,8 +83,10 @@ There are two deliberate exceptions, so treat them with care:
 | `YellowBoss` … `VioletBoss` | BossBase (+ see each) | prefab only |
 | **`LevelController`** | BossBase, DialogueData, Game.Dialogue, GameEvents | LevelTrigger, PauseMenu, DebugHud, DebugCheats |
 | `LevelTrigger` | LevelController.Current, PlayerController | scenes |
-| `ShootableSwitch` | IDamageable | scenes (UnityEvent → anything) |
-| `CameraFollow` | PlayerController.Instance, `Camera.main` | scenes, HitFeedback (`Shake`) |
+| `ShootableSwitch` | IDamageable | scenes (UnityEvent → anything), CageTrap |
+| `CameraFollow` | PlayerController.Instance, `Camera.main` | scenes, HitFeedback (`Shake`), ChaseDirector |
+| Orange chase (`ChaseDirector`, `ChaseCourse`, `CageTrap`, `SpringPad`, `FlatSprite`) | CameraFollow, PlayerMotor, LevelController, OrangeBoss, ShootableSwitch, Breakable, Hazard | Level_Orange, OrangeBoss |
+| `Breakable`, `Hazard` | IDamageable / PlayerController | ChaseCourse |
 | `Recolorable` | Game.Colors | scenes, boss prefabs |
 | `SceneMusic` | Game.Audio | scenes |
 | UI (`DebugHud`, `DialogueView`, `PauseMenu`, `MainMenuScreen`, `HubScreen`, `EndingScreen`) | Game, GameEvents, LevelController, PlayerController | nothing (top of the stack) |
@@ -309,7 +311,7 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
 
 #### `Projectile.cs` — implements `IReflectable`
 - **Purpose:** Anything that flies: Light Shot, enemy orbs, fire.
-- **API:** `Launch(direction, team, shooter = null)`, `Arc(velocity, gravityScale)` (lobbed shots, call after `Launch`), `ScaleSpeed(multiplier)` (call after `Launch`), `Reflect(team, direction)`, `WasReflected`, `Return(team, direction, speed)` (shooter hits a reflected shot back; stops homing), `Rallies`. Public fields: `damage`, `speed`, `lifetime`, `reflectable`, `reflectSpeedMultiplier`, `reflectHomesOnShooter`, `destroyOnWorld`, `bounces`.
+- **API:** `Launch(direction, team, shooter = null)`, `Arc(velocity, gravityScale)` (lobbed shots, call after `Launch`), `ScaleSpeed(multiplier)` (call after `Launch`), `Reflect(team, direction)`, `WasReflected`, `Return(team, direction, speed)` (shooter hits a reflected shot back; stops homing), `Rallies`. Public fields: `damage`, `speed`, `lifetime`, `reflectable`, `reflectSpeedMultiplier`, `reflectHomesOnShooter`, `destroyOnWorld`, `bounces`, `shootable`.
 - **What it does on contact:**
 
   | Touches | Result |
@@ -317,7 +319,7 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
   | A non-trigger collider with an `IDamageable` it can hurt | Deals damage and is destroyed |
   | A friendly target | Passes through |
   | A solid with no `IDamageable` (wall or ground) | Bounces while it has `bounces` left, then is destroyed if `destroyOnWorld` |
-  | A trigger | Ignored |
+  | A trigger | Ignored, unless this shot is `shootable` and the trigger is an opposing projectile: both are destroyed (Orange firecrackers / barrels) |
 
 - **Gotchas:**
   - Projectiles use a **Dynamic** `Rigidbody2D` with gravity 0, so their triggers detect kinematic and static colliders.
@@ -338,7 +340,7 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
 
 #### `PlayerMotor.cs`
 - **Purpose:** Side-view platformer physics: run, variable jump, coyote time, jump buffer, fall gravity.
-- **API:** `SetInput(move, jumpPressed, jumpHeld)`, `Body`, `IsGrounded`, `FacingSign`, `Locked`, `ResetGravity()`, public tuning fields (`runSpeed`, `jumpVelocity`, …, `autoRunSpeed`).
+- **API:** `SetInput(move, jumpPressed, jumpHeld)`, `Launch(upVelocity)` (springs: full height whether or not jump is held), `Body`, `IsGrounded`, `FacingSign`, `Locked`, `ResetGravity()`, public tuning fields (`runSpeed`, `jumpVelocity`, …, `autoRunSpeed`).
 - **How it works:**
   - **Grounded:** any non-trigger contact whose normal has `y > 0.6`.
   - **Facing:** updates from horizontal input, unless `Locked`.
@@ -346,7 +348,7 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
 - **Gotchas:**
   - Horizontal velocity is steered toward the target speed every physics step, so knockback from `Health` is mostly absorbed.
   - Slopes steeper than about 53° don't count as ground.
-  - `autoRunSpeed > 0` ignores horizontal input (used in Orange).
+  - `autoRunSpeed > 0` ignores horizontal input (used in Orange, where `ChaseDirector` sets it every frame).
 
 #### `PlayerCombat.cs`
 - **Purpose:** The basic melee attack every player starts with. It reflects projectiles; that's the Yellow tutorial mechanic.
@@ -414,7 +416,7 @@ Interactions to know about:
 | Script | Mechanic implemented in the stub | Depends on | Owner TODO |
 |---|---|---|---|
 | `YellowBoss` | Each cycle: drifts to the player's other side, winds up (`onWindUp`, `CurrentAttack`), fires, rests. Phase 0 aimed orb, phase 1 adds a spread fan, phase 2 adds lobbed orbs. Phase 3 (finale) uses all three, faster, with mixed orb speeds (fast = small/white, slow = big/orange; aimed shots become a fast-to-slow line) and may swat reflected orbs back (`onSwat`). All of it is tuned per phase in the Inspector. Only reflected orbs hurt it (they home back onto it). 11 HP, thresholds 0.75 / 0.5 / 0.3 (3 / 3 / 2 / 3 hits) | Projectile (`Projectile_YellowOrb`: reflectable, bouncy, homes on reflect), `Health.DamageFilter` | Art on `onWindUp`, playtest tuning (hit feedback: `HitFeedback`) |
-| `OrangeBoss` | Starts `startLead` ahead of the player and runs at scroll speed (stays on screen). `Stun(seconds)` stops it; touching it while stunned = "caught" (1 damage), then it sprints ahead to re-open the gap. Invulnerable otherwise. 3 HP = 3 catches | PlayerController, ShootableSwitch (via UnityEvent) | Harder laps per phase, bridges |
+| `OrangeBoss` | Holds a spot `lead` right of the screen center (read from `ChaseDirector`), swaying forward/back (wider, faster per phase) and hopping. Invulnerable. A `CageTrap` landing on it traps it (`TryTrap`, `trapStunTime`); running into it while trapped = "caught" (1 damage), then it dashes back to its spot, passing through the player. Phase 1 lobs firecrackers at where the player will be (ground marker; jump, shoot down or punch back); phase 2 adds barrels. No attacks while a cage is on screen. 3 HP, thresholds 0.7 / 0.4 = a phase per catch | ChaseDirector, ChaseCourse, CageTrap, Projectile (`Projectile_Firecracker`, `Projectile_Barrel`) | Art on `onWindUp`, playtest tuning |
 | `RedBoss` | Sprays fire; `Rage` builds each cycle; at max it **overheats** (vulnerable for `overheatDuration`) | Projectile, `Health.Invulnerable` | Charge attack, rage from damage, UI via `RageFraction` |
 | `GreenBoss` | On fight start and each phase, steals the next ability in `stealOrder` (only if the player owns it) and uses its own copy; returns all on defeat or destroy | AbilityLoadout (own), `Game.Progress`, `AbilityStolen` / `AbilityReturned` | Real patterns, visuals |
 | `BlueBoss` | A rising kill-trigger (invulnerable). The level is won at the top through `LevelTrigger(CompleteLevel)` | PlayerController | The climb itself |
@@ -452,15 +454,21 @@ Interactions to know about:
 - **Gotchas:** Only reacts to colliders that have a `PlayerController` in a parent.
 
 #### `ShootableSwitch.cs` — implements `IDamageable` (Team.Neutral)
-- **Purpose:** Hit it with anything and it fires `onActivated`. Orange's level uses it to stun the boss and drop bridges.
+- **Purpose:** Hit it with anything and it fires `onActivated`. Orange's `CageTrap` uses one as the latch that drops the cage.
 - **API:** `OnActivated` (a UnityEvent, so you can wire it in the Inspector or from code).
 - **Gotchas:** Needs a **non-trigger** collider, because projectiles and hitboxes ignore triggers.
 
 #### `CameraFollow.cs`
 - **Purpose:** A smooth follow for `PlayerController.Instance`. If `autoScrollSpeed > 0`, the camera scrolls on its own and **kills the player if they fall off the left edge**.
 - **API:** `Shake(amplitude, duration)` jitters the view, fading out over `duration`. A weaker shake never cuts a stronger one short. The jitter is removed before following, so it doesn't disturb the smoothing or the auto-scroll kill check.
-- **Auto-scroll:** On `Start` the camera snaps so the player is `autoScrollLead` units left of center, so they start on screen at any aspect ratio.
-- **Gotchas:** It's fine to replace with Cinemachine later, since nothing depends on this script.
+- **Auto-scroll:** On `Start` the camera snaps so the player is `autoScrollLead` units left of center, so they start on screen at any aspect ratio. The player dies `leftBehindGrace` units past the left edge (`KillLineX`). `ScrollX` is the steady (unshaken) camera X.
+- **Gotchas:** It's fine to replace with Cinemachine later; only the Orange chase reads `ScrollX` / `HalfWidth` / `KillLineX`.
+
+#### Orange chase (`Levels/Chase`)
+- **`ChaseDirector`** — the one owner of scroll speed. Ramps from `startSpeed` to `maxSpeed` at a fixed `rampPerSecond` over the fight (boss phases don't affect it), and every frame writes it to `CameraFollow.autoScrollSpeed` and `PlayerMotor.autoRunSpeed`. **Don't set those two by hand in Orange.** Fairness: the player runs up to `maxCatchUp` faster while behind their home spot (a stumble costs a moment, not the run); a glow on the left edge warns as they near the kill line; falling `fallDeathDepth` below `groundY` kills (pits).
+- **`ChaseCourse`** — the endless track, built `buildAhead` past the right edge and destroyed once behind the left. Flat runs (`gapSecondsPerPhase`, in seconds × speed) alternate with obstacles from the weighted `obstacles` list, each unlocked at a boss phase: `Hurdle`, `Pit`, `CrateWall` (Breakable: shoot or melee it), `TallHurdle`, `HotBeam` (Hazard overhead: short-hop the hurdle under it), `SpringWall` (SpringPad throws you over a wall too tall to jump). Every `cageEverySeconds` a `CageTrap` gets a clear stretch. Pieces are copies of `blockTemplate` (gray until Orange is restored); hazards, crates, springs and cages keep their colors so they read.
+- **`CageTrap`** — a cage hangs over the track and its latch (a ShootableSwitch) hangs one boss-gap earlier. Shoot the latch and the cage drops (`dropTime`): within `captureRadius` of the boss → trapped; otherwise it crumples into a low pile you must jump. Shot travel + drop time mean the shot has to lead the boss.
+- **Setup:** menu **ROYGBIV > Upgrade Orange Chase (Level_Orange)** converts an older Orange scene (removes the fixed ground, bumps and switches; adds `Chase`; wires the boss prefab). Fresh skeleton builds already include it.
 
 ### 3.8 Presentation (`Scripts/World`, `Scripts/Audio`, `Scripts/UI`, `Scripts/Debug`)
 
@@ -647,7 +655,7 @@ Environment        Ground / Walls / Platforms (BoxCollider2D + Recolorable) · K
 Player             prefab instance
 Boss_<Color>       prefab instance
 ```
-Variants: **Orange** has long ground, auto-run 6, auto-scroll 6, and six ShootableSwitches just above head height (jump + shoot) wired to `OrangeBoss.Stun(2)`. Keep `OrangeBoss.runSpeed` equal to the scroll speed.
+Variants: **Orange** has no fixed ground: a `Chase` object (ChaseDirector + ChaseCourse + an inactive `BlockTemplate`) builds the endless track and drives the speed.
 **Blue** is a vertical ledge climb with a Goal `LevelTrigger(CompleteLevel)` at the top.
 
 ### Other scenes

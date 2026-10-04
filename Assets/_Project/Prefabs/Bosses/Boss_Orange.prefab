@@ -120,6 +120,7 @@ GameObject:
   - component: {fileID: 8310829615799394885}
   - component: {fileID: 155649809652687860}
   - component: {fileID: 90633008025871002}
+  - component: {fileID: 4971453595851798512}
   m_Layer: 0
   m_Name: Boss_Orange
   m_TagString: Untagged
@@ -246,6 +247,56 @@ MonoBehaviour:
   color: 1
   displayName: Orange Runner
   phaseThresholds:
-  - 0.66
-  - 0.33
-  runSpeed: 7.5
+  - 0.7
+  - 0.4
+  lead: 4
+  swayPerPhase:
+  - 1
+  - 1.5
+  - 2
+  swayPeriodPerPhase:
+  - 3.2
+  - 2.6
+  - 2
+  followRate: 8
+  rejoinRate: 12
+  hopHeight: 0.8
+  hopTime: 0.45
+  trapStunTime: 2.5
+  firecrackerPrefab: {fileID: 3258768884967064905, guid: 3e5c85b8ed50147b0bde8c2073bda40a, type: 3}
+  barrelPrefab: {fileID: 5684214600904172131, guid: 4ea858941cf0d48498bacf12879f4abf, type: 3}
+  attackIntervalPerPhase:
+  - 0
+  - 2.8
+  - 2.2
+  windUpTime: 0.5
+  onWindUp:
+    m_PersistentCalls:
+      m_Calls: []
+  firecrackersPerPhase: 000000000100000002000000i
+  firecrackerFlightTime: 1.1
+  firecrackerGravityScale: 1.5
+  firecrackerStagger: 0.35
+  firecrackerScatter: {x: -0.5, y: 1.5}
+  landingMarkerColor: {r: 1, g: 0.4, b: 0.1, a: 0.8}
+  barrelMinPhase: 2
+  barrelChance: 0.4
+  visual: {fileID: 0}
+--- !u!114 &4971453595851798512
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7160283962873006654}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bc9ed1c2e5de4c47b993472a076d7143, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.HitFeedback
+  visual: {fileID: 0}
+  flashColor: {r: 1, g: 1, b: 1, a: 1}
+  flashTime: 0.08
+  shakeAmplitude: 0.2
+  shakeTime: 0.25
+  cameraShake: 0.15

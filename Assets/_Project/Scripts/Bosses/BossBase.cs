@@ -128,5 +128,8 @@ namespace Roygbiv
         }
 
         protected static WaitForSeconds Wait(float seconds) => new(seconds);
+
+        /// <summary>Per-phase Inspector tuning: values[phase], or the last entry once phases run past the array.</summary>
+        protected static T PerPhase<T>(T[] values, int phase) => values[Mathf.Clamp(phase, 0, values.Length - 1)];
     }
 }

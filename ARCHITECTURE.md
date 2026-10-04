@@ -229,7 +229,7 @@ Helpers available to subclasses: `Player`, `AimDirection`, `Fire(...)`, `Wait(..
   - **Any script calls `LevelController.Current.Complete()`.**
 - `LevelTrigger` actions: `StartBoss` (arena door), `CompleteLevel`, `KillPlayer` (pits), plus a UnityEvent for anything else.
 - Genre-shifting is handled per level. Examples:
-  - Orange sets `PlayerMotor.autoRunSpeed` and `CameraFollow.autoScrollSpeed`.
+  - Orange has a `ChaseDirector` that drives `PlayerMotor.autoRunSpeed` and `CameraFollow.autoScrollSpeed`, and a `ChaseCourse` that builds an endless track.
   - Blue is a vertical layout.
   - Indigo uses input modifiers.
 
