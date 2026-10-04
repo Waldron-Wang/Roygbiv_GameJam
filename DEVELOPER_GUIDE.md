@@ -72,6 +72,7 @@ There are two deliberate exceptions, so treat them with care:
 | **`Health`** | IDamageable, Combat, `Rigidbody2D` | PlayerController, BossBase, abilities (i-frames), LevelTrigger, CameraFollow, DebugCheats |
 | `Hitbox` | IDamageable, IReflectable, DamageInfo | PlayerCombat, BlazeStrike, HeavySlam |
 | `Projectile` | IReflectable, IDamageable, Combat | LightShot, BossBase.Fire, all bosses with ranged attacks |
+| `HitFeedback` | Health, CameraFollow | boss prefabs |
 | `PlayerMotor` | `Rigidbody2D` | PlayerController |
 | `PlayerCombat` | Hitbox | PlayerController |
 | **`PlayerController`** | PlayerMotor, Health, PlayerCombat, AbilityLoadout, Game.Input, GameEvents | BossBase (`Player`), CameraFollow, LevelTrigger, OrangeBoss, BlueBoss, DebugHud, DebugCheats |
@@ -83,7 +84,7 @@ There are two deliberate exceptions, so treat them with care:
 | **`LevelController`** | BossBase, DialogueData, Game.Dialogue, GameEvents | LevelTrigger, PauseMenu, DebugHud, DebugCheats |
 | `LevelTrigger` | LevelController.Current, PlayerController | scenes |
 | `ShootableSwitch` | IDamageable | scenes (UnityEvent → anything) |
-| `CameraFollow` | PlayerController.Instance, `Camera.main` | scenes |
+| `CameraFollow` | PlayerController.Instance, `Camera.main` | scenes, HitFeedback (`Shake`) |
 | `Recolorable` | Game.Colors | scenes, boss prefabs |
 | `SceneMusic` | Game.Audio | scenes |
 | UI (`DebugHud`, `DialogueView`, `PauseMenu`, `MainMenuScreen`, `HubScreen`, `EndingScreen`) | Game, GameEvents, LevelController, PlayerController | nothing (top of the stack) |
@@ -179,7 +180,7 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
 
 #### `PlayerIntent.cs` — struct
 - **Purpose:** One frame of player intention, independent of the input device.
-- **Fields:** `move`, `jumpPressed/Held`, `attackPressed/Held/Released`, `shootPressed`, `dashPressed`, `confirmPressed`, `pausePressed`.
+- **Fields:** `move`, `jumpPressed/Held`, `attackPressed/Held/Released`, `shootPressed`, `aimPoint`/`hasAimPoint` (mouse world position; false on gamepad), `dashPressed`, `confirmPressed`, `pausePressed`.
 - **API:** `ClearGameplay()` zeroes everything except confirm and pause.
 - **Extend:** To add an action, add a field here, bind it in `InputReader`, clear it in `ClearGameplay()`, and read it in an ability or controller.
 
@@ -301,6 +302,11 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
 - **Gotchas:** **Save the hitbox GameObject inactive** in prefabs. `Open()` activates it and `Update` deactivates it.
   Facing is applied by the caller flipping `localPosition.x`.
 
+#### `HitFeedback.cs`
+- **Purpose:** Makes hits read. On `Health.Damaged` it flashes the sprites under `visual` to `flashColor`, jitters `visual`'s local position, and calls `CameraFollow.Shake`.
+- **Inspector:** `visual` (defaults to the child named `Visual`), `flashColor`, `flashTime`, `shakeAmplitude`, `shakeTime`, `cameraShake` (0 = no camera kick).
+- **Gotchas:** It only moves the visual child, never the body, so it's safe on bosses that move with `MovePosition`. On the Yellow boss prefab; `SkeletonBuilder` adds it to newly generated bosses.
+
 #### `Projectile.cs` — implements `IReflectable`
 - **Purpose:** Anything that flies: Light Shot, enemy orbs, fire.
 - **API:** `Launch(direction, team, shooter = null)`, `Arc(velocity, gravityScale)` (lobbed shots, call after `Launch`), `Reflect(team, direction)`, `WasReflected`. Public fields: `damage`, `speed`, `lifetime`, `reflectable`, `reflectSpeedMultiplier`, `reflectHomesOnShooter`, `destroyOnWorld`, `bounces`.
@@ -326,7 +332,7 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
   2. Passes it to `motor.SetInput(...)`.
   3. Calls `loadout.HandleInput(intent)`.
   4. If no ability consumed the input and attack was pressed, calls `combat.TryAttack(FacingSign)`.
-- **API:** static `Instance`, `Loadout`, plus all `IActor` members. `AimDirection` is up while holding up, otherwise the facing direction.
+- **API:** static `Instance`, `Loadout`, plus all `IActor` members. `AimDirection` points at the mouse on keyboard + mouse; on gamepad it is up while holding up, otherwise the facing direction.
 - **Raises:** `PlayerHealthChanged` (on `Start` and on every change), `PlayerDied`.
 - **Gotchas:** Assumes **one player per scene** (`Instance`). On death it locks the motor and stops reading input.
 
@@ -374,7 +380,7 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
 
 | Script | Color | Player trigger | Effect | Inspector |
 |---|---|---|---|---|
-| `LightShotAbility` | Yellow | `shootPressed` (C) | Spawns `projectilePrefab` along `AimDirection` | `projectilePrefab`, `spawnOffset`, `cooldown` |
+| `LightShotAbility` | Yellow | `shootPressed` (Left Click / C) | Spawns `projectilePrefab` along `AimDirection` | `projectilePrefab`, `spawnOffset`, `cooldown` |
 | `DashAbility` | Orange | `dashPressed` (Shift) | Locks movement, removes gravity, sets velocity to `facing * speed` for `duration`, gives i-frames | `speed`, `duration`, `invulnerableWhileDashing` |
 | `BlazeStrikeAbility` | Red | Hold attack ≥ `chargeTime`, then release | Opens a big hitbox; sets the hitbox team to the owner's team (so it works when stolen) | `strikeHitbox`, `chargeTime`, `activeTime`. Exposes `ChargeFraction` for UI/VFX |
 | `HeavySlamAbility` | Blue (tentative) | Down + attack while airborne | Locks movement and plunges until grounded, then opens a landing hitbox | `landingHitbox`, `slamSpeed`, `maxFallTime` |
@@ -407,7 +413,7 @@ Interactions to know about:
 
 | Script | Mechanic implemented in the stub | Depends on | Owner TODO |
 |---|---|---|---|
-| `YellowBoss` | Each cycle: drifts to the player's other side, winds up (`onWindUp`, `CurrentAttack`), fires, rests. Phase 0 aimed orb, phase 1 adds a spread fan, phase 2 adds lobbed orbs. Only reflected orbs hurt it (they home back onto it). 8 HP | Projectile (`Projectile_YellowOrb`: reflectable, bouncy, homes on reflect), `Health.DamageFilter` | Art on `onWindUp`, playtest tuning |
+| `YellowBoss` | Each cycle: drifts to the player's other side, winds up (`onWindUp`, `CurrentAttack`), fires, rests. Phase 0 aimed orb, phase 1 adds a spread fan, phase 2 adds lobbed orbs. Only reflected orbs hurt it (they home back onto it). 8 HP | Projectile (`Projectile_YellowOrb`: reflectable, bouncy, homes on reflect), `Health.DamageFilter` | Art on `onWindUp`, playtest tuning (hit feedback: `HitFeedback`) |
 | `OrangeBoss` | Starts `startLead` ahead of the player and runs at scroll speed (stays on screen). `Stun(seconds)` stops it; touching it while stunned = "caught" (1 damage), then it sprints ahead to re-open the gap. Invulnerable otherwise. 3 HP = 3 catches | PlayerController, ShootableSwitch (via UnityEvent) | Harder laps per phase, bridges |
 | `RedBoss` | Sprays fire; `Rage` builds each cycle; at max it **overheats** (vulnerable for `overheatDuration`) | Projectile, `Health.Invulnerable` | Charge attack, rage from damage, UI via `RageFraction` |
 | `GreenBoss` | On fight start and each phase, steals the next ability in `stealOrder` (only if the player owns it) and uses its own copy; returns all on defeat or destroy | AbilityLoadout (own), `Game.Progress`, `AbilityStolen` / `AbilityReturned` | Real patterns, visuals |
@@ -452,6 +458,7 @@ Interactions to know about:
 
 #### `CameraFollow.cs`
 - **Purpose:** A smooth follow for `PlayerController.Instance`. If `autoScrollSpeed > 0`, the camera scrolls on its own and **kills the player if they fall off the left edge**.
+- **API:** `Shake(amplitude, duration)` jitters the view, fading out over `duration`. A weaker shake never cuts a stronger one short. The jitter is removed before following, so it doesn't disturb the smoothing or the auto-scroll kill check.
 - **Auto-scroll:** On `Start` the camera snaps so the player is `autoScrollLead` units left of center, so they start on screen at any aspect ratio.
 - **Gotchas:** It's fine to replace with Cinemachine later, since nothing depends on this script.
 
