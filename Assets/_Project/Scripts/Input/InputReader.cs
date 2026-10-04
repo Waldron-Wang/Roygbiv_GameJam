@@ -48,7 +48,7 @@ namespace Roygbiv
                 .With("Left", "<Keyboard>/leftArrow").With("Right", "<Keyboard>/rightArrow");
             move.AddBinding("<Gamepad>/leftStick");
 
-            jump = Button("Jump", "<Keyboard>/z", "<Keyboard>/space", "<Gamepad>/buttonSouth");
+            jump = Button("Jump", "<Keyboard>/space", "<Gamepad>/buttonSouth");
             attack = Button("Attack", "<Keyboard>/x", "<Gamepad>/buttonWest");
             shoot = Button("Shoot", "<Keyboard>/c", "<Gamepad>/buttonNorth");
             dash = Button("Dash", "<Keyboard>/leftShift", "<Gamepad>/rightShoulder");
