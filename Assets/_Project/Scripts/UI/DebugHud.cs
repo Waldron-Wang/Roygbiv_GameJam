@@ -57,9 +57,17 @@ namespace Roygbiv
             if (boss && boss.Health)
             {
                 var h = boss.Health;
+                var centered = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, richText = true };
                 GUI.Label(new Rect(Screen.width / 2f - 150, 10, 300, 25),
-                    $"{boss.DisplayName}  {h.Current}/{h.Max}  (phase {boss.Phase + 1})",
-                    new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter });
+                    $"{boss.DisplayName}  {h.Current}/{h.Max}  (phase {boss.Phase + 1})", centered);
+
+                if (boss is RedBoss red)
+                {
+                    int filled = Mathf.RoundToInt(red.RageFraction * 20f);
+                    string bar = red.Overheated ? "<color=#ffffff>OVERHEATED</color>"
+                        : $"<color=#ff5020>{new string('|', filled)}</color>{new string('.', 20 - filled)}";
+                    GUI.Label(new Rect(Screen.width / 2f - 150, 32, 300, 25), $"Rage  {bar}", centered);
+                }
             }
         }
     }

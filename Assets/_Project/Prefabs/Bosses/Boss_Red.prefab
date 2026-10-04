@@ -1,5 +1,37 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &1846203957301846201
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6620194837501938264}
+  m_Layer: 0
+  m_Name: Pose
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6620194837501938264
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1846203957301846201}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: -1, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 5513618351968859699}
+  m_Father: {fileID: 2769401224620310127}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &8579944215293745338
 GameObject:
   m_ObjectHideFlags: 0
@@ -27,11 +59,11 @@ Transform:
   m_GameObject: {fileID: 8579944215293745338}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 1, z: 0}
   m_LocalScale: {x: 2, y: 2, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2769401224620310127}
+  m_Father: {fileID: 6620194837501938264}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &2879620530298187345
 SpriteRenderer:
@@ -120,6 +152,7 @@ GameObject:
   - component: {fileID: 4392032322717701847}
   - component: {fileID: 701815958804010825}
   - component: {fileID: 5437492426728211674}
+  - component: {fileID: 3398571046629184735}
   m_Layer: 0
   m_Name: Boss_Red
   m_TagString: Untagged
@@ -140,7 +173,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 5513618351968859699}
+  - {fileID: 6620194837501938264}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!50 &4153081455491274540
@@ -229,7 +262,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.Health
   team: 2
-  maxHealth: 10
+  maxHealth: 15
   hitInvulnerability: 0.2
 --- !u!114 &5437492426728211674
 MonoBehaviour:
@@ -246,9 +279,112 @@ MonoBehaviour:
   color: 0
   displayName: Red Rager
   phaseThresholds:
-  - 0.66
-  - 0.33
-  firePrefab: {fileID: 8066445332528177978, guid: 5325d2bc32a8b421b98c9c1653e8fbab, type: 3}
-  rageMax: 100
-  ragePerSecond: 12
+  - 0.67
+  - 0.34
+  rageMax: 150
+  ragePerSecondPerPhase:
+  - 2.5
+  - 3
+  - 3.5
+  rageFromMelee: 7
+  rageFromShot: 1.5
+  shotRageCooldown: 0.6
+  firePrefab: {fileID: 3258768884967064905, guid: da4ec8f290f4471c9cb4d6de7b6e1dcc, type: 3}
+  fireColor: {r: 1, g: 0.35, b: 0.05, a: 1}
+  spreadCountPerPhase: 030000000500000005000000i
+  spreadAngle: 50
+  arcCountPerPhase: 020000000300000004000000i
+  arcLandingSpacing: 2.5
+  arcFlightTime: 1.1
+  arcGravityScale: 1.5
+  arcStagger: 0.2
+  arcBurnTimePerPhase:
+  - 0
+  - 2
+  - 2.5
+  burnPatchWidth: 1.4
+  burnPatchHeight: 0.6
+  groundWavesPerPhase: 010000000100000002000000i
+  waveGap: 0.7
+  pillarSpacing: 1.1
+  pillarStepTime: 0.08
+  pillarHeight: 1.3
+  pillarWarnTime: 0.45
+  pillarBurnTime: 0.35
+  firstChargeDelay: 9
+  chargeCooldownPerPhase:
+  - 13
+  - 11
+  - 9
+  minCyclesBetweenCharges: 2
+  swoopTime: 0.9
+  chargeWindUpPerPhase:
+  - 1.1
+  - 0.9
+  - 0.75
+  chargeSpeedPerPhase:
+  - 15
+  - 17
+  - 19
+  rushesPerPhase: 010000000100000002000000i
+  turnAroundTime: 0.45
+  skidDistance: 1.8
+  pantTime: 1.8
+  chargeDamage: 1
+  chargeKnockback: 9
+  chargePathColor: {r: 1, g: 0.15, b: 0.1, a: 0.6}
+  overheatTellTime: 0.9
+  fallGravity: 35
   overheatDuration: 3
+  maxHitsPerOverheat: 4
+  shakeOffTime: 0.5
+  onOverheat:
+    m_PersistentCalls:
+      m_Calls: []
+  arenaMinX: -16
+  arenaMaxX: 16
+  groundY: -2.5
+  floorMinX: -19.5
+  floorMaxX: 19.5
+  hoverY: 4.5
+  sideOffset: 6
+  driftTimePerPhase:
+  - 1
+  - 0.85
+  - 0.7
+  windUpTimePerPhase:
+  - 0.7
+  - 0.6
+  - 0.5
+  restTimePerPhase:
+  - 1.4
+  - 1.1
+  - 0.8
+  onWindUp:
+    m_PersistentCalls:
+      m_Calls: []
+  pose: {fileID: 6620194837501938264}
+  heatColor: {r: 1, g: 0.3, b: 0.05, a: 1}
+  whiteHot: {r: 1, g: 0.95, b: 0.75, a: 1}
+  burntColor: {r: 0.12, g: 0.1, b: 0.1, a: 1}
+  smokeColor: {r: 0.3, g: 0.28, b: 0.28, a: 0.8}
+  steamColor: {r: 1, g: 1, b: 1, a: 0.55}
+  dustColor: {r: 0.6, g: 0.55, b: 0.5, a: 0.6}
+--- !u!114 &3398571046629184735
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8718257850472805070}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bc9ed1c2e5de4c47b993472a076d7143, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.HitFeedback
+  visual: {fileID: 5513618351968859699}
+  flashColor: {r: 1, g: 1, b: 1, a: 1}
+  flashTime: 0.08
+  shakeAmplitude: 0.2
+  shakeTime: 0.25
+  cameraShake: 0.15

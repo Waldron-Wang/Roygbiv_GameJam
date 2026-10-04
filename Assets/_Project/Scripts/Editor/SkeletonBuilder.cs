@@ -40,7 +40,7 @@ namespace Roygbiv.EditorTools
         {
             [ColorId.Yellow] = new ColorSpec { name = "Yellow", emotion = "Warmth, joy, happiness", boss = "Sun-Construct", tint = new Color(1f, .85f, .15f), ability = AbilityId.LightShot, bossHp = 11, bossType = typeof(YellowBoss) },
             [ColorId.Orange] = new ColorSpec { name = "Orange", emotion = "Excitement, enthusiasm, youth", boss = "Orange Runner", tint = new Color(1f, .55f, .1f), ability = AbilityId.Dash, bossHp = 3, bossType = typeof(OrangeBoss) },
-            [ColorId.Red] = new ColorSpec { name = "Red", emotion = "Hot-blooded, anger", boss = "Red Rager", tint = new Color(.9f, .15f, .15f), ability = AbilityId.BlazeStrike, bossHp = 10, bossType = typeof(RedBoss) },
+            [ColorId.Red] = new ColorSpec { name = "Red", emotion = "Hot-blooded, anger", boss = "Red Rager", tint = new Color(.9f, .15f, .15f), ability = AbilityId.BlazeStrike, bossHp = 12, bossType = typeof(RedBoss) },
             [ColorId.Green] = new ColorSpec { name = "Green", emotion = "Envy, disgust", boss = "Bramble Thief", tint = new Color(.2f, .75f, .3f), ability = AbilityId.None, bossHp = 12, bossType = typeof(GreenBoss) },
             [ColorId.Blue] = new ColorSpec { name = "Blue", emotion = "Loneliness, sadness, melancholy", boss = "Rising Gloom", tint = new Color(.2f, .4f, .95f), ability = AbilityId.HeavySlam, bossHp = 1, bossType = typeof(BlueBoss) },
             [ColorId.Indigo] = new ColorSpec { name = "Indigo", emotion = "Calm, perceptiveness, spirituality", boss = "Indigo Seer", tint = new Color(.3f, .2f, .65f), ability = AbilityId.None, bossHp = 12, bossType = typeof(IndigoBoss) },
@@ -257,6 +257,7 @@ namespace Roygbiv.EditorTools
                 foreach (var field in new[] { "orbPrefab", "firePrefab", "projectilePrefab" })
                     if (new SerializedObject(boss).FindProperty(field) != null) Set(boss, field, orb);
                 if (id == ColorId.Orange) SetUpOrangeBoss((OrangeBoss)boss);
+                if (id == ColorId.Red) SetUpRedBoss((RedBoss)boss);
                 return go;
             });
         }
@@ -481,6 +482,25 @@ namespace Roygbiv.EditorTools
             Set(boss, "barrelPrefab", AssetDatabase.LoadAssetAtPath<Projectile>($"{Prefabs}/Projectile_Barrel.prefab"));
             // 3 HP = 3 catches, one phase per catch. 2/3 and 1/3 sit just ABOVE the default 0.66 / 0.33.
             SetFloats(boss, "phaseThresholds", 0.7f, 0.4f);
+        }
+
+        static void SetUpRedBoss(RedBoss boss)
+        {
+            // Fire is dodged, not punched back.
+            Set(boss, "firePrefab", MakeProjectile("Projectile_Fireball", new Color(1f, .4f, .08f), 0.55f, 9f, false));
+
+            // The procedural animation squashes and leans a Pose whose origin is the feet, so it reads as weight.
+            var visual = boss.transform.Find("Visual");
+            var pose = new GameObject("Pose").transform;
+            pose.SetParent(boss.transform, false);
+            pose.localPosition = new Vector3(0f, -1f, 0f);
+            visual.SetParent(pose, false);
+            visual.localPosition = new Vector3(0f, 1f, 0f);
+            Set(boss, "pose", pose);
+            Set(boss.GetComponent<HitFeedback>(), "visual", visual); // no longer a direct child, so it can't find it by name
+
+            // 12 HP, 4 hits per overheat: one phase per overheat. 8/12 and 4/12 sit just BELOW 0.67 / 0.34.
+            SetFloats(boss, "phaseThresholds", 0.67f, 0.34f);
         }
 
         static void MakeOrangeChase(Color tint)

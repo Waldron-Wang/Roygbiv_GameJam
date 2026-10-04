@@ -307,7 +307,7 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
 #### `HitFeedback.cs`
 - **Purpose:** Makes hits read. On `Health.Damaged` it flashes the sprites under `visual` to `flashColor`, jitters `visual`'s local position, and calls `CameraFollow.Shake`.
 - **Inspector:** `visual` (defaults to the child named `Visual`), `flashColor`, `flashTime`, `shakeAmplitude`, `shakeTime`, `cameraShake` (0 = no camera kick).
-- **Gotchas:** It only moves the visual child, never the body, so it's safe on bosses that move with `MovePosition`. On the Yellow boss prefab; `SkeletonBuilder` adds it to newly generated bosses.
+- **Gotchas:** It only moves the visual child, never the body, so it's safe on bosses that move with `MovePosition`. On the Yellow and Red boss prefabs; `SkeletonBuilder` adds it to newly generated bosses. If `Visual` isn't a direct child (Red nests it under `Pose`), set `visual` by hand.
 
 #### `Projectile.cs` — implements `IReflectable`
 - **Purpose:** Anything that flies: Light Shot, enemy orbs, fire.
@@ -417,7 +417,7 @@ Interactions to know about:
 |---|---|---|---|
 | `YellowBoss` | Each cycle: drifts to the player's other side, winds up (`onWindUp`, `CurrentAttack`), fires, rests. Phase 0 aimed orb, phase 1 adds a spread fan, phase 2 adds lobbed orbs. Phase 3 (finale) uses all three, faster, with mixed orb speeds (fast = small/white, slow = big/orange; aimed shots become a fast-to-slow line) and may swat reflected orbs back (`onSwat`). All of it is tuned per phase in the Inspector. Only reflected orbs hurt it (they home back onto it). 11 HP, thresholds 0.75 / 0.5 / 0.3 (3 / 3 / 2 / 3 hits) | Projectile (`Projectile_YellowOrb`: reflectable, bouncy, homes on reflect), `Health.DamageFilter` | Art on `onWindUp`, playtest tuning (hit feedback: `HitFeedback`) |
 | `OrangeBoss` | Holds a spot `lead` right of the screen center (read from `ChaseDirector`), swaying forward/back (wider, faster per phase) and hopping. Invulnerable. A `CageTrap` landing on it traps it (`TryTrap`, `trapStunTime`); running into it while trapped = "caught" (1 damage), then it dashes back to its spot, passing through the player. Phase 1 lobs firecrackers at where the player will be (ground marker; jump, shoot down or punch back); phase 2 adds barrels. No attacks while a cage is on screen. 3 HP, thresholds 0.7 / 0.4 = a phase per catch | ChaseDirector, ChaseCourse, CageTrap, Projectile (`Projectile_Firecracker`, `Projectile_Barrel`) | Art on `onWindUp`, playtest tuning |
-| `RedBoss` | Sprays fire; `Rage` builds each cycle; at max it **overheats** (vulnerable for `overheatDuration`) | Projectile, `Health.Invulnerable` | Charge attack, rage from damage, UI via `RageFraction` |
+| `RedBoss` | Flies overhead, **armored** (`Health.DamageFilter` rejects every hit and turns it into rage: melee `rageFromMelee`, Light Shot `rageFromShot` at most once per `shotRageCooldown`) while `Rage` also climbs slowly on its own. Each cycle: drift → wind up → Spread fan / Arc lobs (warning strip; phase 1+ leave fire) / Ground fire wave (phase 1+, jump it). Every `chargeCooldownPerPhase` it **charges** instead: lands at the far end, winds up (path lit), rushes the arena (`ChargeHitbox`, jump or dash through), skids, then **pants** (`pantTime`), the opening to punch it for rage; phase 2 rushes back first. At max rage it **overheats**: stops, smokes, flashes, falls, lies exposed for `overheatDuration` or `maxHitsPerOverheat` hits. Its body doesn't collide with the player. All animation is procedural on the `Pose` child (`CurrentState`), with `FirePatch` (ground fire / markers) and `HeatPuff` (smoke, steam, dust) as placeholder FX. 12 HP, thresholds 0.67 / 0.34 = one phase per overheat | Projectile (`Projectile_Fireball`), Hitbox, Hazard, FlatSprite, `Health.DamageFilter` | Art on `onWindUp` / `onOverheat`, playtest tuning |
 | `GreenBoss` | On fight start and each phase, steals the next ability in `stealOrder` (only if the player owns it) and uses its own copy; returns all on defeat or destroy | AbilityLoadout (own), `Game.Progress`, `AbilityStolen` / `AbilityReturned` | Real patterns, visuals |
 | `BlueBoss` | A rising kill-trigger (invulnerable). The level is won at the top through `LevelTrigger(CompleteLevel)` | PlayerController | The climb itself |
 | `IndigoBoss` | Phase 1 inverts horizontal input; phase 2 swaps jump and attack; cleans up on defeat or destroy | `Game.Input`, InputModifiers | Visual disorientation (VFX) |
@@ -640,6 +640,8 @@ Player                      Rigidbody2D (Dynamic, gravity 3, freeze rot, interpo
 ```
 Boss_X        Rigidbody2D (Kinematic) · BoxCollider2D 2×2 (non-trigger hurtbox) · Health(Enemy) · XBoss
 ├── Visual    SpriteRenderer · Recolorable(X)   ← recolors when the boss's color is restored
+├── (Red only) Pose → Visual: Pose's origin is the feet, so the procedural squash / lean pivot there;
+│             HitFeedback.visual points at the nested Visual
 └── (Green only) StolenAbilities: LightShot · Dash · BlazeStrike(+hitbox)   + AbilityLoadout(sync ✗) on root
 ```
 Blue is different: its root collider is a 30×1 **trigger** (the rising hazard).
