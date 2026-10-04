@@ -237,9 +237,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fa299328e65a3444b9b67d8a551ce489, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.PlayerMotor
-  runSpeed: 7
+  runSpeed: 10
   groundAcceleration: 70
-  airAcceleration: 40
+  airAcceleration: 30
   jumpVelocity: 13
   coyoteTime: 0.1
   jumpBufferTime: 0.12
