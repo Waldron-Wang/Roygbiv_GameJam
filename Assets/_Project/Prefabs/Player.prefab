@@ -112,6 +112,7 @@ GameObject:
   - component: {fileID: 6672709030874444384}
   - component: {fileID: 7944926118124775745}
   - component: {fileID: 1705274042657021578}
+  - component: {fileID: 8185696262344408519}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -301,6 +302,25 @@ MonoBehaviour:
   animator: {fileID: 0}
   sprite: {fileID: 0}
   artFacesLeft: 0
+--- !u!114 &8185696262344408519
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1435134940357129603}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ddb583bb7b520f64eb9d8b997e3f69b1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.HitFeedbackPlayer
+  visual: {fileID: 0}
+  flashColor: {r: 1, g: 1, b: 1, a: 1}
+  flashTime: 0.02
+  blinkDuration: 1
+  blinkInterval: 0.2
+  cameraShake: 0.05
+  cameraShakeTime: 0.25
 --- !u!1 &3063216648248826422
 GameObject:
   m_ObjectHideFlags: 0
