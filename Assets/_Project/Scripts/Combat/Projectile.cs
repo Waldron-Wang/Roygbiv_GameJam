@@ -31,6 +31,8 @@ namespace Roygbiv
         public Team Team => team;
         public bool CanBeReflected => reflectable;
         public bool WasReflected { get; private set; }
+        /// <summary>How many times the shooter has hit this orb back after a reflect (Yellow rallies).</summary>
+        public int Rallies { get; private set; }
 
         void Awake()
         {
@@ -55,6 +57,24 @@ namespace Roygbiv
         {
             rb.gravityScale = gravityScale;
             rb.linearVelocity = velocity;
+        }
+
+        /// <summary>Call after Launch: scales this shot's speed (and its reflected speed with it).</summary>
+        public void ScaleSpeed(float multiplier)
+        {
+            speed *= multiplier;
+            rb.linearVelocity *= multiplier;
+        }
+
+        /// <summary>The shooter hits a reflected shot back: it stops homing and flies straight at `direction`.</summary>
+        public void Return(Team newTeam, Vector2 direction, float returnSpeed)
+        {
+            team = newTeam;
+            WasReflected = false;
+            Rallies++;
+            rb.gravityScale = 0f;
+            rb.linearVelocity = direction.normalized * returnSpeed;
+            dieAt = Time.time + lifetime;
         }
 
         public void Reflect(Team newTeam, Vector2 direction)

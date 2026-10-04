@@ -309,7 +309,7 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
 
 #### `Projectile.cs` — implements `IReflectable`
 - **Purpose:** Anything that flies: Light Shot, enemy orbs, fire.
-- **API:** `Launch(direction, team, shooter = null)`, `Arc(velocity, gravityScale)` (lobbed shots, call after `Launch`), `Reflect(team, direction)`, `WasReflected`. Public fields: `damage`, `speed`, `lifetime`, `reflectable`, `reflectSpeedMultiplier`, `reflectHomesOnShooter`, `destroyOnWorld`, `bounces`.
+- **API:** `Launch(direction, team, shooter = null)`, `Arc(velocity, gravityScale)` (lobbed shots, call after `Launch`), `ScaleSpeed(multiplier)` (call after `Launch`), `Reflect(team, direction)`, `WasReflected`, `Return(team, direction, speed)` (shooter hits a reflected shot back; stops homing), `Rallies`. Public fields: `damage`, `speed`, `lifetime`, `reflectable`, `reflectSpeedMultiplier`, `reflectHomesOnShooter`, `destroyOnWorld`, `bounces`.
 - **What it does on contact:**
 
   | Touches | Result |
@@ -413,7 +413,7 @@ Interactions to know about:
 
 | Script | Mechanic implemented in the stub | Depends on | Owner TODO |
 |---|---|---|---|
-| `YellowBoss` | Each cycle: drifts to the player's other side, winds up (`onWindUp`, `CurrentAttack`), fires, rests. Phase 0 aimed orb, phase 1 adds a spread fan, phase 2 adds lobbed orbs. Only reflected orbs hurt it (they home back onto it). 8 HP | Projectile (`Projectile_YellowOrb`: reflectable, bouncy, homes on reflect), `Health.DamageFilter` | Art on `onWindUp`, playtest tuning (hit feedback: `HitFeedback`) |
+| `YellowBoss` | Each cycle: drifts to the player's other side, winds up (`onWindUp`, `CurrentAttack`), fires, rests. Phase 0 aimed orb, phase 1 adds a spread fan, phase 2 adds lobbed orbs. Phase 3 (finale) uses all three, faster, with mixed orb speeds (fast = small/white, slow = big/orange; aimed shots become a fast-to-slow line) and may swat reflected orbs back (`onSwat`). All of it is tuned per phase in the Inspector. Only reflected orbs hurt it (they home back onto it). 11 HP, thresholds 0.75 / 0.5 / 0.3 (3 / 3 / 2 / 3 hits) | Projectile (`Projectile_YellowOrb`: reflectable, bouncy, homes on reflect), `Health.DamageFilter` | Art on `onWindUp`, playtest tuning (hit feedback: `HitFeedback`) |
 | `OrangeBoss` | Starts `startLead` ahead of the player and runs at scroll speed (stays on screen). `Stun(seconds)` stops it; touching it while stunned = "caught" (1 damage), then it sprints ahead to re-open the gap. Invulnerable otherwise. 3 HP = 3 catches | PlayerController, ShootableSwitch (via UnityEvent) | Harder laps per phase, bridges |
 | `RedBoss` | Sprays fire; `Rage` builds each cycle; at max it **overheats** (vulnerable for `overheatDuration`) | Projectile, `Health.Invulnerable` | Charge attack, rage from damage, UI via `RageFraction` |
 | `GreenBoss` | On fight start and each phase, steals the next ability in `stealOrder` (only if the player owns it) and uses its own copy; returns all on defeat or destroy | AbilityLoadout (own), `Game.Progress`, `AbilityStolen` / `AbilityReturned` | Real patterns, visuals |
@@ -570,6 +570,8 @@ YellowBoss.RunPhase → Fire(orb) → Projectile.Launch(dir, Enemy)
 Player presses X → melee Hitbox opens (reflectsProjectiles = true)
   → Hitbox sees IReflectable → Projectile.Reflect(Player, away from player)
   → orb now Team.Player, faster → hits boss body → Health.TakeDamage
+  (phase 3: YellowBoss.FixedUpdate may catch it within swatRadius first
+   → Projectile.Return(Enemy, at player) → player must parry again)
 ```
 
 ### 5.4 Winning a level → reward → next
