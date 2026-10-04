@@ -29,8 +29,13 @@ namespace Roygbiv
         {
             get
             {
-                var m = Game.Input.Intent.move;
-                return m.y > 0.5f ? Vector2.up : new Vector2(FacingSign, 0f);
+                var intent = Game.Input.Intent;
+                if (intent.hasAimPoint)
+                {
+                    var toMouse = intent.aimPoint - (Vector2)transform.position;
+                    if (toMouse.sqrMagnitude > 0.0001f) return toMouse.normalized;
+                }
+                return intent.move.y > 0.5f ? Vector2.up : new Vector2(FacingSign, 0f);
             }
         }
 

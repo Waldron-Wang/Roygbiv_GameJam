@@ -233,6 +233,7 @@ namespace Roygbiv.EditorTools
 
                 var visual = Visual(go.transform, square, s.tint, new Vector2(2f, 2f), 8);
                 Set(visual.gameObject.AddComponent<Recolorable>(), "color", id);
+                go.AddComponent<HitFeedback>();
 
                 if (id == ColorId.Blue) // rising hazard: a wide kill-trigger under the player
                 {

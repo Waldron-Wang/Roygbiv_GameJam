@@ -12,7 +12,7 @@ namespace Roygbiv
     ///   Move    WASD / Arrows / left stick
     ///   Jump    Z / Space / A(south)
     ///   Attack  X / X(west)           (hold + release = Blaze Strike)
-    ///   Shoot   C / Y(north)          (Light Shot)
+    ///   Shoot   Left Click / C / Y(north)   (Light Shot; aims at the mouse unless fired from a gamepad)
     ///   Dash    Left Shift / RB
     ///   Pause   Esc / Start
     /// </summary>
@@ -50,7 +50,7 @@ namespace Roygbiv
 
             jump = Button("Jump", "<Keyboard>/z", "<Keyboard>/space", "<Gamepad>/buttonSouth");
             attack = Button("Attack", "<Keyboard>/x", "<Gamepad>/buttonWest");
-            shoot = Button("Shoot", "<Keyboard>/c", "<Gamepad>/buttonNorth");
+            shoot = Button("Shoot", "<Mouse>/leftButton", "<Keyboard>/c", "<Gamepad>/buttonNorth");
             dash = Button("Dash", "<Keyboard>/leftShift", "<Gamepad>/rightShoulder");
             confirm = Button("Confirm", "<Keyboard>/enter", "<Keyboard>/z", "<Keyboard>/x", "<Gamepad>/buttonSouth");
             pause = Button("Pause", "<Keyboard>/escape", "<Gamepad>/start");
@@ -78,10 +78,22 @@ namespace Roygbiv
                 confirmPressed = confirm.WasPressedThisFrame(),
                 pausePressed = pause.WasPressedThisFrame(),
             };
+            ReadMouseAim(ref i);
 
             if (!GameplayEnabled) i.ClearGameplay();
             foreach (var m in modifiers) i = m.Modify(i);
             Intent = i;
+        }
+
+        void ReadMouseAim(ref PlayerIntent i)
+        {
+            var mouse = Mouse.current;
+            var cam = Camera.main;
+            if (mouse == null || cam == null || shoot.activeControl?.device is Gamepad) return;
+
+            var screen = mouse.position.ReadValue();
+            i.aimPoint = cam.ScreenToWorldPoint(new Vector3(screen.x, screen.y, -cam.transform.position.z));
+            i.hasAimPoint = true;
         }
 
         static InputAction Button(string name, params string[] bindings)

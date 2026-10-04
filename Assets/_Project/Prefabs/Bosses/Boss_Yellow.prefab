@@ -120,6 +120,7 @@ GameObject:
   - component: {fileID: 8726121433984538414}
   - component: {fileID: 6907012792102613319}
   - component: {fileID: 3330547317606462125}
+  - component: {fileID: 5172839461027384615}
   m_Layer: 0
   m_Name: Boss_Yellow
   m_TagString: Untagged
@@ -249,3 +250,21 @@ MonoBehaviour:
   - 0.7
   - 0.35
   orbPrefab: {fileID: 8066445332528177978, guid: f2a4236f4ba54db2bf116aa8935ae13b, type: 3}
+--- !u!114 &5172839461027384615
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4841198728005860265}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bc9ed1c2e5de4c47b993472a076d7143, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.HitFeedback
+  visual: {fileID: 0}
+  flashColor: {r: 1, g: 1, b: 1, a: 1}
+  flashTime: 0.08
+  shakeAmplitude: 0.2
+  shakeTime: 0.25
+  cameraShake: 0.15

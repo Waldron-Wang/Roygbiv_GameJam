@@ -16,6 +16,11 @@ namespace Roygbiv
         public bool shootPressed;
         public bool dashPressed;
 
+        /// <summary>World-space point under the mouse. Only valid when hasAimPoint (keyboard + mouse);
+        /// on gamepad the player aims with move + facing instead.</summary>
+        public Vector2 aimPoint;
+        public bool hasAimPoint;
+
         // UI-level (still delivered while gameplay is blocked)
         public bool confirmPressed;
         public bool pausePressed;

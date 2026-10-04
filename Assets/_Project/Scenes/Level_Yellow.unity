@@ -626,6 +626,7 @@ MonoBehaviour:
   offset: {x: 0, y: 1.5}
   smoothTime: 0.15
   autoScrollSpeed: 0
+  autoScrollLead: 4
 --- !u!81 &930186448
 AudioListener:
   m_ObjectHideFlags: 0
@@ -1084,7 +1085,7 @@ Transform:
   m_GameObject: {fileID: 1556603222}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 6, y: 0.5, z: 0}
+  m_LocalPosition: {x: 6, y: -0.06999999, z: 0}
   m_LocalScale: {x: 4, y: 0.5, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1238,7 +1239,7 @@ Transform:
   m_GameObject: {fileID: 2114864865}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -6, y: 0.5, z: 0}
+  m_LocalPosition: {x: -6, y: -0.07, z: 0}
   m_LocalScale: {x: 4, y: 0.5, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

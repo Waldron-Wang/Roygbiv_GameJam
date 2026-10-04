@@ -17,6 +17,8 @@ namespace Roygbiv
 
         Camera cam;
         Vector3 velocity;
+        float shakeAmplitude, shakeDuration, shakeLeft;
+        Vector3 shakeOffset;
 
         void Awake() => cam = GetComponent<Camera>();
 
@@ -30,7 +32,27 @@ namespace Roygbiv
             transform.position = new Vector3(x, p.y + offset.y, transform.position.z);
         }
 
+        /// <summary>Jitters the view for a moment. A weaker shake never cuts a stronger one short.</summary>
+        public void Shake(float amplitude, float duration)
+        {
+            if (duration <= 0f || amplitude < CurrentShakeStrength) return;
+            shakeAmplitude = amplitude;
+            shakeDuration = shakeLeft = duration;
+        }
+
+        float CurrentShakeStrength => shakeLeft > 0f ? shakeAmplitude * shakeLeft / shakeDuration : 0f;
+
         void LateUpdate()
+        {
+            transform.position -= shakeOffset; // follow from the steady position, not last frame's jitter
+            Follow();
+
+            shakeLeft = Mathf.Max(0f, shakeLeft - Time.deltaTime);
+            shakeOffset = (Vector3)(Random.insideUnitCircle * CurrentShakeStrength);
+            transform.position += shakeOffset;
+        }
+
+        void Follow()
         {
             var player = PlayerController.Instance;
             var pos = transform.position;
