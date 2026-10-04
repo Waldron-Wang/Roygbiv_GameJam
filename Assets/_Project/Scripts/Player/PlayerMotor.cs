@@ -31,7 +31,7 @@ namespace Roygbiv
         float baseGravity;
         float lastGroundedTime = -1f, lastJumpPressedTime = -1f;
         Vector2 moveInput;
-        bool jumpHeld;
+        bool jumpHeld, launched;
 
         public Rigidbody2D Body => rb;
         public bool IsGrounded { get; private set; }
@@ -53,6 +53,16 @@ namespace Roygbiv
             if (!Locked && Mathf.Abs(move.x) > 0.1f) FacingSign = move.x > 0 ? 1 : -1;
         }
 
+        /// <summary>Springs etc.: throws the player up to full height whether or not jump is held.</summary>
+        public void Launch(float upVelocity)
+        {
+            var v = rb.linearVelocity;
+            v.y = upVelocity;
+            rb.linearVelocity = v;
+            launched = true;
+            lastJumpPressedTime = lastGroundedTime = -1f; // no extra jump stacked on top
+        }
+
         void FixedUpdate()
         {
             IsGrounded = CheckGrounded();
@@ -60,6 +70,7 @@ namespace Roygbiv
             if (Locked) return; // a dash / slam / knockback owns the velocity right now
 
             var v = rb.linearVelocity;
+            if (launched && v.y <= 0f) launched = false;
 
             float target = autoRunSpeed > 0f ? autoRunSpeed : moveInput.x * runSpeed;
             float accel = IsGrounded ? groundAcceleration : airAcceleration;
@@ -74,7 +85,7 @@ namespace Roygbiv
             }
 
             if (v.y < 0f) rb.gravityScale = baseGravity * fallGravityMultiplier;
-            else if (v.y > 0f && !jumpHeld) rb.gravityScale = baseGravity * lowJumpGravityMultiplier;
+            else if (v.y > 0f && !jumpHeld && !launched) rb.gravityScale = baseGravity * lowJumpGravityMultiplier;
             else rb.gravityScale = baseGravity;
 
             rb.linearVelocity = v;

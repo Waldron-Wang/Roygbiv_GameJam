@@ -168,8 +168,6 @@ namespace Roygbiv
             if (visual && IsFighting) visual.localScale = visualScale * (1f + 0.3f * windUp01 + 0.25f * swatPulse);
         }
 
-        static T PerPhase<T>(T[] values, int phase) => values[Mathf.Clamp(phase, 0, values.Length - 1)];
-
         // ---------- Movement ----------
 
         Vector2 NextHoverPoint()

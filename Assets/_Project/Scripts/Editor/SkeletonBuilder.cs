@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
-using UnityEditor.Events;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -70,6 +69,7 @@ namespace Roygbiv.EditorTools
             var player = MakePlayer(playerShot);
             var bosses = new Dictionary<ColorId, GameObject>();
             foreach (var id in PlayOrder) bosses[id] = MakeBoss(id, enemyOrb);
+            MakeOrangeAttacks(); // the Orange boss prefab picks these up when it's first created
 
             MakeMenuScene("MainMenu", typeof(MainMenuScreen));
             MakeMenuScene("Hub", typeof(HubScreen));
@@ -134,7 +134,7 @@ namespace Roygbiv.EditorTools
 
         // ------------------------------------------------------------------ prefabs
 
-        static Projectile MakeProjectile(string name, Color color, float size, float speed, bool reflectable)
+        static Projectile MakeProjectile(string name, Color color, float size, float speed, bool reflectable, Action<Projectile> configure = null)
         {
             return LoadOrCreatePrefab($"{Prefabs}/{name}.prefab", () =>
             {
@@ -150,6 +150,7 @@ namespace Roygbiv.EditorTools
                 var p = go.AddComponent<Projectile>();
                 p.speed = speed;
                 p.reflectable = reflectable;
+                configure?.Invoke(p);
                 return go;
             }).GetComponent<Projectile>();
         }
@@ -255,6 +256,7 @@ namespace Roygbiv.EditorTools
                 Set(boss, "displayName", s.boss);
                 foreach (var field in new[] { "orbPrefab", "firePrefab", "projectilePrefab" })
                     if (new SerializedObject(boss).FindProperty(field) != null) Set(boss, field, orb);
+                if (id == ColorId.Orange) SetUpOrangeBoss((OrangeBoss)boss);
                 return go;
             });
         }
@@ -321,21 +323,10 @@ namespace Roygbiv.EditorTools
 
             switch (id)
             {
-                case ColorId.Orange: // auto-scrolling chase
-                    Block(env, "Ground", new Vector2(90, -3), new Vector2(220, 1), tint, id);
-                    for (int i = 0; i < 8; i++) Block(env, "Bump", new Vector2(15 + i * 22, -2), new Vector2(1, 1), tint, id);
-                    var motor = player.GetComponent<PlayerMotor>();
-                    motor.autoRunSpeed = 6f;
-                    PrefabUtility.RecordPrefabInstancePropertyModifications(motor);
-                    cam.GetComponent<CameraFollow>().autoScrollSpeed = 6f;
-                    boss.transform.position = new Vector3(-3, -1.5f, 0); // OrangeBoss repositions itself on fight start
-                    // Switches float just above head height: jump + shoot (or jump + melee) to stun the boss.
-                    for (int i = 0; i < 6; i++)
-                    {
-                        var sw = Block(env, "ShootableSwitch (stuns boss)", new Vector2(8 + i * 22, -0.6f), new Vector2(0.6f, 0.6f), Color.white, id);
-                        var switchComp = sw.gameObject.AddComponent<ShootableSwitch>();
-                        UnityEventTools.AddFloatPersistentListener(switchComp.OnActivated, boss.GetComponent<OrangeBoss>().Stun, 2f);
-                    }
+                case ColorId.Orange: // auto-scrolling chase on an endless, generated track
+                    cam.GetComponent<CameraFollow>().autoScrollSpeed = 6f; // ChaseDirector takes over at runtime
+                    boss.transform.position = new Vector3(-3, -1.5f, 0); // OrangeBoss positions itself on fight start
+                    MakeOrangeChase(tint);
                     break;
 
                 case ColorId.Blue: // rising platformer, finish at the top
@@ -430,6 +421,86 @@ namespace Roygbiv.EditorTools
             EditorBuildSettings.scenes = list.ToArray();
         }
 
+        // ------------------------------------------------------------------ Orange chase
+
+        /// <summary>
+        /// Upgrades an Orange level made before the chase rework: removes the fixed ground, bumps and stun
+        /// switches, adds the ChaseDirector + ChaseCourse, and wires the boss prefab's attacks.
+        /// Safe to re-run.
+        /// </summary>
+        [MenuItem("ROYGBIV/Upgrade Orange Chase (Level_Orange)")]
+        public static void UpgradeOrangeChase()
+        {
+            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+            square = MakeSprite("Square", false);
+            noFriction = LoadOrCreate($"{Art}/NoFriction.physicsMaterial2D", () => new PhysicsMaterial2D { friction = 0f, bounciness = 0f });
+
+            var bossPath = $"{Prefabs}/Bosses/Boss_Orange.prefab";
+            var bossRoot = PrefabUtility.LoadPrefabContents(bossPath);
+            SetUpOrangeBoss(bossRoot.GetComponent<OrangeBoss>());
+            PrefabUtility.SaveAsPrefabAsset(bossRoot, bossPath);
+            PrefabUtility.UnloadPrefabContents(bossRoot);
+
+            var scene = EditorSceneManager.OpenScene($"{Scenes}/Level_Orange.unity");
+            var stale = new List<GameObject>();
+            foreach (var t in Object.FindObjectsByType<Transform>(FindObjectsInactive.Include))
+                if (t.parent && t.parent.name == "Environment" && (t.name == "Ground" || t.name == "Bump" || t.GetComponent<ShootableSwitch>()))
+                    stale.Add(t.gameObject);
+            foreach (var go in stale) Object.DestroyImmediate(go);
+
+            if (!Object.FindAnyObjectByType<ChaseDirector>(FindObjectsInactive.Include))
+                MakeOrangeChase(Specs[ColorId.Orange].tint);
+
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[ROYGBIV] Orange chase upgraded: removed {stale.Count} old course objects.");
+        }
+
+        static void MakeOrangeAttacks()
+        {
+            // Both can be shot down, or punched back (they home onto the boss, which shrugs them off).
+            MakeProjectile("Projectile_Firecracker", new Color(1f, .45f, .1f), 0.45f, 8f, true, p =>
+            {
+                p.shootable = true;
+                p.reflectHomesOnShooter = true;
+            });
+            MakeProjectile("Projectile_Barrel", new Color(.6f, .35f, .15f), 0.9f, 3f, true, p =>
+            {
+                p.shootable = true;
+                p.reflectHomesOnShooter = true;
+                p.destroyOnWorld = false; // rolls along the ground, through obstacles
+                p.lifetime = 8f;
+            });
+        }
+
+        static void SetUpOrangeBoss(OrangeBoss boss)
+        {
+            MakeOrangeAttacks();
+            Set(boss, "firecrackerPrefab", AssetDatabase.LoadAssetAtPath<Projectile>($"{Prefabs}/Projectile_Firecracker.prefab"));
+            Set(boss, "barrelPrefab", AssetDatabase.LoadAssetAtPath<Projectile>($"{Prefabs}/Projectile_Barrel.prefab"));
+            // 3 HP = 3 catches, one phase per catch. 2/3 and 1/3 sit just ABOVE the default 0.66 / 0.33.
+            SetFloats(boss, "phaseThresholds", 0.7f, 0.4f);
+        }
+
+        static void MakeOrangeChase(Color tint)
+        {
+            var chase = new GameObject("Chase");
+            chase.AddComponent<ChaseDirector>();
+            var course = chase.AddComponent<ChaseCourse>();
+
+            var template = new GameObject("BlockTemplate (copied by ChaseCourse)");
+            template.transform.SetParent(chase.transform, false);
+            var sr = template.AddComponent<SpriteRenderer>();
+            sr.sprite = square;
+            sr.color = tint;
+            Set(template.AddComponent<Recolorable>(), "color", ColorId.Orange);
+            template.SetActive(false);
+
+            Set(course, "blockTemplate", template);
+            Set(course, "solidMaterial", noFriction);
+        }
+
         // ------------------------------------------------------------------ helpers
 
         static Sprite MakeSprite(string name, bool round)
@@ -494,6 +565,16 @@ namespace Roygbiv.EditorTools
                 case string s: p.stringValue = s; break;
                 default: throw new ArgumentException($"Unsupported type {value?.GetType()}");
             }
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        static void SetFloats(Object target, string field, params float[] values)
+        {
+            var so = new SerializedObject(target);
+            var p = so.FindProperty(field);
+            if (p == null || !p.isArray) { Debug.LogError($"{target.GetType().Name} has no serialized array '{field}'"); return; }
+            p.arraySize = values.Length;
+            for (int i = 0; i < values.Length; i++) p.GetArrayElementAtIndex(i).floatValue = values[i];
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 

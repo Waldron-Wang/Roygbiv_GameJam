@@ -243,52 +243,43 @@ PrefabInstance:
       propertyPath: m_Name
       value: Player
       objectReference: {fileID: 0}
+    - target: {fileID: 3313240045865337063, guid: 91a290ca310264b708135d3aedc2418c, type: 3}
+      propertyPath: m_Size.x
+      value: 0.529232
+      objectReference: {fileID: 0}
+    - target: {fileID: 3313240045865337063, guid: 91a290ca310264b708135d3aedc2418c, type: 3}
+      propertyPath: m_Size.y
+      value: 2.1627278
+      objectReference: {fileID: 0}
+    - target: {fileID: 3313240045865337063, guid: 91a290ca310264b708135d3aedc2418c, type: 3}
+      propertyPath: m_Offset.x
+      value: -0.04512787
+      objectReference: {fileID: 0}
+    - target: {fileID: 3313240045865337063, guid: 91a290ca310264b708135d3aedc2418c, type: 3}
+      propertyPath: m_Offset.y
+      value: 0.12034106
+      objectReference: {fileID: 0}
     - target: {fileID: 4844670260202673705, guid: 91a290ca310264b708135d3aedc2418c, type: 3}
       propertyPath: m_LocalScale.x
-      value: 1
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 4844670260202673705, guid: 91a290ca310264b708135d3aedc2418c, type: 3}
       propertyPath: m_LocalScale.y
-      value: 1
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4844670260202673705, guid: 91a290ca310264b708135d3aedc2418c, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -0.03
+      objectReference: {fileID: 0}
+    - target: {fileID: 4844670260202673705, guid: 91a290ca310264b708135d3aedc2418c, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.21
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 1435134940357129603, guid: 91a290ca310264b708135d3aedc2418c, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1508857157}
-    - targetCorrespondingSourceObject: {fileID: 5789251271175580099, guid: 91a290ca310264b708135d3aedc2418c, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 555181216}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 91a290ca310264b708135d3aedc2418c, type: 3}
---- !u!1 &555181213 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 5789251271175580099, guid: 91a290ca310264b708135d3aedc2418c, type: 3}
-  m_PrefabInstance: {fileID: 170348962}
-  m_PrefabAsset: {fileID: 0}
---- !u!95 &555181216
-Animator:
-  serializedVersion: 7
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 555181213}
-  m_Enabled: 1
-  m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: b70787f8801fc42f78d9fafd8b47329a, type: 2}
-  m_CullingMode: 0
-  m_UpdateMode: 0
-  m_ApplyRootMotion: 0
-  m_LinearVelocityBlending: 0
-  m_StabilizeFeet: 0
-  m_AnimatePhysics: 0
-  m_WarningMessage: 
-  m_HasTransformHierarchy: 1
-  m_AllowConstantClipSamplingOptimization: 1
-  m_KeepAnimatorStateOnDisable: 0
-  m_WriteDefaultValuesOnDisable: 0
 --- !u!1 &567599132
 GameObject:
   m_ObjectHideFlags: 0
@@ -1102,33 +1093,6 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
   m_BlendShapeWeights: []
---- !u!1 &1508857148 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 1435134940357129603, guid: 91a290ca310264b708135d3aedc2418c, type: 3}
-  m_PrefabInstance: {fileID: 170348962}
-  m_PrefabAsset: {fileID: 0}
---- !u!95 &1508857157
-Animator:
-  serializedVersion: 7
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1508857148}
-  m_Enabled: 1
-  m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 0}
-  m_CullingMode: 0
-  m_UpdateMode: 0
-  m_ApplyRootMotion: 0
-  m_LinearVelocityBlending: 0
-  m_StabilizeFeet: 0
-  m_AnimatePhysics: 0
-  m_WarningMessage: 
-  m_HasTransformHierarchy: 1
-  m_AllowConstantClipSamplingOptimization: 1
-  m_KeepAnimatorStateOnDisable: 0
-  m_WriteDefaultValuesOnDisable: 0
 --- !u!1 &1556603222
 GameObject:
   m_ObjectHideFlags: 0

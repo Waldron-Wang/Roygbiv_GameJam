@@ -20,6 +20,8 @@ namespace Roygbiv
         public bool destroyOnWorld = true;
         [Tooltip("Bounce off ground/walls this many times before destroyOnWorld applies.")]
         public int bounces;
+        [Tooltip("An opposing team's shot destroys it in mid-air (Orange firecrackers and barrels).")]
+        public bool shootable;
 
         Rigidbody2D rb;
         Collider2D col;
@@ -97,7 +99,16 @@ namespace Roygbiv
 
         void OnTriggerEnter2D(Collider2D other)
         {
-            if (other.isTrigger) return; // ignore other hitboxes / projectiles / zones
+            if (other.isTrigger) // ignore other hitboxes / projectiles / zones...
+            {
+                // ...except an opposing shot, which knocks a shootable one out of the air.
+                if (shootable && other.TryGetComponent<Projectile>(out var shot) && shot.team != team)
+                {
+                    Destroy(shot.gameObject);
+                    Destroy(gameObject);
+                }
+                return;
+            }
 
             var target = other.GetComponentInParent<IDamageable>();
             if (target == null)
