@@ -112,7 +112,11 @@ GameObject:
   - component: {fileID: 6672709030874444384}
   - component: {fileID: 7944926118124775745}
   - component: {fileID: 1705274042657021578}
+<<<<<<< HEAD
   - component: {fileID: -1224875029144794579}
+=======
+  - component: {fileID: 8185696262344408519}
+>>>>>>> origin/main
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -302,7 +306,14 @@ MonoBehaviour:
   animator: {fileID: 0}
   sprite: {fileID: 0}
   artFacesLeft: 0
+<<<<<<< HEAD
 --- !u!114 &-1224875029144794579
+=======
+  airGrace: 0.08
+  rootDuringAttack: 1
+  hurtPoseTime: 0.3
+--- !u!114 &8185696262344408519
+>>>>>>> origin/main
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -311,12 +322,25 @@ MonoBehaviour:
   m_GameObject: {fileID: 1435134940357129603}
   m_Enabled: 1
   m_EditorHideFlags: 0
+<<<<<<< HEAD
   m_Script: {fileID: 11500000, guid: 4fd084301fef8034886a84f80c0fab5a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.ColorProgression
   material: {fileID: 2100000, guid: f4f7202aec52f404abca9063a2af754a, type: 2}
   fadeTime: 2
   persist: 1
+=======
+  m_Script: {fileID: 11500000, guid: ddb583bb7b520f64eb9d8b997e3f69b1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.HitFeedbackPlayer
+  visual: {fileID: 0}
+  flashColor: {r: 1, g: 1, b: 1, a: 1}
+  flashTime: 0.02
+  blinkDuration: 1
+  blinkInterval: 0.2
+  cameraShake: 0.05
+  cameraShakeTime: 0.25
+>>>>>>> origin/main
 --- !u!1 &3063216648248826422
 GameObject:
   m_ObjectHideFlags: 0

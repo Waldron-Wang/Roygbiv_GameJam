@@ -22,6 +22,8 @@ namespace Roygbiv
         public abstract AbilityId Id { get; }
         public IActor Owner { get; private set; }
         public bool IsReady => enabled && Time.time >= readyAt;
+        /// <summary>When it last fired. The Green boss steals the player's most recent one.</summary>
+        public float LastUsedAt { get; private set; } = float.NegativeInfinity;
 
         protected virtual void Awake() => Owner = GetComponentInParent<IActor>();
 
@@ -33,6 +35,7 @@ namespace Roygbiv
         {
             if (!IsReady) return false;
             readyAt = Time.time + cooldown;
+            LastUsedAt = Time.time;
             Activate();
             return true;
         }

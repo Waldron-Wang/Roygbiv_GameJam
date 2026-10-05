@@ -145,11 +145,13 @@ namespace Roygbiv
         [SerializeField] Color smokeColor = new(0.3f, 0.28f, 0.28f, 0.8f);
         [SerializeField] Color steamColor = new(1f, 1f, 1f, 0.55f);
         [SerializeField] Color dustColor = new(0.6f, 0.55f, 0.5f, 0.6f);
+        [Tooltip("Art: the attack sprite shows through wind-ups and charges, and this long after each throw or slam.")]
+        [SerializeField] float attackPoseHold = 0.35f;
 
         State state;
         Collider2D bodyCollider;
         Hitbox chargeHitbox;
-        SpriteRenderer heat, pathMarker;
+        SpriteRenderer heat, heatSource, pathMarker;
         Vector3 poseBasePos, poseBaseScale = Vector3.one;
         float poseFeetY; // the feet in the pose's local space: 0 for a proper Pose child
         Vector2 smoothVelocity, lastPosition;
@@ -167,6 +169,13 @@ namespace Roygbiv
         public float RageFraction => Rage / rageMax; // for UI
         public bool Overheated => state == State.Overheated;
         public Attack CurrentAttack { get; private set; }
+
+        public override BossPose Pose => state switch
+        {
+            State.WindUp or State.ChargeWindUp or State.Rush => BossPose.Attack,
+            State.OverheatTell or State.Falling or State.Overheated or State.Defeated => BossPose.Hurt,
+            _ => base.Pose,
+        };
 
         public State CurrentState
         {
@@ -218,12 +227,12 @@ namespace Roygbiv
         // After every Awake, so HitFeedback's flash doesn't pick up the glow overlay.
         void Start()
         {
-            var body = pose ? pose.GetComponentInChildren<SpriteRenderer>() : null;
-            if (!body) return;
+            heatSource = pose ? pose.GetComponentInChildren<SpriteRenderer>() : null;
+            if (!heatSource) return;
             heat = new GameObject("Heat").AddComponent<SpriteRenderer>();
-            heat.transform.SetParent(body.transform, false);
-            heat.sprite = body.sprite;
-            heat.sortingOrder = body.sortingOrder + 1;
+            heat.transform.SetParent(heatSource.transform, false);
+            heat.sprite = heatSource.sprite;
+            heat.sortingOrder = heatSource.sortingOrder + 1;
             heat.color = UnityEngine.Color.clear;
         }
 
@@ -601,6 +610,7 @@ namespace Roygbiv
         {
             punch = 1f;
             punchDown = down;
+            HoldAttackPose(attackPoseHold);
             flare = Mathf.Max(flare, 0.5f);
         }
 
@@ -791,7 +801,11 @@ namespace Roygbiv
             pose.localPosition = poseBasePos + (Vector3)offset;
             pose.localRotation = Quaternion.Euler(0f, 0f, -(lean + wobble));
             pose.localScale = Vector3.Scale(poseBaseScale, new Vector3(squash.x, squash.y, 1f));
-            if (heat) heat.color = new Color(heatTint.r, heatTint.g, heatTint.b, Mathf.Clamp01(heatAlpha));
+            if (heat)
+            {
+                heat.sprite = heatSource.sprite; // follows BossSprites' pose swaps
+                heat.color = new Color(heatTint.r, heatTint.g, heatTint.b, Mathf.Clamp01(heatAlpha));
+            }
         }
 
         /// <summary>A point on the body in world space: x from -1 (left edge) to 1, y from 0 (feet) to 1 (top).</summary>

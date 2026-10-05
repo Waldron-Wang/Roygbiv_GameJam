@@ -176,7 +176,6 @@ GameObject:
   - component: {fileID: 170348964}
   - component: {fileID: 170348963}
   - component: {fileID: 170348967}
-  - component: {fileID: 170348968}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -319,21 +318,6 @@ MonoBehaviour:
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
   m_Version: 2
---- !u!114 &170348968
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 170348962}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4fd084301fef8034886a84f80c0fab5a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.ColorProgression
-  material: {fileID: 2100000, guid: f4f7202aec52f404abca9063a2af754a, type: 2}
-  fadeTime: 2
-  persist: 1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

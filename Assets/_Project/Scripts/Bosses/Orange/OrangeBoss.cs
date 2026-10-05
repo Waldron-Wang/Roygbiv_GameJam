@@ -67,6 +67,8 @@ namespace Roygbiv
         bool rejoining;
 
         public bool IsStunned => Time.time < stunnedUntil;
+        /// <summary>Art: always running in the chase (no attack sprite); dazed while caged.</summary>
+        public override BossPose Pose => IsStunned ? BossPose.Hurt : IsFighting ? BossPose.Move : BossPose.Idle;
         public float Lead => lead;
         ChaseDirector Chase => ChaseDirector.Current;
 

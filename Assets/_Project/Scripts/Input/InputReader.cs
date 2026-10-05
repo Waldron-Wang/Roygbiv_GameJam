@@ -11,8 +11,8 @@ namespace Roygbiv
     /// Default bindings (change them here, nowhere else):
     ///   Move    WASD / Arrows / left stick
     ///   Jump    Z / Space / A(south)
-    ///   Attack  X / X(west)           (hold + release = Blaze Strike)
-    ///   Shoot   Left Click / C / Y(north)   (Light Shot; aims at the mouse unless fired from a gamepad)
+    ///   Attack  Left click / X(west)           (hold + release = Blaze Strike)
+    ///   Shoot   Right Click / C / Y(north)   (Light Shot; aims at the mouse unless fired from a gamepad)
     ///   Dash    Left Shift / RB
     ///   Pause   Esc / Start
     /// </summary>
@@ -49,8 +49,8 @@ namespace Roygbiv
             move.AddBinding("<Gamepad>/leftStick");
 
             jump = Button("Jump", "<Keyboard>/space", "<Gamepad>/buttonSouth");
-            attack = Button("Attack", "<Keyboard>/x", "<Gamepad>/buttonWest");
-            shoot = Button("Shoot", "<Mouse>/leftButton", "<Keyboard>/c", "<Gamepad>/buttonNorth");
+            attack = Button("Attack", "<Mouse>/leftButton", "<Gamepad>/buttonWest");
+            shoot = Button("Shoot", "<Mouse>/rightButton", "<Keyboard>/c", "<Gamepad>/buttonNorth");
             dash = Button("Dash", "<Keyboard>/leftShift", "<Gamepad>/rightShoulder");
             confirm = Button("Confirm", "<Keyboard>/enter", "<Keyboard>/z", "<Keyboard>/x", "<Gamepad>/buttonSouth");
             pause = Button("Pause", "<Keyboard>/escape", "<Gamepad>/start");
