@@ -6,6 +6,7 @@ namespace Roygbiv
     /// A strip of ground fire for the Red boss. First a thin pulsing warning strip, then flames that
     /// hurt on touch (Hazard) and flicker, then they sink away. With no burn time it is only the warning
     /// strip, which makes a landing marker for a lobbed fireball.
+    /// The Green boss reuses it for its thorns, with its own colors.
     /// Placeholder look (a stretched square); art can replace the sprite without touching the timing.
     /// </summary>
     public class FirePatch : MonoBehaviour
@@ -15,12 +16,13 @@ namespace Roygbiv
 
         SpriteRenderer sprite;
         Collider2D hurtZone;
-        Color color;
+        Color color, tipColor;
         float x, groundY, width, height, warnTime, burnTime, age, seed;
 
         /// <param name="groundY">Top of the floor; the flames grow up from here.</param>
         /// <param name="burnTime">0 = warning strip only (a marker).</param>
-        public static FirePatch Spawn(float x, float groundY, float width, float height, float warnTime, float burnTime, Color color)
+        /// <param name="tip">What the flames flicker toward. Default: a hot yellow.</param>
+        public static FirePatch Spawn(float x, float groundY, float width, float height, float warnTime, float burnTime, Color color, Color? tip = null)
         {
             var sr = FlatSprite.Create("FirePatch", null, new Vector2(x, groundY), new Vector2(width, WarnHeight), color, 4);
             var go = sr.gameObject;
@@ -37,6 +39,7 @@ namespace Roygbiv
             patch.sprite = sr;
             patch.hurtZone = box;
             patch.color = color;
+            patch.tipColor = tip ?? HotTip;
             patch.x = x;
             patch.groundY = groundY;
             patch.width = width;
@@ -66,7 +69,7 @@ namespace Roygbiv
             float rise = Mathf.Clamp01(t / RiseTime);
             float sink = t > burnTime ? 1f - (t - burnTime) / SinkTime : 1f;
             float flicker = 1f + 0.35f * (Mathf.PerlinNoise(Time.time * 14f, seed) - 0.5f);
-            var c = Color.Lerp(color, HotTip, Mathf.PerlinNoise(seed, Time.time * 9f));
+            var c = Color.Lerp(color, tipColor, Mathf.PerlinNoise(seed, Time.time * 9f));
             SetShape(height * rise * sink * flicker, c);
         }
 

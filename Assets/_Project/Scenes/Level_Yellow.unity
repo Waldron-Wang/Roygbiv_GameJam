@@ -259,6 +259,22 @@ PrefabInstance:
       propertyPath: m_Offset.y
       value: 0.12034106
       objectReference: {fileID: 0}
+    - target: {fileID: 3387514387434712637, guid: 91a290ca310264b708135d3aedc2418c, type: 3}
+      propertyPath: m_Size.x
+      value: 0.8518543
+      objectReference: {fileID: 0}
+    - target: {fileID: 3387514387434712637, guid: 91a290ca310264b708135d3aedc2418c, type: 3}
+      propertyPath: m_Size.y
+      value: 2.6419334
+      objectReference: {fileID: 0}
+    - target: {fileID: 3387514387434712637, guid: 91a290ca310264b708135d3aedc2418c, type: 3}
+      propertyPath: m_Offset.x
+      value: 0.38887978
+      objectReference: {fileID: 0}
+    - target: {fileID: 3387514387434712637, guid: 91a290ca310264b708135d3aedc2418c, type: 3}
+      propertyPath: m_Offset.y
+      value: 0.72837734
+      objectReference: {fileID: 0}
     - target: {fileID: 4844670260202673705, guid: 91a290ca310264b708135d3aedc2418c, type: 3}
       propertyPath: m_LocalScale.x
       value: 2
@@ -663,6 +679,7 @@ MonoBehaviour:
   smoothTime: 0.15
   autoScrollSpeed: 0
   autoScrollLead: 4
+  leftBehindGrace: 1
 --- !u!81 &930186448
 AudioListener:
   m_ObjectHideFlags: 0

@@ -364,6 +364,7 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
   - `abstract void Activate()`, which does the effect
   - `virtual bool HandleInput(in PlayerIntent)` for the player path. Return true if this ability consumed the input.
   - `TryActivate()` checks `enabled` and the cooldown, then calls `Activate()`. This is the AI path.
+  - `LastUsedAt`: when it last fired. The Green boss steals the player's most recent one.
 - **Key idea:** **`enabled` means unlocked.** Only `AbilityLoadout` should flip it.
 - **Owner:** Found with `GetComponentInParent<IActor>()` in `Awake`.
 
@@ -418,7 +419,7 @@ Interactions to know about:
 | `YellowBoss` | Each cycle: drifts to the player's other side, winds up (`onWindUp`, `CurrentAttack`), fires, rests. Phase 0 aimed orb, phase 1 adds a spread fan, phase 2 adds lobbed orbs. Phase 3 (finale) uses all three, faster, with mixed orb speeds (fast = small/white, slow = big/orange; aimed shots become a fast-to-slow line) and may swat reflected orbs back (`onSwat`). All of it is tuned per phase in the Inspector. Only reflected orbs hurt it (they home back onto it). 11 HP, thresholds 0.75 / 0.5 / 0.3 (3 / 3 / 2 / 3 hits) | Projectile (`Projectile_YellowOrb`: reflectable, bouncy, homes on reflect), `Health.DamageFilter` | Art on `onWindUp`, playtest tuning (hit feedback: `HitFeedback`) |
 | `OrangeBoss` | Holds a spot `lead` right of the screen center (read from `ChaseDirector`), swaying forward/back (wider, faster per phase) and hopping. Invulnerable. A `CageTrap` landing on it traps it (`TryTrap`, `trapStunTime`); running into it while trapped = "caught" (1 damage), then it dashes back to its spot, passing through the player. Phase 1 lobs firecrackers at where the player will be (ground marker; jump, shoot down or punch back); phase 2 adds barrels. No attacks while a cage is on screen. 3 HP, thresholds 0.7 / 0.4 = a phase per catch | ChaseDirector, ChaseCourse, CageTrap, Projectile (`Projectile_Firecracker`, `Projectile_Barrel`) | Art on `onWindUp`, playtest tuning |
 | `RedBoss` | Flies overhead, **armored** (`Health.DamageFilter` rejects every hit and turns it into rage: melee `rageFromMelee`, Light Shot `rageFromShot` at most once per `shotRageCooldown`) while `Rage` also climbs slowly on its own. Each cycle: drift → wind up → Spread fan / Arc lobs (warning strip; phase 1+ leave fire) / Ground fire wave (phase 1+, jump it). Every `chargeCooldownPerPhase` it **charges** instead: lands at the far end, winds up (path lit), rushes the arena (`ChargeHitbox`, jump or dash through), skids, then **pants** (`pantTime`), the opening to punch it for rage; phase 2 rushes back first. At max rage it **overheats**: stops, smokes, flashes, falls, lies exposed for `overheatDuration` or `maxHitsPerOverheat` hits. Its body doesn't collide with the player. All animation is procedural on the `Pose` child (`CurrentState`), with `FirePatch` (ground fire / markers) and `HeatPuff` (smoke, steam, dust) as placeholder FX. 12 HP, thresholds 0.67 / 0.34 = one phase per overheat | Projectile (`Projectile_Fireball`), Hitbox, Hazard, FlatSprite, `Health.DamageFilter` | Art on `onWindUp` / `onOverheat`, playtest tuning |
-| `GreenBoss` | On fight start and each phase, steals the next ability in `stealOrder` (only if the player owns it) and uses its own copy; returns all on defeat or destroy | AbilityLoadout (own), `Game.Progress`, `AbilityStolen` / `AbilityReturned` | Real patterns, visuals |
+| `GreenBoss` | Rooted bramble, **armored** (`Health.DamageFilter`) except while **wilted**. Steals the ability the player used **most recently** (`AbilityBase.LastUsedAt`; `stealOrder` only if nothing's been used): by **Covet** (telegraphed thread in that ability's color, unavoidable, whenever no pod is growing) or when a **Lash** (floor vine, jump it; phase 2 adds a high one, stay down) connects while there's room (`maxPodsPerPhase` 1/2/3). Each stolen ability grows into a `GreenPod` somewhere in the arena: break it up close (`podHitsPerPhase`; shots bounce off unless `podsTakeShots`; each hit sets off thorns under the player, `guardWarnTime` / `guardCooldown`) and the ability returns and the boss **wilts** (`wiltTime` or `maxHitsPerWilt`); let it ripen and it bursts in spores and reseeds. While holding an ability it uses its own copy: Light Shot volleys, Dash (uproots, dashes at the player, `DashHitbox`), Blaze Strike when the player is close. Phase 1+ adds thorns (`FirePatch`, green). Each phase change it burrows to the root spot farthest from the player and covets again. Its body doesn't collide with the player. Procedural animation on a `Pose` child (made at runtime if missing; `CurrentState`). 12 HP, thresholds 0.67 / 0.34 = one phase per wilt. Returns everything on defeat or destroy | AbilityLoadout (own + player's), `AbilityStolen` / `AbilityReturned`, GreenPod, FirePatch, HeatPuff, FlatSprite, Hitbox | Art on `onSteal` / `onWilt`, playtest tuning, reward |
 | `BlueBoss` | A rising kill-trigger (invulnerable). The level is won at the top through `LevelTrigger(CompleteLevel)` | PlayerController | The climb itself |
 | `IndigoBoss` | Phase 1 inverts horizontal input; phase 2 swaps jump and attack; cleans up on defeat or destroy | `Game.Input`, InputModifiers | Visual disorientation (VFX) |
 | `VioletBoss` | Placeholder shooting | Projectile | Everything (final boss) |
@@ -597,12 +598,15 @@ Health.Died (player) → PlayerController: motor.Locked, GameEvents.PlayerDied
 
 ### 5.6 Green steals an ability
 ```
-GreenBoss.OnFightStarted / OnPhaseChanged(n)
-  id = stealOrder[n]; if player owns id:
+GreenBoss Covet (no pod growing) / Lash connects (room for a pod)
+  id = the player's enabled ability with the highest LastUsedAt (stealOrder if none used yet)
     GameEvents.AbilityStolen(id) → player AbilityLoadout: stolen.Add, Revoke
     green loadout.Grant(id)      → boss copy enabled
+    GreenPod.Spawn(id, ...)      → seed flies from the player to a pod spot
 GreenBoss.RunPhase → loadout.TryActivate(id)   (the copy uses IActor = the boss)
-OnDefeated / OnDestroy → AbilityReturned(id) for each → player re-Grants if owned
+Pod broken  → green loadout.Revoke(id), AbilityReturned(id) → player re-Grants; boss wilts
+Pod ripened → spores, then a new pod for the same id elsewhere
+OnDefeated / OnDestroy → AbilityReturned(id) for each still held; pods destroyed
 ```
 
 ### 5.7 Dialogue

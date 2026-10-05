@@ -134,7 +134,7 @@ Transform:
   m_GameObject: {fileID: 5761407645484834017}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1.1, y: 0, z: 0}
+  m_LocalPosition: {x: 1.8, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -184,7 +184,7 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 1.6, y: 1.2}
+  m_Size: {x: 2.4, y: 1.6}
   m_EdgeRadius: 0
 --- !u!114 &6922506096305716030
 MonoBehaviour:
@@ -199,7 +199,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.Hitbox
   team: 2
-  damage: 3
+  damage: 2
   knockback: 6
   reflectsProjectiles: 0
 --- !u!1 &6604769543855086890
@@ -356,9 +356,102 @@ MonoBehaviour:
   color: 3
   displayName: Bramble Thief
   phaseThresholds:
-  - 0.66
-  - 0.33
+  - 0.67
+  - 0.34
   stealOrder: 010000000200000003000000i
+  maxPodsPerPhase: 010000000200000003000000i
+  covetDelayPerPhase:
+  - 4
+  - 3.5
+  - 3
+  covetTimePerPhase:
+  - 1.8
+  - 1.5
+  - 1.3
+  bitterColor: {r: 0.45, g: 0.4, b: 0.2, a: 1}
+  onSteal:
+    m_PersistentCalls:
+      m_Calls: []
+  podSpots:
+  - {x: -6, y: 0.75}
+  - {x: 6, y: 0.75}
+  - {x: -17.5, y: -2.5}
+  - {x: 17.5, y: -2.5}
+  - {x: -12, y: -2.5}
+  - {x: 12, y: -2.5}
+  - {x: 0, y: -2.5}
+  podStalkHeight: 0.5
+  podHitsPerPhase: 030000000500000007000000i
+  podsTakeShots: 0
+  podRipenTimePerPhase:
+  - 12
+  - 10
+  - 9
+  sporeRadius: 2.2
+  sporeDamage: 1
+  sporeColor: {r: 0.7, g: 0.75, b: 0.25, a: 0.7}
+  guardWarnTime: 0.45
+  guardCooldown: 1.2
+  guardWidth: 2.4
+  wiltTime: 5
+  maxHitsPerWilt: 4
+  recoverTime: 0.6
+  onWilt:
+    m_PersistentCalls:
+      m_Calls: []
+  lashWarnTimePerPhase:
+  - 0.8
+  - 0.65
+  - 0.55
+  lashSpeed: 34
+  lashHold: 0.15
+  lashGap: 0.3
+  lashThickness: 0.5
+  lowLashHeight: 0.3
+  highLashHeight: 1.7
+  lashDamage: 1
+  lashKnockback: 7
+  vineColor: {r: 0.12, g: 0.4, b: 0.12, a: 1}
+  lashWarnColor: {r: 0.45, g: 1, b: 0.3, a: 0.6}
+  thornCountPerPhase: 030000000300000004000000i
+  thornSpacing: 2.2
+  thornWidth: 1
+  thornHeight: 1.6
+  thornWarnTime: 0.7
+  thornTime: 0.5
+  thornStagger: 0.12
+  thornColor: {r: 0.2, g: 0.55, b: 0.15, a: 1}
+  thornTip: {r: 0.6, g: 0.9, b: 0.3, a: 1}
+  shotVolleyPerPhase: 020000000300000004000000i
+  shotInterval: 0.55
+  volleyWindUp: 0.45
+  dashesPerPhase: 020000000300000003000000i
+  dashGap: 0.55
+  uprootTime: 0.35
+  dashDamage: 1
+  dashKnockback: 8
+  strikeRange: 3.2
+  strikeWindUp: 0.6
+  groundY: -2.5
+  floorMinX: -19.5
+  floorMaxX: 19.5
+  rootSpots:
+  - 12
+  - -12
+  - 0
+  burrowTime: 0.6
+  openingDelay: 0.8
+  restTimePerPhase:
+  - 1.4
+  - 1.1
+  - 0.8
+  pose: {fileID: 0}
+  wiltColor: {r: 0.45, g: 0.32, b: 0.12, a: 1}
+  heartClosed: {r: 0.1, g: 0.25, b: 0.08, a: 1}
+  heartOpen: {r: 1, g: 0.45, b: 0.65, a: 1}
+  leafColor: {r: 0.35, g: 0.8, b: 0.3, a: 0.8}
+  dirtColor: {r: 0.4, g: 0.3, b: 0.2, a: 0.7}
+  attackPoseHold: 0.35
 --- !u!1 &7050507239072970501
 GameObject:
   m_ObjectHideFlags: 0
