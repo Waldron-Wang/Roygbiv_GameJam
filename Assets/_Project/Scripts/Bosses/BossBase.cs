@@ -4,6 +4,9 @@ using UnityEngine;
 
 namespace Roygbiv
 {
+    /// <summary>What a boss's art should show. Read by BossSprites; hits and death show Hurt on their own.</summary>
+    public enum BossPose { Idle, Move, Attack, Hurt }
+
     /// <summary>
     /// Shared boss plumbing: health, phases, the attack loop, and announcing itself to the game.
     /// A concrete boss only writes its attack patterns:
@@ -28,6 +31,7 @@ namespace Roygbiv
         Health health;
         Rigidbody2D body;
         Coroutine brain;
+        float attackPoseUntil;
 
         public ColorId Color => color;
         public string DisplayName => displayName;
@@ -48,6 +52,9 @@ namespace Roygbiv
         public virtual Vector2 AimDirection => Player ? ((Vector2)(Player.position - transform.position)).normalized : Vector2.left;
         public virtual bool IsGrounded => true;
         public bool MovementLocked { get; set; }
+
+        /// <summary>What the art should show right now. Default: Attack while HoldAttackPose is running, else Idle.</summary>
+        public virtual BossPose Pose => Time.time < attackPoseUntil ? BossPose.Attack : BossPose.Idle;
 
         protected virtual void Awake()
         {
@@ -128,6 +135,9 @@ namespace Roygbiv
         }
 
         protected static WaitForSeconds Wait(float seconds) => new(seconds);
+
+        /// <summary>Show the attack pose for at least `seconds` from now (wind-ups, volleys).</summary>
+        protected void HoldAttackPose(float seconds) => attackPoseUntil = Mathf.Max(attackPoseUntil, Time.time + seconds);
 
         /// <summary>Per-phase Inspector tuning: values[phase], or the last entry once phases run past the array.</summary>
         protected static T PerPhase<T>(T[] values, int phase) => values[Mathf.Clamp(phase, 0, values.Length - 1)];

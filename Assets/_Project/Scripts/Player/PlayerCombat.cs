@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace Roygbiv
@@ -14,6 +15,9 @@ namespace Roygbiv
 
         float readyAt;
 
+        /// <summary>Raised when a swing actually starts (not when it's blocked by cooldown).</summary>
+        public event Action Attacked;
+
         public bool TryAttack(int facingSign)
         {
             if (meleeHitbox == null || Time.time < readyAt) return false;
@@ -23,6 +27,7 @@ namespace Roygbiv
             p.x = Mathf.Abs(p.x) * facingSign;
             meleeHitbox.transform.localPosition = p;
             meleeHitbox.Open(activeTime);
+            Attacked?.Invoke();
             return true;
         }
     }

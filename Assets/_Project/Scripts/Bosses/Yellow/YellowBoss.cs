@@ -89,6 +89,8 @@ namespace Roygbiv
         [Tooltip("Per phase.")]
         [SerializeField] float[] restTimePerPhase = { 1.5f, 1.5f, 1.5f, 0.8f };
         [SerializeField] UnityEvent onWindUp = new();
+        [Tooltip("Art: the attack sprite shows through the wind-up and this long after each shot or swat.")]
+        [SerializeField] float attackPoseHold = 0.4f;
 
         [Tooltip("Placeholder telegraph swells this transform. Defaults to the child named Visual.")]
         [SerializeField] Transform visual;
@@ -199,6 +201,7 @@ namespace Roygbiv
         IEnumerator WindUp(float windUpTime)
         {
             onWindUp.Invoke();
+            HoldAttackPose(windUpTime + attackPoseHold);
             for (float t = 0f; t < windUpTime; t += Time.deltaTime)
             {
                 windUp01 = t / windUpTime;
@@ -257,6 +260,7 @@ namespace Roygbiv
             var orb = Fire(orbPrefab, velocity);
             orb.Arc(velocity, arcGravityScale);
             orbs.Add(orb);
+            HoldAttackPose(attackPoseHold);
             if (!MixedSpeeds) return;
             // Tell the speed by flight time: the shortest lob looks fastest.
             float mid = (arcFlightTimeRange.x + arcFlightTimeRange.y) * 0.5f;
@@ -269,6 +273,7 @@ namespace Roygbiv
             orb.ScaleSpeed(speedScale);
             DressBySpeed(orb, speedScale);
             orbs.Add(orb);
+            HoldAttackPose(attackPoseHold);
             return orb;
         }
 
@@ -291,6 +296,7 @@ namespace Roygbiv
             judged.Remove(orb);   // the player's next reflect gets a fresh roll
             orb.Return(Team, Player.position - orb.transform.position, returnSpeed + orb.Rallies * returnSpeedStep);
             swatPulse = 1f;
+            HoldAttackPose(attackPoseHold);
             onSwat.Invoke();
         }
     }

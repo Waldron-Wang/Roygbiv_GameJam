@@ -302,6 +302,9 @@ MonoBehaviour:
   animator: {fileID: 0}
   sprite: {fileID: 0}
   artFacesLeft: 0
+  airGrace: 0.08
+  rootDuringAttack: 1
+  hurtPoseTime: 0.3
 --- !u!114 &8185696262344408519
 MonoBehaviour:
   m_ObjectHideFlags: 0

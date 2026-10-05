@@ -37,6 +37,8 @@ namespace Roygbiv
         public bool IsGrounded { get; private set; }
         public int FacingSign { get; private set; } = 1;
         public bool Locked { get; set; }
+        /// <summary>Can't run or turn (horizontal speed brakes to 0), but gravity and jumping still work. Standing attack uses it.</summary>
+        public bool Rooted { get; set; }
 
         void Awake()
         {
@@ -50,7 +52,7 @@ namespace Roygbiv
             moveInput = move;
             jumpHeld = jumpIsHeld;
             if (jumpPressed) lastJumpPressedTime = Time.time;
-            if (!Locked && Mathf.Abs(move.x) > 0.1f) FacingSign = move.x > 0 ? 1 : -1;
+            if (!Locked && !Rooted && Mathf.Abs(move.x) > 0.1f) FacingSign = move.x > 0 ? 1 : -1;
         }
 
         /// <summary>Springs etc.: throws the player up to full height whether or not jump is held.</summary>
@@ -72,7 +74,7 @@ namespace Roygbiv
             var v = rb.linearVelocity;
             if (launched && v.y <= 0f) launched = false;
 
-            float target = autoRunSpeed > 0f ? autoRunSpeed : moveInput.x * runSpeed;
+            float target = Rooted ? 0f : autoRunSpeed > 0f ? autoRunSpeed : moveInput.x * runSpeed;
             float accel = IsGrounded ? groundAcceleration : airAcceleration;
             v.x = Mathf.MoveTowards(v.x, target, accel * Time.fixedDeltaTime);
 

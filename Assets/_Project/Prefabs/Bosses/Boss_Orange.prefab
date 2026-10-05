@@ -28,7 +28,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 2, y: 2, z: 1}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 4505265174439337776}
@@ -82,8 +82,8 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 8
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300000, guid: e475a2b094697464c892e7a30d8a6006, type: 3}
-  m_Color: {r: 1, g: 0.55, b: 0.1, a: 1}
+  m_Sprite: {fileID: 21300000, guid: fbf9cf169ddb64b389188e3a3b3dbaa8, type: 3}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -121,6 +121,7 @@ GameObject:
   - component: {fileID: 155649809652687860}
   - component: {fileID: 90633008025871002}
   - component: {fileID: 4971453595851798512}
+  - component: {fileID: 1635114326657274797}
   m_Layer: 0
   m_Name: Boss_Orange
   m_TagString: Untagged
@@ -300,3 +301,24 @@ MonoBehaviour:
   shakeAmplitude: 0.2
   shakeTime: 0.25
   cameraShake: 0.15
+--- !u!114 &1635114326657274797
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7160283962873006654}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d6e298fa1ab964b468000f4e41e8f0a7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.BossSprites
+  target: {fileID: 3297839127130594606}
+  idle: {fileID: 21300000, guid: fbf9cf169ddb64b389188e3a3b3dbaa8, type: 3}
+  attack: {fileID: 0}
+  hurt: {fileID: 21300000, guid: 5426b2bdc8f3b452d88c9a6c2a8bde95, type: 3}
+  move:
+  - {fileID: 21300000, guid: 63364bc98faa747cfa403f062f0f51fb, type: 3}
+  - {fileID: 21300000, guid: 94b997bc6dc57490b818c6122dedcf5d, type: 3}
+  moveFps: 8
+  hurtTime: 0.35
