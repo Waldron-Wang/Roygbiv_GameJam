@@ -13,5 +13,7 @@ MonoBehaviour:
   m_Name: Story_Violet
   m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.DialogueData
   lines:
-  - speaker: Memory
-    text: "[Story fragment after reclaiming Violet \u2014 writer TODO]"
+  - speaker: 
+    text: "<color=#C266FF>Violet</color> returns."
+  - speaker: 
+    text: "Wisdom and creativity bloom within you."

@@ -9,7 +9,8 @@ namespace Roygbiv
 
         void Update()
         {
-            if (Game.Input.Intent.pausePressed && LevelController.Current != null && !Game.Scenes.IsLoading)
+            // Not over the instruction card: it owns timeScale while open, and the Esc that closes it shouldn't also pause.
+            if (Game.Input.Intent.pausePressed && LevelController.Current != null && !Game.Scenes.IsLoading && !Game.Instructions.BlocksPause)
                 SetPaused(!IsPaused);
         }
 

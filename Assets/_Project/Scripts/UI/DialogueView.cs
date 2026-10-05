@@ -28,8 +28,9 @@ namespace Roygbiv
             var rect = new Rect(40, Screen.height - 160, Screen.width - 80, 120);
             GUI.Box(rect, GUIContent.none);
             GUILayout.BeginArea(new Rect(rect.x + 15, rect.y + 10, rect.width - 30, rect.height - 20));
-            if (!string.IsNullOrEmpty(line.speaker)) GUILayout.Label($"<b>{line.speaker}</b>", new GUIStyle(GUI.skin.label) { richText = true });
-            GUILayout.Label(line.text);
+            var rich = new GUIStyle(GUI.skin.label) { richText = true };
+            if (!string.IsNullOrEmpty(line.speaker)) GUILayout.Label($"<b>{line.speaker}</b>", rich);
+            GUILayout.Label(line.text, rich); // lines color words with <color=#...> tags
             GUILayout.FlexibleSpace();
             GUILayout.Label("[Z / Enter]");
             GUILayout.EndArea();

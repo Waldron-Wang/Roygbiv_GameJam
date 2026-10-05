@@ -39,6 +39,10 @@ namespace Roygbiv
         public static event Action<DialogueLine> DialogueLineShown;
         public static event Action DialogueEnded;
 
+        // ---------- Instructions (how-to cards, opened from the Tip button) ----------
+        public static event Action<ColorId, InstructionData> InstructionShown;
+        public static event Action InstructionClosed;
+
         // ---------- Meta ----------
         public static event Action<string> SceneLoaded;
         public static event Action<bool> PauseChanged;
@@ -63,6 +67,9 @@ namespace Roygbiv
         public static void RaiseDialogueLineShown(DialogueLine l) => DialogueLineShown?.Invoke(l);
         public static void RaiseDialogueEnded() => DialogueEnded?.Invoke();
 
+        public static void RaiseInstructionShown(ColorId c, InstructionData d) => InstructionShown?.Invoke(c, d);
+        public static void RaiseInstructionClosed() => InstructionClosed?.Invoke();
+
         public static void RaiseSceneLoaded(string scene) => SceneLoaded?.Invoke(scene);
         public static void RaisePauseChanged(bool paused) => PauseChanged?.Invoke(paused);
 
@@ -76,6 +83,7 @@ namespace Roygbiv
             PlayerHealthChanged = null; PlayerDied = null;
             BossFightStarted = null; BossHealthChanged = null; BossPhaseChanged = null; BossDefeated = null;
             DialogueStarted = null; DialogueLineShown = null; DialogueEnded = null;
+            InstructionShown = null; InstructionClosed = null;
             SceneLoaded = null; PauseChanged = null;
         }
     }

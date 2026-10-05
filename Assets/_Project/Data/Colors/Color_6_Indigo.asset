@@ -17,6 +17,7 @@ MonoBehaviour:
   tint: {r: 0.3, g: 0.2, b: 0.65, a: 1}
   emotion: Calm, perceptiveness, spirituality
   sceneName: Level_Indigo
+  instruction: {fileID: 11400000, guid: fd80a4bdb90001e498b00413094fe28b, type: 2}
   grantedAbility: 0
   storyFragment: {fileID: 11400000, guid: 2be7fca89e22b4f0d9eb085add4fc3a0, type: 2}
   musicLayer: {fileID: 0}

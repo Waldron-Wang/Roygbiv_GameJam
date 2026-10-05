@@ -17,6 +17,7 @@ MonoBehaviour:
   tint: {r: 0.9, g: 0.15, b: 0.15, a: 1}
   emotion: Hot-blooded, anger
   sceneName: Level_Red
+  instruction: {fileID: 11400000, guid: 604406a6bc2de814d819ca90e7fa74d8, type: 2}
   grantedAbility: 3
   storyFragment: {fileID: 11400000, guid: e368e69fce4404494b2c08e6ac6e18ad, type: 2}
   musicLayer: {fileID: 0}

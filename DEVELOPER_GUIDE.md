@@ -63,10 +63,12 @@ There are two deliberate exceptions, so treat them with care:
 | `Bootstrapper` | Game, GameConfig, every `[Systems]` component | Unity (auto-run) |
 | `GameManager` | Game, GameProgress, GameEvents | MainMenuScreen, HubScreen, PauseMenu, EndingScreen, DebugCheats |
 | `SceneLoader` | GameEvents, `SceneManager` | GameManager, PauseMenu |
-| `InputReader` | PlayerIntent, IInputModifier, Unity Input System | PlayerController, DialogueRunner, PauseMenu, IndigoBoss, AbilityBase (indirectly) |
+| `InputReader` | PlayerIntent, IInputModifier, Unity Input System | PlayerController, DialogueRunner, InstructionRunner, PauseMenu, IndigoBoss, InstructionView (pointer blocker), AbilityBase (indirectly) |
 | `InputModifiers` | PlayerIntent | IndigoBoss |
 | `ColorWorld` | Game, GameEvents, shader globals | Recolorable, GameManager.NewGame |
 | `DialogueRunner` | Game.Input, GameEvents, DialogueData | GameManager, LevelController, EndingScreen |
+| `InstructionData` | — | ColorData, InstructionRunner, InstructionView, GameEvents |
+| `InstructionRunner` | Game.Input, Game.Config, Game.Dialogue, Game.Scenes, GameEvents, InstructionData, `SceneManager`, `Time.timeScale` | InstructionView, PauseMenu |
 | `AudioManager` | Game.Config, Game.Progress | SceneMusic, any gameplay that plays SFX |
 | `CombatInterfaces` | Ids (Team), Health | Health, Hitbox, Projectile, abilities, PlayerController, BossBase, ShootableSwitch |
 | **`Health`** | IDamageable, Combat, `Rigidbody2D` | PlayerController, BossBase, abilities (i-frames), LevelTrigger, CameraFollow, DebugCheats |
@@ -105,7 +107,8 @@ BeforeSceneLoad         Bootstrapper.Init()
                           ├─ Game.Config = Resources/GameConfig
                           └─ new "[Systems]" (DontDestroyOnLoad), AddComponent in this order:
                              InputReader → SceneLoader → GameManager → ColorWorld → DialogueRunner
-                             → AudioManager → PauseMenu → DialogueView → DebugHud → DebugCheats
+                             → InstructionRunner → AudioManager → PauseMenu → DialogueView
+                             → InstructionView → DebugHud → DebugCheats
                              (each Awake runs immediately inside AddComponent)
 Scene loads             Awake → OnEnable for every scene object
                         Start for everything (incl. [Systems]: ColorWorld.Start syncs colors, AudioManager.Start builds layers)
@@ -157,7 +160,7 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
 
 #### `ColorData.cs` — ScriptableObject, one per color (`Data/Colors/Color_N_<Name>`)
 - **Purpose:** All per-color design data in one asset.
-- **Fields:** `id`, `displayName`, `tint`, `emotion`, `sceneName`, `grantedAbility`, `storyFragment`, `musicLayer`.
+- **Fields:** `id`, `displayName`, `tint`, `emotion`, `sceneName`, `instruction`, `grantedAbility`, `storyFragment`, `musicLayer`.
 - **Talks to:** read via `Game.Config.Get(colorId)`.
 - **Gotchas:** `sceneName` must match a scene in Build Settings exactly. `grantedAbility` needs a matching ability
   component on the Player prefab, or you'll see the warning "has no component for ability".
@@ -190,7 +193,7 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
 
 #### `Game.cs` — static service locator
 - **Purpose:** The single access point for persistent systems.
-- **API:** `Game.Config`, `Game.Manager`, `Game.Progress`, `Game.Scenes`, `Game.Input`, `Game.Colors`, `Game.Dialogue`, `Game.Audio`.
+- **API:** `Game.Config`, `Game.Manager`, `Game.Progress`, `Game.Scenes`, `Game.Input`, `Game.Colors`, `Game.Dialogue`, `Game.Instructions`, `Game.Audio`.
 - **Rule:** Use `Game.*` to **command** a service ("load this scene", "play this dialogue"). Use `GameEvents` to **announce** something.
 - **Gotchas:** Setters are `internal` and only `Bootstrapper` sets them. Never cache these in fields across scenes; just call `Game.X` each time.
 
@@ -240,8 +243,11 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
   - `BlockGameplay()` / `UnblockGameplay()`, which are ref-counted and must be paired
   - `GameplayEnabled`
   - `AddModifier`, `RemoveModifier`, `ClearModifiers`
+  - `AddPointerBlocker(Func<Vector2,bool>)` / `RemovePointerBlocker`: on-screen UI clicked during play (the Tip button)
+    registers a hit test (screen pixels, origin bottom-left). A mouse press that starts over it doesn't reach gameplay:
+    attack and shoot are masked until the button is released, so clicking the UI doesn't swing, charge or fire.
 - **Bindings:** Defined in code in `Awake` (keyboard and gamepad). This is the **only** place to change controls.
-- **Pipeline:** device → raw intent → (if blocked: `ClearGameplay`) → each `IInputModifier` in order → `Intent`.
+- **Pipeline:** device → raw intent → (press over a pointer blocker: mask attack / shoot) → (if blocked: `ClearGameplay`) → each `IInputModifier` in order → `Intent`.
 - **Gotchas:**
   - Confirm is also bound to Z and X. While dialogue is open, gameplay is blocked, so those presses don't also jump or attack.
   - Each Block call needs exactly one matching Unblock. An extra Block leaves the player frozen.
@@ -264,6 +270,31 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
 - **API:** `Play(DialogueData) → Coroutine`, `IsPlaying`. From a coroutine: `yield return Game.Dialogue.Play(d);`
 - **Raises:** `DialogueStarted`, `DialogueLineShown` (once per line), `DialogueEnded`.
 - **Gotchas:** If a second `Play` arrives while one is running, it queues behind it. Each line advances on `confirmPressed`.
+  Lines are rich text: the story fragments color the color word and ability name with `<color=#...>`.
+
+#### `InstructionData.cs` + `InstructionRunner.cs` (`Scripts/Instructions`)
+- **Purpose:** An optional how-to card for the level's boss, opened by the player from the on-screen **Tip button**;
+  nothing pops up on its own. `InstructionData` (*Create > ROYGBIV > Instruction*, one per color in `Data/Instructions`,
+  referenced by `ColorData.instruction`) holds a one-line `caption` (+ optional `subCaption`, unused by the current cards),
+  the `keys` the demo presses, which `demo` to play (`InstructionDemo`: Reflect, ShootLatch, Overheat, Steal, Climb,
+  FlipControls, None), an `accent` color and the demo's sprites. `[LMB]` `[RMB]` `[Left]` `[Space]`… in a caption draw as keycaps.
+- **API:** `Game.Instructions.LevelCard`, `CanOpen` (the button shows when true), `IsOpen`, `Open()`, `Close()`, `Toggle()`, `BlocksPause`.
+- **Flow:** `LevelStarted` makes the level's card available; `InstructionView` draws the Tip button while `CanOpen` and calls
+  `Toggle()` on a click. `Open()` blocks gameplay input and sets `Time.timeScale = 0` (so the Orange chase doesn't scroll);
+  `Close()` restores both exactly as they were. Open it as often as you like.
+- **Closes on:** the card's X or the Tip button (view → `Close` / `Toggle`), confirm (Z / Enter) or Esc (read in `Update`),
+  the level completing / failing (F9 too), or the scene changing.
+- **Button hidden when:** the ColorData has no `instruction` (Violet for now), dialogue is playing, the pause menu is open
+  (`PauseChanged`), the level is won or lost, or a scene is loading.
+- **Raises:** `InstructionShown(color, data)`, `InstructionClosed`. It draws nothing; `InstructionView` does.
+- **Gotchas:**
+  - No keyboard shortcut opens it, on purpose: it's mouse only.
+  - The click must not also attack: `InstructionView` registers the button and the card's X with
+    `InputReader.AddPointerBlocker`, because IMGUI only sees the click after gameplay's `Update` has read the input.
+  - `PauseMenu` checks `BlocksPause` (open, or closed this frame), so the Esc that closes the card doesn't also pause.
+  - Confirm / Esc are ignored for `minShowTime` after opening.
+  - Rebuild the default cards with **ROYGBIV > Build Instructions** (keeps existing ones, links empty ColorData except Violet)
+    or **Reset Instructions to Defaults**.
 
 #### `AudioManager.cs` (`Scripts/Audio`)
 - **Purpose:** Music, one-shot SFX, and adaptive music layers.
@@ -433,7 +464,7 @@ Interactions to know about:
 - **Flow:**
   1. `Start` raises `LevelStarted`.
   2. Plays `introDialogue` if there is one.
-  3. Starts the boss, if `startBossImmediately` is on.
+  3. Starts the boss, if `startBossImmediately` is on. (The how-to card is optional, from the Tip button; see `InstructionRunner`.)
 - **Win and lose:**
 
   | Outcome | Triggered by |
@@ -489,6 +520,7 @@ Calls `Game.Audio.PlayMusic(music)` on `Start`. Put one in each scene.
 |---|---|---|---|
 | `DebugHud` | `[Systems]` | `PlayerHealthChanged`, `BossFightStarted/HealthChanged/Defeated`, `SceneLoaded`, `Game.Progress`, `PlayerController.Instance.Loadout` | — |
 | `DialogueView` | `[Systems]` | `DialogueLineShown`, `DialogueEnded` | — |
+| `InstructionView` (+ `CardGui`, `InstructionDemos`) | `[Systems]` | `InstructionShown`, `InstructionClosed`, `Game.Instructions.CanOpen / LevelCard`, `Game.Config` | `Game.Instructions.Toggle/Close` on clicks; `Game.Input.AddPointerBlocker`. Tip button top-right; card on a 1920×1080 canvas, unscaled time |
 | `PauseMenu` | `[Systems]` | `Intent.pausePressed` (only inside a level) | `Time.timeScale`, `Game.Input.Block/Unblock`, `Game.Scenes.Reload`, `Game.Manager.ReturnToHub`; raises `PauseChanged` |
 | `MainMenuScreen` | MainMenu scene | `GameProgress.HasSave` | `Game.Manager.NewGame/ContinueGame` |
 | `HubScreen` | Hub scene | `Game.Config.colorOrder`, `Game.Progress`, `Game.Manager.IsUnlocked` | `Game.Manager.EnterLevel` |
@@ -538,6 +570,8 @@ Then remove the matching `AddComponent` lines in `Bootstrapper`.
 | `DialogueStarted` | `DialogueData` | DialogueRunner | — | Letterbox, music duck |
 | `DialogueLineShown` | `DialogueLine` | DialogueRunner | DialogueView | Real dialogue UI, voice blips |
 | `DialogueEnded` | — | DialogueRunner | DialogueView | — |
+| `InstructionShown` | `ColorId, InstructionData` | InstructionRunner.Open (Tip button) | InstructionView | Card SFX, music duck |
+| `InstructionClosed` | — | InstructionRunner | InstructionView | — |
 | `SceneLoaded` | `string` | SceneLoader | DebugHud | — |
 | `PauseChanged` | `bool` | PauseMenu | — | Music low-pass |
 

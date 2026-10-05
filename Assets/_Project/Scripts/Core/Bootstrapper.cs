@@ -28,11 +28,13 @@ namespace Roygbiv
             Game.Manager = systems.AddComponent<GameManager>();
             Game.Colors = systems.AddComponent<ColorWorld>();
             Game.Dialogue = systems.AddComponent<DialogueRunner>();
+            Game.Instructions = systems.AddComponent<InstructionRunner>();
             Game.Audio = systems.AddComponent<AudioManager>();
 
             // Placeholder UI (IMGUI) — replace with real UI once the art style is chosen.
             systems.AddComponent<PauseMenu>();
             systems.AddComponent<DialogueView>();
+            systems.AddComponent<InstructionView>();
             systems.AddComponent<DebugHud>();
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             systems.AddComponent<DebugCheats>();

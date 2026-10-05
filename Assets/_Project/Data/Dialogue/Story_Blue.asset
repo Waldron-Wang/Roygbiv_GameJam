@@ -13,5 +13,9 @@ MonoBehaviour:
   m_Name: Story_Blue
   m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.DialogueData
   lines:
-  - speaker: Memory
-    text: "[Story fragment after reclaiming Blue \u2014 writer TODO]"
+  - speaker: 
+    text: "<color=#3D8BFF>Blue</color> returns."
+  - speaker: 
+    text: "Even in sadness, you're not alone."
+  - speaker: 
+    text: "<color=#3D8BFF>Heavy Slam</color> unlocked: in mid-air, hold Down and press Left Click."

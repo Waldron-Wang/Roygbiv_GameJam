@@ -17,6 +17,7 @@ MonoBehaviour:
   tint: {r: 1, g: 0.85, b: 0.15, a: 1}
   emotion: Warmth, joy, happiness
   sceneName: Level_Yellow
+  instruction: {fileID: 11400000, guid: c65659b5426bbb54daf82e89e2e038d8, type: 2}
   grantedAbility: 1
   storyFragment: {fileID: 11400000, guid: 66b345654e4dc4fdc9ca78dac5f7cae3, type: 2}
   musicLayer: {fileID: 0}

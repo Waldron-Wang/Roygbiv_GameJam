@@ -13,5 +13,7 @@ MonoBehaviour:
   m_Name: Story_Indigo
   m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.DialogueData
   lines:
-  - speaker: Memory
-    text: "[Story fragment after reclaiming Indigo \u2014 writer TODO]"
+  - speaker: 
+    text: "<color=#7B6CFF>Indigo</color> returns."
+  - speaker: 
+    text: "A deep calm settles over you."
