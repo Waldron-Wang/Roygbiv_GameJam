@@ -137,10 +137,10 @@ namespace Roygbiv
             CardGui.Outline(stage, WithAlpha(accent, 0.55f), 2f);
 
             // Caption (+ optional small line); its keycaps press in sync with the demo's.
-            float captionY = stage.yMax + 54f;
-            CardGui.Inline(data.caption, new Vector2(p.center.x, captionY), 34, Color.white, accent, InstructionDemos.Press);
+            float captionY = stage.yMax + 54f, maxWidth = p.width - 80f;
+            CardGui.Inline(data.caption, new Vector2(p.center.x, captionY), FitFont(data.caption, 34, maxWidth), Color.white, accent, InstructionDemos.Press);
             if (!string.IsNullOrEmpty(data.subCaption))
-                CardGui.Inline(data.subCaption, new Vector2(p.center.x, captionY + 52f), 25, new Color(1f, 1f, 1f, 0.78f), accent, InstructionDemos.Press);
+                CardGui.Inline(data.subCaption, new Vector2(p.center.x, captionY + 52f), FitFont(data.subCaption, 25, maxWidth), new Color(1f, 1f, 1f, 0.78f), accent, InstructionDemos.Press);
 
             // Continue hint, bottom right, once confirm is accepted (InstructionRunner.minShowTime).
             float alpha = CardGui.Alpha;
@@ -148,6 +148,13 @@ namespace Roygbiv
             float width = CardGui.InlineWidth(Hint, 20);
             CardGui.Inline(Hint, new Vector2(p.xMax - 34f - width * 0.5f, p.yMax - 34f), 20, new Color(1f, 1f, 1f, 0.85f), accent, null);
             CardGui.Alpha = alpha;
+        }
+
+        /// <summary>Shrinks a caption that's too long for the card instead of letting it spill out.</summary>
+        static int FitFont(string line, int size, float maxWidth)
+        {
+            while (size > 18 && CardGui.InlineWidth(line, size) > maxWidth) size -= 2;
+            return size;
         }
 
         static string Spaced(string s) => string.Join(" ", s.ToCharArray());
