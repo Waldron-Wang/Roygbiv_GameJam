@@ -23,7 +23,7 @@ namespace Roygbiv.EditorTools
         struct Card
         {
             public ColorId color;
-            public string accent, caption, subCaption;
+            public string accent, caption;
             public InstructionDemo demo;
             public string[] keys;
             public string loop, action;     // Art/Player subfolders
@@ -47,7 +47,6 @@ namespace Roygbiv.EditorTools
             {
                 color = ColorId.Orange, accent = "#FF9A2E", demo = InstructionDemo.ShootLatch,
                 caption = "Shoot the <color=#FF9A2E>latch</color> [RMB] / [C] to trap it — catch it 3 times",
-                subCaption = "[Space] jump",
                 keys = new[] { "RMB", "C" },
                 loop = "run", loopFps = 12f,
                 boss = "orangeIdle", bossHurt = "orangeHurt", bossMove = new[] { "orangeRun1", "orangeRun2" },
@@ -56,7 +55,6 @@ namespace Roygbiv.EditorTools
             {
                 color = ColorId.Red, accent = "#FF4A3D", demo = InstructionDemo.Overheat,
                 caption = "Hit it until it <color=#FF4A3D>overheats</color>, then strike!",
-                subCaption = "[Shift] dash through fire",
                 keys = new[] { "LMB" },
                 loop = "idle", loopFps = 8f, action = "attack", actionFps = 20f,
                 boss = "redIdle", bossHurt = "redHurt",
@@ -148,7 +146,7 @@ namespace Roygbiv.EditorTools
         static void Fill(InstructionData d, Card c)
         {
             d.caption = c.caption;
-            d.subCaption = c.subCaption ?? "";
+            d.subCaption = ""; // cards are demo + one caption; the field stays for a designer who wants a second line
             if (!ColorUtility.TryParseHtmlString(c.accent, out d.accent)) d.accent = Color.white;
             d.demo = c.demo;
             d.keys = c.keys ?? new string[0];

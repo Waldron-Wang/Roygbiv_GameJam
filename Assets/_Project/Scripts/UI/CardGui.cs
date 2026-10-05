@@ -150,16 +150,31 @@ namespace Roygbiv
             return style;
         }
 
-        public static Vector2 Measure(string text, int size, FontStyle fontStyle = FontStyle.Normal) =>
-            Style(size, fontStyle, TextAnchor.MiddleLeft).CalcSize(new GUIContent(text));
+        // Text is laid out in canvas units but rasterized in screen pixels: the font is set to its on-screen size and
+        // drawn without the canvas scale, so glyphs stay sharp instead of being stretched from another size.
+        // (So text can't be drawn inside Rotate; nothing needs that.)
+        static float CanvasScale => Mathf.Max(0.01f, GUI.matrix.lossyScale.x);
+        static int ScreenFontSize(int size, float scale) => Mathf.Max(1, Mathf.RoundToInt(size * scale));
+
+        /// <summary>Size of `text` in canvas units.</summary>
+        public static Vector2 Measure(string text, int size, FontStyle fontStyle = FontStyle.Normal)
+        {
+            float s = CanvasScale;
+            return Style(ScreenFontSize(size, s), fontStyle, TextAnchor.MiddleLeft).CalcSize(new GUIContent(text)) / s;
+        }
 
         public static void Text(Rect r, string text, int size, Color c, TextAnchor align = TextAnchor.MiddleCenter, FontStyle fontStyle = FontStyle.Normal)
         {
-            var st = Style(size, fontStyle, align);
+            var canvas = GUI.matrix;
+            float s = CanvasScale;
+            Vector2 min = canvas.MultiplyPoint3x4(r.min), max = canvas.MultiplyPoint3x4(r.max);
+            var st = Style(ScreenFontSize(size, s), fontStyle, align);
             st.normal.textColor = c;
             var prevColor = GUI.color;
             GUI.color = new Color(1f, 1f, 1f, Alpha); // also fades <color=...> runs, which ignore textColor
-            GUI.Label(r, text, st);
+            GUI.matrix = Matrix4x4.identity;
+            GUI.Label(Rect.MinMaxRect(Mathf.Round(min.x), Mathf.Round(min.y), Mathf.Round(max.x), Mathf.Round(max.y)), text, st);
+            GUI.matrix = canvas;
             GUI.color = prevColor;
         }
 
@@ -173,19 +188,21 @@ namespace Roygbiv
             _ => key,
         };
 
-        static int KeyFontSize(float height, string label) => Mathf.RoundToInt(height * (label.Length <= 1 ? 0.5f : 0.36f));
+        static int KeyFontSize(float height, string label, float labelScale) =>
+            Mathf.RoundToInt(height * (label.Length <= 1 ? 0.5f : 0.36f) * labelScale);
 
         /// <summary>Width of a keycap `height` tall: square for one letter, wider for words, narrow for the mouse.</summary>
-        public static float KeyWidth(string key, float height)
+        /// <param name="labelScale">Bigger key text than usual (and a key wide enough for it).</param>
+        public static float KeyWidth(string key, float height, float labelScale = 1f)
         {
             if (IsMouse(key)) return height * 0.74f;
             var label = KeyLabel(key);
             if (label.Length <= 1) return height;
-            return Mathf.Max(height, Measure(label, KeyFontSize(height, label), FontStyle.Bold).x + height * 0.55f);
+            return Mathf.Max(height, Measure(label, KeyFontSize(height, label, labelScale), FontStyle.Bold).x + height * 0.55f);
         }
 
         /// <summary>A keycap (or mouse for LMB / RMB). press 0..1: sinks, darkens toward the accent and glows.</summary>
-        public static void Key(Rect r, string key, float press, Color accent)
+        public static void Key(Rect r, string key, float press, Color accent, float labelScale = 1f)
         {
             if (IsMouse(key)) { Mouse(r, key == "RMB", press, accent); return; }
 
@@ -199,7 +216,7 @@ namespace Roygbiv
             Round(face, Color.Lerp(dark, Color.Lerp(accent, Color.black, 0.35f), press), radius);
             Outline(face, Color.Lerp(accent, Color.white, 0.3f * press), Mathf.Max(1.5f, r.height * 0.05f), radius);
             var label = KeyLabel(key);
-            Text(face, label, KeyFontSize(r.height, label), Color.white, TextAnchor.MiddleCenter, FontStyle.Bold);
+            Text(face, label, KeyFontSize(r.height, label, labelScale), Color.white, TextAnchor.MiddleCenter, FontStyle.Bold);
         }
 
         static void Mouse(Rect r, bool right, float press, Color accent)
@@ -243,17 +260,21 @@ namespace Roygbiv
         // ---------- Inline "text [Key] text" lines ----------
 
         /// <summary>Width of a line with key tokens, for right-aligning.</summary>
-        public static float InlineWidth(string line, int fontSize) => Inline(line, Vector2.zero, fontSize, Color.white, Color.white, null, false);
+        public static float InlineWidth(string line, int fontSize, float keyScale = 1.3f, float labelScale = 1f) =>
+            Inline(line, Vector2.zero, fontSize, Color.white, Color.white, null, false, keyScale, labelScale);
 
         /// <summary>Draws a one-line caption centered on `center`; [Key] tokens become keycaps (pressed in sync with `press`).</summary>
-        public static float Inline(string line, Vector2 center, int fontSize, Color color, Color accent, IReadOnlyDictionary<string, float> press, bool draw = true)
+        /// <param name="keyScale">Keycap height as a multiple of the font size.</param>
+        /// <param name="labelScale">Text inside the keycaps, relative to the usual size.</param>
+        public static float Inline(string line, Vector2 center, int fontSize, Color color, Color accent, IReadOnlyDictionary<string, float> press,
+                                   bool draw = true, float keyScale = 1.3f, float labelScale = 1f)
         {
             if (string.IsNullOrEmpty(line)) return 0f;
-            float keyHeight = fontSize * 1.3f, pad = fontSize * 0.2f;
+            float keyHeight = fontSize * keyScale, pad = fontSize * 0.2f;
 
             float width = 0f;
             foreach (var part in Split(line))
-                width += part.isKey ? KeyWidth(part.text, keyHeight) + pad * 2f : Measure(part.text, fontSize).x;
+                width += part.isKey ? KeyWidth(part.text, keyHeight, labelScale) + pad * 2f : Measure(part.text, fontSize).x;
             if (!draw) return width;
 
             float x = center.x - width * 0.5f;
@@ -261,8 +282,8 @@ namespace Roygbiv
             {
                 if (part.isKey)
                 {
-                    float w = KeyWidth(part.text, keyHeight);
-                    Key(new Rect(x + pad, center.y - keyHeight * 0.5f, w, keyHeight), part.text, PressOf(press, part.text), accent);
+                    float w = KeyWidth(part.text, keyHeight, labelScale);
+                    Key(new Rect(x + pad, center.y - keyHeight * 0.5f, w, keyHeight), part.text, PressOf(press, part.text), accent, labelScale);
                     x += w + pad * 2f;
                 }
                 else

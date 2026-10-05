@@ -14,7 +14,16 @@ namespace Roygbiv
         const float RefWidth = 1920f, RefHeight = 1080f;
         const string Hint = "Press [Z] / [Enter] to continue";
 
-        static readonly Rect Panel = new(400f, 190f, 1120f, 680f);
+        // Card layout on the 1920x1080 canvas, top to bottom.
+        const float PanelWidth = 1120f, StageTop = 76f, StageHeight = 370f;
+        const float CaptionGap = 54f;    // stage bottom -> caption center
+        const float SubCaptionGap = 52f; // caption -> sub-caption center, only when there is one
+        const float HintRow = 100f;      // last caption line -> panel bottom: room for the continue hint
+        const int CaptionSize = 34, SubCaptionSize = 25;
+        // The hint reads at sub-caption size, with keycaps big enough for "Enter".
+        const int HintSize = 25;
+        const float HintKeyScale = 1.55f, HintLabelScale = 1.25f;
+
         static readonly Color Ink = new(0.02f, 0.04f, 0.06f, 0.86f);
         static readonly Color Paper = new(0.93f, 0.93f, 0.91f, 0.97f);
 
@@ -66,14 +75,15 @@ namespace Roygbiv
                 Quaternion.identity, new Vector3(s, s, 1f));
 
             // The hologram unfolds from its middle line, then the content fades in.
-            var frame = Panel;
+            var panel = PanelRect();
+            var frame = panel;
             float h = Mathf.Max(4f, frame.height * open);
             frame.y += (frame.height - h) * 0.5f;
             frame.height = h;
             DrawFrame(frame, accent, t);
 
             CardGui.Alpha = Smooth((t - 0.18f) / 0.2f);
-            if (CardGui.Alpha > 0f) DrawContent(Panel, accent, t - 0.18f);
+            if (CardGui.Alpha > 0f) DrawContent(panel, accent, t - 0.18f);
 
             CardGui.Alpha = 1f;
             GUI.matrix = screenMatrix;
@@ -128,7 +138,7 @@ namespace Roygbiv
                 CardGui.Text(new Rect(p.xMax - 224f, header.y, 200f, header.height), $"{index + 1:00} / {count:00}", 18, WithAlpha(accent, 0.75f), TextAnchor.MiddleRight);
 
             // The screen the demo plays on: light, because the player art is a black silhouette.
-            var stage = new Rect(p.x + 48f, p.y + 76f, p.width - 96f, 370f);
+            var stage = new Rect(p.x + 48f, p.y + StageTop, p.width - 96f, StageHeight);
             CardGui.Box(stage, Paper);
             var grid = new Color(0f, 0f, 0f, 0.045f);
             for (float x = stage.x + 40f; x < stage.xMax; x += 40f) CardGui.Box(new Rect(x, stage.y, 1f, stage.height), grid);
@@ -137,17 +147,27 @@ namespace Roygbiv
             CardGui.Outline(stage, WithAlpha(accent, 0.55f), 2f);
 
             // Caption (+ optional small line); its keycaps press in sync with the demo's.
-            float captionY = stage.yMax + 54f, maxWidth = p.width - 80f;
-            CardGui.Inline(data.caption, new Vector2(p.center.x, captionY), FitFont(data.caption, 34, maxWidth), Color.white, accent, InstructionDemos.Press);
-            if (!string.IsNullOrEmpty(data.subCaption))
-                CardGui.Inline(data.subCaption, new Vector2(p.center.x, captionY + 52f), FitFont(data.subCaption, 25, maxWidth), new Color(1f, 1f, 1f, 0.78f), accent, InstructionDemos.Press);
+            float captionY = stage.yMax + CaptionGap, maxWidth = p.width - 80f;
+            CardGui.Inline(data.caption, new Vector2(p.center.x, captionY), FitFont(data.caption, CaptionSize, maxWidth), Color.white, accent, InstructionDemos.Press);
+            if (HasSubCaption)
+                CardGui.Inline(data.subCaption, new Vector2(p.center.x, captionY + SubCaptionGap), FitFont(data.subCaption, SubCaptionSize, maxWidth), new Color(1f, 1f, 1f, 0.78f), accent, InstructionDemos.Press);
 
-            // Continue hint, bottom right, once confirm is accepted (InstructionRunner.minShowTime).
+            // Continue hint, bottom right, once confirm is accepted (InstructionRunner.minShowTime). A gentle blink.
             float alpha = CardGui.Alpha;
-            CardGui.Alpha *= Smooth((t - 0.25f) / 0.3f) * (0.7f + 0.3f * Mathf.Sin(t * 4f));
-            float width = CardGui.InlineWidth(Hint, 20);
-            CardGui.Inline(Hint, new Vector2(p.xMax - 34f - width * 0.5f, p.yMax - 34f), 20, new Color(1f, 1f, 1f, 0.85f), accent, null);
+            CardGui.Alpha *= Smooth((t - 0.25f) / 0.3f) * (0.75f + 0.25f * Mathf.Sin(t * 4f));
+            float width = CardGui.InlineWidth(Hint, HintSize, HintKeyScale, HintLabelScale);
+            CardGui.Inline(Hint, new Vector2(p.xMax - 34f - width * 0.5f, p.yMax - 40f), HintSize, new Color(1f, 1f, 1f, 0.88f), accent, null,
+                           true, HintKeyScale, HintLabelScale);
             CardGui.Alpha = alpha;
+        }
+
+        bool HasSubCaption => !string.IsNullOrEmpty(data.subCaption);
+
+        /// <summary>Centered, and only as tall as its content: no empty gap where a missing sub-caption would go.</summary>
+        Rect PanelRect()
+        {
+            float h = StageTop + StageHeight + CaptionGap + (HasSubCaption ? SubCaptionGap : 0f) + HintRow;
+            return new Rect((RefWidth - PanelWidth) * 0.5f, (RefHeight - h) * 0.5f - 10f, PanelWidth, h);
         }
 
         /// <summary>Shrinks a caption that's too long for the card instead of letting it spill out.</summary>

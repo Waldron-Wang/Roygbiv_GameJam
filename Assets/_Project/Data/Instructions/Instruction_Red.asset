@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Instruction_Red
   m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.InstructionData
   caption: Hit it until it <color=#FF4A3D>overheats</color>, then strike!
-  subCaption: '[Shift] dash through fire'
+  subCaption: 
   accent: {r: 1, g: 0.2901961, b: 0.23921569, a: 1}
   demo: 3
   keys:
