@@ -34,6 +34,7 @@ namespace Roygbiv
             // Placeholder UI (IMGUI) — replace with real UI once the art style is chosen.
             systems.AddComponent<PauseMenu>();
             systems.AddComponent<DialogueView>();
+            systems.AddComponent<InstructionView>();
             systems.AddComponent<DebugHud>();
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             systems.AddComponent<DebugCheats>();
