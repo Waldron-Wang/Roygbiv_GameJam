@@ -13,5 +13,9 @@ MonoBehaviour:
   m_Name: Story_Yellow
   m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.DialogueData
   lines:
-  - speaker: Memory
-    text: "[Story fragment after reclaiming Yellow \u2014 writer TODO]"
+  - speaker: 
+    text: "<color=#FFD93B>Yellow</color> returns."
+  - speaker: 
+    text: "You feel warmth and joy again."
+  - speaker: 
+    text: "<color=#FFD93B>Light Shot</color> unlocked: Right Click / C to fire, aim with the mouse."

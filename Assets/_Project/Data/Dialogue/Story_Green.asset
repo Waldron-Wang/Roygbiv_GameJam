@@ -13,5 +13,7 @@ MonoBehaviour:
   m_Name: Story_Green
   m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.DialogueData
   lines:
-  - speaker: Memory
-    text: "[Story fragment after reclaiming Green \u2014 writer TODO]"
+  - speaker: 
+    text: "<color=#4CD964>Green</color> returns."
+  - speaker: 
+    text: "The envy fades. What's yours is yours again."

@@ -13,5 +13,9 @@ MonoBehaviour:
   m_Name: Story_Red
   m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.DialogueData
   lines:
-  - speaker: Memory
-    text: "[Story fragment after reclaiming Red \u2014 writer TODO]"
+  - speaker: 
+    text: "<color=#FF4A3D>Red</color> returns."
+  - speaker: 
+    text: "Your blood runs hot with passion."
+  - speaker: 
+    text: "<color=#FF4A3D>Blaze Strike</color> unlocked: hold Left Click, then release."

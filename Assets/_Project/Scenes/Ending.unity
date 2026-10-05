@@ -148,7 +148,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 13adfbc44db4849b69bf83efa42a6661, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.EndingScreen
-  endingDialogue: {fileID: 0}
+  endingDialogue: {fileID: 11400000, guid: 9fcee70b9ccd94560b240d71c0866e44, type: 2}
 --- !u!4 &47454202
 Transform:
   m_ObjectHideFlags: 0

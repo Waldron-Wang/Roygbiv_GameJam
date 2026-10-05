@@ -13,5 +13,9 @@ MonoBehaviour:
   m_Name: Story_Orange
   m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.DialogueData
   lines:
-  - speaker: Memory
-    text: "[Story fragment after reclaiming Orange \u2014 writer TODO]"
+  - speaker: 
+    text: "<color=#FF9A2E>Orange</color> returns."
+  - speaker: 
+    text: "Your heart races with excitement."
+  - speaker: 
+    text: "<color=#FF9A2E>Dash</color> unlocked: Left Shift. You can't be hurt while dashing."

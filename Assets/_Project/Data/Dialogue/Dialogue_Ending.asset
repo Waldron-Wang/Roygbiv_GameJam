@@ -13,5 +13,7 @@ MonoBehaviour:
   m_Name: Dialogue_Ending
   m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.DialogueData
   lines:
-  - speaker: Scientist
-    text: "[Ending \u2014 writer TODO]"
+  - speaker: 
+    text: "Every color has returned."
+  - speaker: 
+    text: "Thank you for playing."
