@@ -113,6 +113,7 @@ GameObject:
   - component: {fileID: 7944926118124775745}
   - component: {fileID: 1705274042657021578}
   - component: {fileID: 8185696262344408519}
+  - component: {fileID: -4810051579614231288}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -324,6 +325,23 @@ MonoBehaviour:
   blinkInterval: 0.2
   cameraShake: 0.05
   cameraShakeTime: 0.25
+--- !u!114 &-4810051579614231288
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1435134940357129603}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f93692baa879a264fbfd426d1f218f91, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.DashAfterImage
+  visual: {fileID: 0}
+  tint: {r: 0, g: 0.2682122, b: 1, a: 0.6}
+  fadeTime: 0.4
+  sortingOrderOffset: -1
+  spawnInterval: 0.04
 --- !u!1 &3063216648248826422
 GameObject:
   m_ObjectHideFlags: 0
@@ -602,6 +620,7 @@ MonoBehaviour:
   speed: 18
   duration: 0.18
   invulnerableWhileDashing: 1
+  afterimage: {fileID: 0}
 --- !u!114 &2317942521753739142
 MonoBehaviour:
   m_ObjectHideFlags: 0
