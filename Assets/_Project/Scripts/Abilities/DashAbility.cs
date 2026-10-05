@@ -9,6 +9,7 @@ namespace Roygbiv
         [SerializeField] float speed = 18f;
         [SerializeField] float duration = 0.18f;
         [SerializeField] bool invulnerableWhileDashing = true;
+        [SerializeField] DashAfterImage afterimage;
 
         public override AbilityId Id => AbilityId.Dash;
 
@@ -16,8 +17,18 @@ namespace Roygbiv
 
         protected override void Activate() => StartCoroutine(DashRoutine());
 
+        void FindAfterimage()
+        {
+            if (afterimage) return;
+            afterimage = GetComponentInChildren<DashAfterImage>();
+            if (!afterimage) afterimage = GetComponentInParent<DashAfterImage>();
+            if (!afterimage)
+                Debug.LogWarning("DashAbility: no DashAfterImage found. Add the component to the player or drag it into the Afterimage field.", this);
+        }
+
         IEnumerator DashRoutine()
         {
+            FindAfterimage();
             var body = Owner.Body;
             float gravity = body.gravityScale;
 
@@ -25,6 +36,9 @@ namespace Roygbiv
             if (invulnerableWhileDashing && Owner.Health) Owner.Health.Invulnerable = true;
             body.gravityScale = 0f;
             body.linearVelocity = new Vector2(Owner.FacingSign * speed, 0f);
+
+            // start trail
+            if (afterimage) afterimage.Play(duration);
 
             yield return new WaitForSeconds(duration);
 
