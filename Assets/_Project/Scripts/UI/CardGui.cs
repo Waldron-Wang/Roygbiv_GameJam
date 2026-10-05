@@ -98,8 +98,10 @@ namespace Roygbiv
         // ---------- Sprites ----------
 
         /// <summary>
-        /// Draws a sprite with its pivot at `anchor`, `unitPx` GUI pixels per world unit — the same placement a
-        /// SpriteRenderer would give it, so frames of different canvas sizes line up. Tint multiplies (black = silhouette).
+        /// Draws a sprite with its pivot at `anchor`, `unitPx` GUI pixels per world unit: the placement and size a
+        /// SpriteRenderer would give it, at the art's own aspect ratio. Frames of one character share pixels-per-unit,
+        /// so they get one scale and line up even when their canvases differ (idle 600x600, attack 800x600).
+        /// Tint multiplies (black = silhouette).
         /// </summary>
         public static void Sprite(Sprite s, Vector2 anchor, float unitPx, Color tint, bool flipX = false, float degrees = 0f)
         {
@@ -108,10 +110,10 @@ namespace Roygbiv
             var size = s.rect.size * k;
             var pivot = s.pivot * k; // from the rect's bottom-left
             float left = flipX ? anchor.x - (size.x - pivot.x) : anchor.x - pivot.x;
-            var rect = new Rect(left, anchor.y - (size.y - pivot.y), size.x, size.y);
+            var canvas = new Rect(left, anchor.y - (size.y - pivot.y), size.x, size.y);
 
             var prev = degrees != 0f ? Rotate(anchor, degrees) : GUI.matrix;
-            DrawSprite(s, rect, tint, flipX);
+            DrawCanvas(s, canvas, tint, flipX);
             GUI.matrix = prev;
         }
 
@@ -122,11 +124,30 @@ namespace Roygbiv
             Sprite(s, new Vector2(feet.x, feet.y - s.pivot.y * unitPx / s.pixelsPerUnit), unitPx, tint, flipX, degrees);
         }
 
-        /// <summary>Stretches a sprite over `rect` (props: orbs, shots).</summary>
-        public static void DrawSprite(Sprite s, Rect rect, Color tint, bool flipX = false)
+        /// <summary>A prop (orb, shot) as big as fits in `box`, centered, at its own aspect ratio.</summary>
+        public static void DrawSprite(Sprite s, Rect box, Color tint, bool flipX = false)
+        {
+            var r = s.rect;
+            float k = Mathf.Min(box.width / r.width, box.height / r.height);
+            var size = r.size * k;
+            DrawCanvas(s, new Rect(box.center.x - size.x * 0.5f, box.center.y - size.y * 0.5f, size.x, size.y), tint, flipX);
+        }
+
+        /// <summary>
+        /// `canvas` is where the sprite's whole rect goes (same aspect as sprite.rect). Unity trims the transparent
+        /// border off imported sprites (Tight mesh), so textureRect is only the visible part: it's drawn at its own
+        /// offset and size inside the canvas, never stretched over the whole canvas.
+        /// </summary>
+        static void DrawCanvas(Sprite s, Rect canvas, Color tint, bool flipX)
         {
             var tex = s.texture;
+            var full = s.rect;
             var tr = s.textureRect;
+            var offset = s.textureRectOffset; // visible part's bottom-left, from the full rect's bottom-left (pixels)
+            float k = canvas.width / full.width;
+            float x = flipX ? full.width - offset.x - tr.width : offset.x;
+            var rect = new Rect(canvas.x + x * k, canvas.y + (full.height - offset.y - tr.height) * k, tr.width * k, tr.height * k);
+
             var uv = new Rect(tr.x / tex.width, tr.y / tex.height, tr.width / tex.width, tr.height / tex.height);
             if (flipX) uv = new Rect(uv.xMax, uv.y, -uv.width, uv.height);
             var prevColor = GUI.color;
