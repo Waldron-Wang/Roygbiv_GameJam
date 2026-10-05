@@ -17,6 +17,7 @@ namespace Roygbiv
         public static InputReader Input { get; internal set; }
         public static ColorWorld Colors { get; internal set; }
         public static DialogueRunner Dialogue { get; internal set; }
+        public static InstructionRunner Instructions { get; internal set; }
         public static AudioManager Audio { get; internal set; }
 
         public static GameProgress Progress => Manager.Progress;
@@ -25,7 +26,7 @@ namespace Roygbiv
         static void ResetAll()
         {
             Config = null; Manager = null; Scenes = null; Input = null;
-            Colors = null; Dialogue = null; Audio = null;
+            Colors = null; Dialogue = null; Instructions = null; Audio = null;
         }
     }
 }

@@ -28,6 +28,7 @@ namespace Roygbiv
             Game.Manager = systems.AddComponent<GameManager>();
             Game.Colors = systems.AddComponent<ColorWorld>();
             Game.Dialogue = systems.AddComponent<DialogueRunner>();
+            Game.Instructions = systems.AddComponent<InstructionRunner>();
             Game.Audio = systems.AddComponent<AudioManager>();
 
             // Placeholder UI (IMGUI) — replace with real UI once the art style is chosen.

@@ -17,6 +17,8 @@ namespace Roygbiv
         [Header("Level")]
         [Tooltip("Scene that holds this color's district + boss fight. Must be in Build Settings.")]
         public string sceneName;
+        [Tooltip("Pre-boss instruction card, shown once per play session before the fight starts (optional).")]
+        public InstructionData instruction;
 
         [Header("Reward")]
         public AbilityId grantedAbility;
