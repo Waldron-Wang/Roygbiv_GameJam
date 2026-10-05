@@ -190,7 +190,9 @@ namespace Roygbiv
             float s = CanvasScale;
             Vector2 min = canvas.MultiplyPoint3x4(r.min), max = canvas.MultiplyPoint3x4(r.max);
             var st = Style(ScreenFontSize(size, s), fontStyle, align);
-            st.normal.textColor = c;
+            // Same color in every state: GUI.Label draws the hover state under the mouse, and the skin's hover
+            // color (near white) would otherwise make text change, or vanish on a light fill, when hovered.
+            st.normal.textColor = st.hover.textColor = st.active.textColor = st.focused.textColor = c;
             var prevColor = GUI.color;
             GUI.color = new Color(1f, 1f, 1f, Alpha); // also fades <color=...> runs, which ignore textColor
             GUI.matrix = Matrix4x4.identity;

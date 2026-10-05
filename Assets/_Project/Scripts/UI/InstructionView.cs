@@ -117,6 +117,8 @@ namespace Roygbiv
         /// <summary>
         /// Neutral and quiet, so it doesn't draw the eye: all gray, about half see-through while idle; on hover or
         /// while the card is open, fully opaque and a little brighter. No color, no glow, nothing moving.
+        /// The whole pill is one hover target with one look: the "?" disc only brightens a touch with the rest,
+        /// and its glyph stays dark, so it reads the same in both states.
         /// </summary>
         static void DrawTipButton(Rect r, bool active, float ui)
         {
@@ -126,7 +128,7 @@ namespace Roygbiv
             CardGui.Outline(r, active ? new Color(0.82f, 0.82f, 0.82f) : new Color(0.52f, 0.52f, 0.52f), Mathf.Max(1f, 1.5f * ui), radius);
 
             var icon = new Vector2(r.x + radius, r.center.y);
-            CardGui.Disc(icon, r.height * 0.3f, active ? new Color(0.85f, 0.85f, 0.85f) : new Color(0.58f, 0.58f, 0.58f));
+            CardGui.Disc(icon, r.height * 0.3f, active ? new Color(0.66f, 0.66f, 0.66f) : new Color(0.58f, 0.58f, 0.58f));
             CardGui.Text(new Rect(icon.x - radius, r.y, radius * 2f, r.height), "?", Mathf.RoundToInt(r.height * 0.44f),
                          new Color(0.13f, 0.13f, 0.14f), TextAnchor.MiddleCenter, FontStyle.Bold);
             CardGui.Text(new Rect(icon.x + radius * 0.6f, r.y, r.xMax - icon.x - radius * 0.6f - radius * 0.4f, r.height), "Tip",
