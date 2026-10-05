@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 12318c8aed804240bb8554c07e0446f5, type: 3}
+  m_Name: Instruction_Yellow
+  m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.InstructionData
+  caption: Press [LMB] to reflect the <color=#FFD93B>light orbs</color> back at it
+  subCaption: 
+  accent: {r: 1, g: 0.8509804, b: 0.23137255, a: 1}
+  demo: 1
+  keys:
+  - LMB
+  playerLoop:
+  - {fileID: 21300000, guid: eff652ea0a52e4221b49c020f58952a8, type: 3}
+  - {fileID: 21300000, guid: c00a2f00e8a914f2abf50ede9395cb78, type: 3}
+  - {fileID: 21300000, guid: 2b4a942f4bf804748838a4d5776c7abc, type: 3}
+  - {fileID: 21300000, guid: 702fe3d5bde7840d49b6e028e34c7f75, type: 3}
+  playerLoopFps: 8
+  playerAction:
+  - {fileID: 21300000, guid: db80d54cbcb7c402fb4e371d12d6cdce, type: 3}
+  - {fileID: 21300000, guid: a491e8c2a0f2f4a3d9ad8b0f2190c76f, type: 3}
+  - {fileID: 21300000, guid: 9d429ceb5b32c4d58879cf2b0643f1fe, type: 3}
+  - {fileID: 21300000, guid: aeda623aeaff14a7e94a671caedfc382, type: 3}
+  - {fileID: 21300000, guid: b926cca396ce74d64b99984d5ac523ee, type: 3}
+  - {fileID: 21300000, guid: 5382e58b0b1e74957b7bf5707a1bb2a6, type: 3}
+  - {fileID: 21300000, guid: 799a22e56a2694a36889ae082b5ea229, type: 3}
+  playerActionFps: 20
+  boss: {fileID: 21300000, guid: 64b021a8381924e8591fa859fa65fd61, type: 3}
+  bossHurt: {fileID: 21300000, guid: 867a473ab72384bf0b14b04fd4680e62, type: 3}
+  bossMove: []
+  prop: {fileID: 21300000, guid: 678ff51dad73640708cff82daa23750c, type: 3}

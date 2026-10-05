@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 12318c8aed804240bb8554c07e0446f5, type: 3}
+  m_Name: Instruction_Blue
+  m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.InstructionData
+  caption: "Climb to the top \u2014 don't let it catch you"
+  subCaption: 
+  accent: {r: 0.23921569, g: 0.54509807, b: 1, a: 1}
+  demo: 5
+  keys:
+  - Space
+  playerLoop:
+  - {fileID: 21300000, guid: eff652ea0a52e4221b49c020f58952a8, type: 3}
+  - {fileID: 21300000, guid: c00a2f00e8a914f2abf50ede9395cb78, type: 3}
+  - {fileID: 21300000, guid: 2b4a942f4bf804748838a4d5776c7abc, type: 3}
+  - {fileID: 21300000, guid: 702fe3d5bde7840d49b6e028e34c7f75, type: 3}
+  playerLoopFps: 8
+  playerAction:
+  - {fileID: 21300000, guid: 62e9ec637f5f04f108dfdc9f3f904b89, type: 3}
+  - {fileID: 21300000, guid: ba55975ba13c44caca0dfb4b770401e9, type: 3}
+  - {fileID: 21300000, guid: 1e3c7b902f4544bec8fa5c872387716e, type: 3}
+  - {fileID: 21300000, guid: ab6db1651f44445658010cd03bd67030, type: 3}
+  - {fileID: 21300000, guid: e2b54c72bd2a34001842bb856cd4bbf3, type: 3}
+  - {fileID: 21300000, guid: 8b3ccf37d85b2476a869b6144ba2d607, type: 3}
+  playerActionFps: 15
+  boss: {fileID: 0}
+  bossHurt: {fileID: 0}
+  bossMove: []
+  prop: {fileID: 21300000, guid: 678ff51dad73640708cff82daa23750c, type: 3}

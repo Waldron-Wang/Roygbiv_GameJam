@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 12318c8aed804240bb8554c07e0446f5, type: 3}
+  m_Name: Instruction_Orange
+  m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.InstructionData
+  caption: "Shoot the <color=#FF9A2E>latch</color> [RMB] / [C] to trap it \u2014 catch it 3 times"
+  subCaption: '[Space] jump'
+  accent: {r: 1, g: 0.6039216, b: 0.18039216, a: 1}
+  demo: 2
+  keys:
+  - RMB
+  - C
+  playerLoop:
+  - {fileID: 21300000, guid: 2cc11c6a3bfa443f6af047de8b24fa1d, type: 3}
+  - {fileID: 21300000, guid: fbd480afb3743476f8574056d2f8059b, type: 3}
+  - {fileID: 21300000, guid: 72828d43c3ab944228ea1483af705172, type: 3}
+  - {fileID: 21300000, guid: 6dfe46766e34041889ba2f205c15af23, type: 3}
+  - {fileID: 21300000, guid: 933eeba423bd14de9b21b80e99f4fd87, type: 3}
+  playerLoopFps: 12
+  playerAction: []
+  playerActionFps: 20
+  boss: {fileID: 21300000, guid: fbf9cf169ddb64b389188e3a3b3dbaa8, type: 3}
+  bossHurt: {fileID: 21300000, guid: 5426b2bdc8f3b452d88c9a6c2a8bde95, type: 3}
+  bossMove:
+  - {fileID: 21300000, guid: 63364bc98faa747cfa403f062f0f51fb, type: 3}
+  - {fileID: 21300000, guid: 94b997bc6dc57490b818c6122dedcf5d, type: 3}
+  prop: {fileID: 21300000, guid: 678ff51dad73640708cff82daa23750c, type: 3}
