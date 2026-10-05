@@ -29,7 +29,6 @@ namespace Roygbiv
 
         InstructionData data;
         ColorData colorData;
-        int index, count;
         float openedAt;
 
         void OnEnable()
@@ -48,8 +47,6 @@ namespace Roygbiv
         {
             data = d;
             colorData = Game.Config.Get(color);
-            index = Game.Config.IndexOf(color);
-            count = Game.Config.colorOrder.Count;
             openedAt = Time.unscaledTime;
         }
 
@@ -121,7 +118,7 @@ namespace Roygbiv
 
         void DrawContent(Rect p, Color accent, float t)
         {
-            // Header: tab, spaced-out color name, its feeling, and which fight this is.
+            // Header: tab, spaced-out color name and its feeling.
             var header = new Rect(p.x + 2f, p.y + 2f, p.width - 4f, 46f);
             CardGui.Box(header, WithAlpha(accent, 0.14f));
             CardGui.Box(new Rect(p.x, header.yMax, p.width, 2f), WithAlpha(accent, 0.6f));
@@ -134,8 +131,6 @@ namespace Roygbiv
                 float x = p.x + 44f + CardGui.Measure(title, 24, FontStyle.Bold).x + 26f;
                 CardGui.Text(new Rect(x, header.y, 600f, header.height), colorData.emotion.ToUpperInvariant(), 16, WithAlpha(accent, 0.65f), TextAnchor.MiddleLeft);
             }
-            if (index >= 0)
-                CardGui.Text(new Rect(p.xMax - 224f, header.y, 200f, header.height), $"{index + 1:00} / {count:00}", 18, WithAlpha(accent, 0.75f), TextAnchor.MiddleRight);
 
             // The screen the demo plays on: light, because the player art is a black silhouette.
             var stage = new Rect(p.x + 48f, p.y + StageTop, p.width - 96f, StageHeight);

@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 12318c8aed804240bb8554c07e0446f5, type: 3}
   m_Name: Instruction_Green
   m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.InstructionData
-  caption: "It <color=#4CD964>steals</color> your abilities \u2014 defeat it to take them back"
+  caption: "It <color=#4CD964>steals</color> your abilities, so defeat it to take them back"
   subCaption: 
   accent: {r: 0.29803923, g: 0.8509804, b: 0.39215687, a: 1}
   demo: 4

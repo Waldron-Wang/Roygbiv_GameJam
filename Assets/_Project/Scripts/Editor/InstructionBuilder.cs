@@ -46,7 +46,7 @@ namespace Roygbiv.EditorTools
             new()
             {
                 color = ColorId.Orange, accent = "#FF9A2E", demo = InstructionDemo.ShootLatch,
-                caption = "Shoot the <color=#FF9A2E>latch</color> [RMB] / [C] to trap it — catch it 3 times",
+                caption = "Shoot the <color=#FF9A2E>latch</color> [RMB] / [C] to trap it, then catch it 3 times",
                 keys = new[] { "RMB", "C" },
                 loop = "run", loopFps = 12f,
                 boss = "orangeIdle", bossHurt = "orangeHurt", bossMove = new[] { "orangeRun1", "orangeRun2" },
@@ -62,21 +62,21 @@ namespace Roygbiv.EditorTools
             new()
             {
                 color = ColorId.Green, accent = "#4CD964", demo = InstructionDemo.Steal,
-                caption = "It <color=#4CD964>steals</color> your abilities — defeat it to take them back",
+                caption = "It <color=#4CD964>steals</color> your abilities, so defeat it to take them back",
                 keys = new[] { "C", "Shift", "LMB" },
                 loop = "idle", loopFps = 8f, action = "Hurt", actionFps = 5f,
             },
             new()
             {
                 color = ColorId.Blue, accent = "#3D8BFF", demo = InstructionDemo.Climb,
-                caption = "Climb to the top — don't let it catch you",
+                caption = "Climb to the top and don't let it catch you",
                 keys = new[] { "Space" },
                 loop = "idle", loopFps = 8f, action = "jump", actionFps = 15f,
             },
             new()
             {
                 color = ColorId.Indigo, accent = "#7B6CFF", demo = InstructionDemo.FlipControls,
-                caption = "Your controls will <color=#7B6CFF>flip</color> — stay calm",
+                caption = "Your controls will <color=#7B6CFF>flip</color>, so stay calm",
                 keys = new[] { "Left", "Right", "Space", "LMB" },
                 loop = "idle", loopFps = 8f,
             },

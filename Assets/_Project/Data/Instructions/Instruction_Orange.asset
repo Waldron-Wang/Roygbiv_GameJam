@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 12318c8aed804240bb8554c07e0446f5, type: 3}
   m_Name: Instruction_Orange
   m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.InstructionData
-  caption: "Shoot the <color=#FF9A2E>latch</color> [RMB] / [C] to trap it \u2014 catch it 3 times"
+  caption: "Shoot the <color=#FF9A2E>latch</color> [RMB] / [C] to trap it, then catch it 3 times"
   subCaption: 
   accent: {r: 1, g: 0.6039216, b: 0.18039216, a: 1}
   demo: 2

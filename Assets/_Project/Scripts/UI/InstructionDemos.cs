@@ -103,7 +103,6 @@ namespace Roygbiv
             const float period = 3.6f, pressAt = 0.7f, shotHits = 1.0f, landed = 1.25f;
             const float scrollSpeed = 260f, catchUpSpeed = 80f, catchGap = 95f;
             float t = time % period;
-            int loop = (int)(time / period);
 
             float homeX = stage.x + stage.width * 0.17f, spotX = stage.x + stage.width * 0.7f;
             var latch = new Vector2(stage.x + stage.width * 0.42f, stage.y + 76f);
@@ -170,17 +169,6 @@ namespace Roygbiv
                 var from = feet + new Vector2(40f, -70f);
                 Orb(d, Vector2.Lerp(from, latch, Seg(t, pressAt + 0.05f, shotHits)), 9f, ShotColor);
             }
-
-            // Catch counter: one more pip each loop, three to win.
-            int caught = loop % 3 + (t >= catchAt ? 1 : 0);
-            var pips = new Vector2(stage.xMax - 40f, stage.y + 30f);
-            for (int i = 0; i < 3; i++)
-            {
-                var c = pips + Vector2.left * (2 - i) * 30f;
-                CardGui.Ring(c, 10f, 3f, Ink);
-                if (i < caught) CardGui.Disc(c, 7f, d.accent);
-            }
-            CardGui.Text(new Rect(pips.x - 200f, pips.y - 14f, 125f, 28f), "CAUGHT", 16, Ink, TextAnchor.MiddleRight, FontStyle.Bold);
         }
 
         static void Cage(Rect r, float alpha)
