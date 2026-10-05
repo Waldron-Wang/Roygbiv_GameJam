@@ -8,8 +8,8 @@ namespace Roygbiv
     /// when the button may show (CanOpen), owns open / close and the frozen time, and raises InstructionShown /
     /// InstructionClosed, which this listens to.
     ///
-    /// Tip button: a small "? Tip" pill in the top-right corner (under the debug GOD MODE label), in the level's
-    /// accent, lit on hover. Clicking it toggles the card. Its rect (and the card's X) is registered with
+    /// Tip button: a small, quiet gray "? Tip" pill in the top-right corner (under the debug GOD MODE label),
+    /// half see-through until hovered. Clicking it toggles the card. Its rect (and the card's X) is registered with
     /// InputReader as a pointer blocker, so the click never reaches gameplay as an attack or a shot.
     ///
     /// Card: a dark holographic frame in the accent around a light "screen" playing the demo (InstructionDemos),
@@ -109,25 +109,30 @@ namespace Roygbiv
             var accent = card.accent;
             accent.a = 1f;
             if (open) DrawCard(panel, canvas, accent, closeButton.Contains(e.mousePosition));
-            DrawTipButton(tipButton, accent, open, tipButton.Contains(e.mousePosition), ui);
+            DrawTipButton(tipButton, open || tipButton.Contains(e.mousePosition), ui);
         }
 
         // ---------- Tip button ----------
 
-        static void DrawTipButton(Rect r, Color accent, bool open, bool hover, float ui)
+        /// <summary>
+        /// Neutral and quiet, so it doesn't draw the eye: all gray, about half see-through while idle; on hover or
+        /// while the card is open, fully opaque and a little brighter. No color, no glow, nothing moving.
+        /// </summary>
+        static void DrawTipButton(Rect r, bool active, float ui)
         {
             float radius = r.height * 0.5f;
-            CardGui.Alpha = 1f;
-            if (hover || open) CardGui.Glow(r.center, r.width * 0.8f, WithAlpha(accent, hover ? 0.4f : 0.25f));
-            CardGui.Round(r, new Color(0.03f, 0.05f, 0.07f, hover ? 0.94f : 0.8f), radius);
-            if (open || hover) CardGui.Round(r, WithAlpha(accent, open ? 0.3f : 0.15f), radius);
-            CardGui.Outline(r, WithAlpha(accent, hover || open ? 1f : 0.7f), Mathf.Max(1.5f, 2f * ui), radius);
+            CardGui.Alpha = active ? 1f : 0.55f;
+            CardGui.Round(r, active ? new Color(0.22f, 0.22f, 0.23f, 0.92f) : new Color(0.14f, 0.14f, 0.15f, 0.88f), radius);
+            CardGui.Outline(r, active ? new Color(0.82f, 0.82f, 0.82f) : new Color(0.52f, 0.52f, 0.52f), Mathf.Max(1f, 1.5f * ui), radius);
 
             var icon = new Vector2(r.x + radius, r.center.y);
-            CardGui.Disc(icon, r.height * 0.31f, accent);
-            CardGui.Text(new Rect(icon.x - radius, r.y, radius * 2f, r.height), "?", Mathf.RoundToInt(r.height * 0.44f), Ink, TextAnchor.MiddleCenter, FontStyle.Bold);
+            CardGui.Disc(icon, r.height * 0.3f, active ? new Color(0.85f, 0.85f, 0.85f) : new Color(0.58f, 0.58f, 0.58f));
+            CardGui.Text(new Rect(icon.x - radius, r.y, radius * 2f, r.height), "?", Mathf.RoundToInt(r.height * 0.44f),
+                         new Color(0.13f, 0.13f, 0.14f), TextAnchor.MiddleCenter, FontStyle.Bold);
             CardGui.Text(new Rect(icon.x + radius * 0.6f, r.y, r.xMax - icon.x - radius * 0.6f - radius * 0.4f, r.height), "Tip",
-                         Mathf.RoundToInt(r.height * 0.42f), hover || open ? Color.white : new Color(1f, 1f, 1f, 0.85f), TextAnchor.MiddleCenter, FontStyle.Bold);
+                         Mathf.RoundToInt(r.height * 0.42f), active ? new Color(0.95f, 0.95f, 0.95f) : new Color(0.68f, 0.68f, 0.68f),
+                         TextAnchor.MiddleCenter, FontStyle.Bold);
+            CardGui.Alpha = 1f;
         }
 
         // ---------- Card ----------
