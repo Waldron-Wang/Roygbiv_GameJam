@@ -1,78 +1,115 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace Roygbiv
 {
     /// <summary>
-    /// Shows a pre-boss instruction card and waits for the player to confirm. Meanwhile gameplay input is
-    /// blocked and time is frozen (the Orange chase must not scroll under the card). Like DialogueRunner it
-    /// only raises events; InstructionView (or any later UI) draws the card, animating on unscaled time.
-    ///   yield return Game.Instructions.Show(color, data, this);   // from a coroutine: waits until closed
+    /// The optional how-to card for the current level. Nothing pops up on its own: during a level the player can
+    /// open the color's card (ColorData.instruction) from the on-screen Tip button, as often as they like.
+    /// While it's open, gameplay input is blocked and time is frozen (the Orange chase must not scroll); closing
+    /// puts both back exactly as they were. Like DialogueRunner it only owns state and raises events:
+    /// InstructionView draws the card and the button and reports clicks (Toggle / Close).
     ///
-    /// Each color's card shows once per play session, so retries after a death go straight to the fight.
-    /// GameManager.NewGame calls ForgetShown (F10 goes through NewGame too).
+    /// Closes on: the card's X or the Tip button (view), confirm (Z / Enter) or Esc (here), the level ending,
+    /// or the scene changing. PauseMenu checks BlocksPause so the Esc that closes the card doesn't also pause.
     /// </summary>
     public class InstructionRunner : MonoBehaviour
     {
-        [Tooltip("Confirm is ignored for this long (unscaled) after a card opens, so a key still held from before doesn't skip it.")]
-        [SerializeField] float minShowTime = 0.4f;
+        [Tooltip("Confirm / Esc are ignored for this long (unscaled) after the card opens.")]
+        [SerializeField] float minShowTime = 0.25f;
 
-        // An instance field, not a static: [Systems] is rebuilt every Play session, so it resets itself.
-        readonly HashSet<ColorId> shown = new();
-        bool closeRequested;
+        ColorId levelColor;
+        Scene levelScene;
+        bool inLevel, paused;
+        float openedAt, timeScaleBefore = 1f;
+        int closedFrame = -1;
 
-        public bool IsShowing { get; private set; }
+        public bool IsOpen { get; private set; }
 
-        public bool WasShown(ColorId color) => shown.Contains(color);
-        public void ForgetShown() => shown.Clear();
+        /// <summary>The current level's card while there's one to offer: in a level that hasn't been won or lost.</summary>
+        public InstructionData LevelCard
+        {
+            get
+            {
+                if (!inLevel || SceneManager.GetActiveScene() != levelScene) return null;
+                var data = Game.Config.Get(levelColor);
+                return data ? data.instruction : null;
+            }
+        }
 
-        /// <summary>Shows the card unless this color's was already shown this session.</summary>
-        /// <param name="owner">If this is destroyed (scene change), the card closes by itself.</param>
-        public Coroutine Show(ColorId color, InstructionData data, Object owner = null) => StartCoroutine(Run(color, data, owner));
+        /// <summary>The Tip button shows (and works) only when this is true, or while the card is open.</summary>
+        public bool CanOpen => !IsOpen && LevelCard && !paused && !Game.Dialogue.IsPlaying && !Game.Scenes.IsLoading;
+
+        /// <summary>True while open, and on the frame it closed: the Esc that closed it must not open the pause menu.</summary>
+        public bool BlocksPause => IsOpen || closedFrame == Time.frameCount;
+
+        public void Toggle()
+        {
+            if (IsOpen) Close();
+            else Open();
+        }
+
+        public void Open()
+        {
+            if (!CanOpen) return;
+            var card = LevelCard;
+            IsOpen = true;
+            openedAt = Time.unscaledTime;
+            timeScaleBefore = Time.timeScale;
+            Time.timeScale = 0f;
+            Game.Input.BlockGameplay();
+            GameEvents.RaiseInstructionShown(levelColor, card);
+        }
+
+        public void Close()
+        {
+            if (!IsOpen) return;
+            IsOpen = false;
+            closedFrame = Time.frameCount;
+            Time.timeScale = timeScaleBefore;
+            Game.Input.UnblockGameplay();
+            GameEvents.RaiseInstructionClosed();
+        }
 
         void OnEnable()
         {
+            GameEvents.LevelStarted += OnLevelStarted;
             GameEvents.LevelCompleted += OnLevelEnded;
             GameEvents.LevelFailed += OnLevelEnded;
+            GameEvents.PauseChanged += OnPauseChanged;
         }
 
         void OnDisable()
         {
+            GameEvents.LevelStarted -= OnLevelStarted;
             GameEvents.LevelCompleted -= OnLevelEnded;
             GameEvents.LevelFailed -= OnLevelEnded;
+            GameEvents.PauseChanged -= OnPauseChanged;
         }
 
-        // F9 etc. while a card is up: get out of the way of the reclaim / respawn flow.
+        void OnLevelStarted(ColorId color)
+        {
+            levelColor = color;
+            levelScene = SceneManager.GetActiveScene(); // a reload or another scene is a different one
+            inLevel = true;
+        }
+
+        // Won or lost (F9 too): no more tips, and get out of the way of the reclaim / respawn flow.
         void OnLevelEnded(ColorId _)
         {
-            if (IsShowing) closeRequested = true;
+            inLevel = false;
+            Close();
         }
 
-        IEnumerator Run(ColorId color, InstructionData data, Object owner)
+        void OnPauseChanged(bool isPaused) => paused = isPaused;
+
+        void Update()
         {
-            bool owned = owner != null;
-            while (IsShowing) yield return null; // one card at a time
-            if (data == null || (owned && !owner) || !shown.Add(color)) yield break;
+            if (!IsOpen) return;
+            if (Game.Scenes.IsLoading || !LevelCard) { Close(); return; } // the level went away under it
 
-            IsShowing = true;
-            closeRequested = false;
-            float timeScale = Time.timeScale;
-            Time.timeScale = 0f;
-            Game.Input.BlockGameplay();
-            GameEvents.RaiseInstructionShown(color, data);
-
-            float openedAt = Time.unscaledTime;
-            while (!closeRequested && !(owned && !owner))
-            {
-                yield return null;
-                if (Time.unscaledTime - openedAt >= minShowTime && Game.Input.Intent.confirmPressed) break;
-            }
-
-            Time.timeScale = timeScale;
-            Game.Input.UnblockGameplay();
-            IsShowing = false;
-            GameEvents.RaiseInstructionClosed();
+            var intent = Game.Input.Intent; // InputReader runs first, so this is this frame's
+            if (Time.unscaledTime - openedAt >= minShowTime && (intent.confirmPressed || intent.pausePressed)) Close();
         }
     }
 }

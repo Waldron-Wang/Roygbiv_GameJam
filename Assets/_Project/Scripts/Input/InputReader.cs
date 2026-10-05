@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -22,7 +23,9 @@ namespace Roygbiv
         public PlayerIntent Intent { get; private set; }
 
         readonly List<IInputModifier> modifiers = new();
+        readonly List<Func<Vector2, bool>> pointerBlockers = new();
         int gameplayBlockers;
+        bool pointerCaptured;
 
         InputAction move, jump, attack, shoot, dash, confirm, pause;
 
@@ -36,6 +39,15 @@ namespace Roygbiv
         public void AddModifier(IInputModifier m) { if (!modifiers.Contains(m)) modifiers.Add(m); }
         public void RemoveModifier(IInputModifier m) => modifiers.Remove(m);
         public void ClearModifiers() => modifiers.Clear();
+
+        /// <summary>
+        /// On-screen UI clicked during gameplay (the Tip button) registers a hit test here, in screen pixels with the
+        /// origin bottom-left. A mouse press that starts over it never reaches gameplay: attack and shoot stay masked
+        /// from that press until the button is let go, so clicking the UI doesn't also swing, charge or fire.
+        /// (IMGUI sees the click only after gameplay's Update, too late to cancel it there.)
+        /// </summary>
+        public void AddPointerBlocker(Func<Vector2, bool> isOver) { if (!pointerBlockers.Contains(isOver)) pointerBlockers.Add(isOver); }
+        public void RemovePointerBlocker(Func<Vector2, bool> isOver) => pointerBlockers.Remove(isOver);
 
         void Awake()
         {
@@ -79,10 +91,29 @@ namespace Roygbiv
                 pausePressed = pause.WasPressedThisFrame(),
             };
             ReadMouseAim(ref i);
+            MaskPointerOverUI(ref i);
 
             if (!GameplayEnabled) i.ClearGameplay();
             foreach (var m in modifiers) i = m.Modify(i);
             Intent = i;
+        }
+
+        void MaskPointerOverUI(ref PlayerIntent i)
+        {
+            var mouse = Mouse.current;
+            if (mouse == null) { pointerCaptured = false; return; }
+
+            if (mouse.leftButton.wasPressedThisFrame || mouse.rightButton.wasPressedThisFrame)
+            {
+                var at = mouse.position.ReadValue();
+                foreach (var isOver in pointerBlockers)
+                    if (isOver(at)) { pointerCaptured = true; break; }
+            }
+            if (!pointerCaptured) return;
+
+            i.attackPressed = i.attackHeld = i.attackReleased = false;
+            i.shootPressed = false;
+            if (!mouse.leftButton.isPressed && !mouse.rightButton.isPressed) pointerCaptured = false; // released: masked this frame too
         }
 
         void ReadMouseAim(ref PlayerIntent i)

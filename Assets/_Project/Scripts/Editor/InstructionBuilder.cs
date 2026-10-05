@@ -9,7 +9,8 @@ namespace Roygbiv.EditorTools
     /// Menu: ROYGBIV > Build Instructions.
     /// Creates Data/Instructions/Instruction_&lt;Color&gt;.asset for the seven colors (caption, keys, demo, accent,
     /// and the demo's sprites from Art/Player, Art/Boss and Art/Placeholder), then points each ColorData's
-    /// `instruction` at its card if that field is empty. Cards that already exist are left alone, so Inspector
+    /// `instruction` at its card if that field is empty: that's what gives the level its Tip button. Violet's card
+    /// is made but not linked (its boss isn't designed yet). Cards that already exist are left alone, so Inspector
     /// tweaks survive a re-run; ROYGBIV > Reset Instructions to Defaults rewrites them (it asks first).
     /// </summary>
     public static class InstructionBuilder
@@ -30,6 +31,7 @@ namespace Roygbiv.EditorTools
             public float loopFps, actionFps;
             public string boss, bossHurt;   // Art/Boss file names
             public string[] bossMove;
+            public bool dontLink;           // make the asset, but no Tip button for this color yet
         }
 
         // Keys match InputReader: attack / reflect = Left Click, Light Shot = Right Click or C, jump = Space, dash = Left Shift.
@@ -85,6 +87,7 @@ namespace Roygbiv.EditorTools
                 color = ColorId.Violet, accent = "#C266FF", demo = InstructionDemo.None,
                 caption = "The final <color=#C266FF>color</color>",
                 keys = new string[0],
+                dontLink = true, // boss not designed yet
             },
         };
 
@@ -123,6 +126,7 @@ namespace Roygbiv.EditorTools
                     reset++;
                 }
 
+                if (card.dontLink) continue;
                 var colorData = FindColor(card.color);
                 if (!colorData)
                 {

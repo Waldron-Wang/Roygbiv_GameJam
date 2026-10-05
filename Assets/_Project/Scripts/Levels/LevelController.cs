@@ -4,8 +4,8 @@ using UnityEngine;
 namespace Roygbiv
 {
     /// <summary>
-    /// One per level scene. The referee: knows which color this level is, starts the fight
-    /// (after the optional intro dialogue and the color's instruction card), and decides win / lose. It never applies rewards or loads scenes itself — it raises
+    /// One per level scene. The referee: knows which color this level is, starts the fight,
+    /// and decides win / lose. It never applies rewards or loads scenes itself — it raises
     /// LevelCompleted / LevelFailed and GameManager handles the rest.
     ///
     /// Win conditions (combine as needed):
@@ -50,12 +50,6 @@ namespace Roygbiv
         {
             GameEvents.RaiseLevelStarted(color);
             if (introDialogue) yield return Game.Dialogue.Play(introDialogue);
-
-            // How-to card (once per session); time is frozen until the player confirms.
-            var data = Game.Config.Get(color);
-            if (data && data.instruction) yield return Game.Instructions.Show(color, data.instruction, this);
-            if (finished) yield break; // won / lost while it was up (debug F9)
-
             if (boss && startBossImmediately) boss.StartFight();
         }
 

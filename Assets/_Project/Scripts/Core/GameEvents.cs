@@ -39,7 +39,7 @@ namespace Roygbiv
         public static event Action<DialogueLine> DialogueLineShown;
         public static event Action DialogueEnded;
 
-        // ---------- Instructions (pre-boss cards) ----------
+        // ---------- Instructions (how-to cards, opened from the Tip button) ----------
         public static event Action<ColorId, InstructionData> InstructionShown;
         public static event Action InstructionClosed;
 

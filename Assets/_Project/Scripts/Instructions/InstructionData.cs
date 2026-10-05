@@ -2,13 +2,13 @@ using UnityEngine;
 
 namespace Roygbiv
 {
-    /// <summary>Which looping animation a pre-boss card plays. Saved as ints: ONLY APPEND.</summary>
+    /// <summary>Which looping animation a how-to card plays. Saved as ints: ONLY APPEND.</summary>
     public enum InstructionDemo { None, Reflect, ShootLatch, Overheat, Steal, Climb, FlipControls }
 
     /// <summary>
-    /// A pre-boss instruction card: a small looping demo of the mechanic plus one short caption with key
-    /// icons. Show, don't tell. One per color (Data/Instructions), set on ColorData.instruction; the
-    /// LevelController shows it once per play session before the boss starts. InstructionView draws it.
+    /// A how-to card for a boss: a small looping demo of the mechanic plus one short caption with key icons.
+    /// Show, don't tell. One per color (Data/Instructions), set on ColorData.instruction. It never pops up
+    /// by itself: the player opens it from the on-screen Tip button (InstructionRunner), InstructionView draws it.
     ///
     /// Key tokens in caption / subCaption are drawn as keycaps:
     ///   [LMB] [RMB]                  left / right mouse button

@@ -33,7 +33,6 @@ namespace Roygbiv
             GameProgress.DeleteSave();
             Progress = new GameProgress();
             Game.Colors.SyncWithProgress();
-            Game.Instructions.ForgetShown(); // a new run gets every pre-boss card again
             Game.Scenes.Load(Game.Config.hubScene);
         }
 

@@ -9,8 +9,8 @@ namespace Roygbiv
 
         void Update()
         {
-            // Not over an instruction card: it owns timeScale until it closes, and Resume would unfreeze the level under it.
-            if (Game.Input.Intent.pausePressed && LevelController.Current != null && !Game.Scenes.IsLoading && !Game.Instructions.IsShowing)
+            // Not over the instruction card: it owns timeScale while open, and the Esc that closes it shouldn't also pause.
+            if (Game.Input.Intent.pausePressed && LevelController.Current != null && !Game.Scenes.IsLoading && !Game.Instructions.BlocksPause)
                 SetPaused(!IsPaused);
         }
 
