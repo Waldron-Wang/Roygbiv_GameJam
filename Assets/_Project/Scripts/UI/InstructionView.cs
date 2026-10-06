@@ -8,7 +8,7 @@ namespace Roygbiv
     /// when the button may show (CanOpen), owns open / close and the frozen time, and raises InstructionShown /
     /// InstructionClosed, which this listens to.
     ///
-    /// Tip button: a small, quiet gray "? Tip" pill in the top-right corner (under the debug GOD MODE label),
+    /// Tip button: a small, quiet gray "? Tip" pill in the top-right corner,
     /// half see-through until hovered. Clicking it toggles the card. Its rect (and the card's X) is registered with
     /// InputReader as a pointer blocker, so the click never reaches gameplay as an attack or a shot.
     ///
@@ -34,7 +34,7 @@ namespace Roygbiv
 
         // Tip button, in screen pixels at 1080p (scaled with the screen height).
         const float TipWidth = 112f, TipHeight = 42f, TipMargin = 14f;
-        const float TipTop = 40f; // clear of the debug GOD MODE label in the same corner
+        const float TipTop = 10f;
 
         static readonly Color Ink = new(0.02f, 0.04f, 0.06f, 0.86f);
         static readonly Color Paper = new(0.93f, 0.93f, 0.91f, 0.97f);

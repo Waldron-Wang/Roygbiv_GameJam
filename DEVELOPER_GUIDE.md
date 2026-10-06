@@ -330,14 +330,14 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
 #### `Health.cs` — implements `IDamageable`
 - **Purpose:** HP for anything.
 - **API:**
-  - Properties: `Current`, `Max`, `Fraction`, `IsDead`, `Invulnerable` (settable; a `pierceInvulnerability` hit ignores it), `GodMode` (debug F8: blocks everything), `DamageFilter` (optional veto; Yellow uses it to take damage only from reflected orbs)
+  - Properties: `Current`, `Max`, `Fraction`, `IsDead`, `Invulnerable` (settable; a `pierceInvulnerability` hit ignores it), `DamageFilter` (optional veto; Yellow uses it to take damage only from reflected orbs)
   - `SetCurrent(hp)`: set HP without a hit (Violet resumes at its Twin Blades threshold from a checkpoint)
   - Methods: `TakeDamage`, `Heal`, `Kill`
 - **Events (local C#, not global):** `Changed(current, max)`, `Damaged(DamageInfo)`, `Died`.
 - **Inspector:** `team`, `maxHealth`, `hitInvulnerability`.
 - **TakeDamage rejects the hit when:** the target is dead, invulnerable, still in post-hit i-frames, or on a team it can't be hurt by. Otherwise it applies knockback, but only to a **Dynamic** body.
 - **Pattern:** The owning script (`PlayerController`, `BossBase`) subscribes to these local events and re-raises the relevant ones globally.
-- **Gotchas:** `Invulnerable` is a single shared flag used by Dash, Red, Orange, Blue and god mode. Whoever sets it last wins.
+- **Gotchas:** `Invulnerable` is a single shared flag used by Dash, Red, Orange and Blue. Whoever sets it last wins.
 
 #### `Hitbox.cs`
 - **Purpose:** A trigger that damages things while active.
@@ -572,7 +572,6 @@ Then remove the matching `AddComponent` lines in `Bootstrapper`.
 | Key | Effect |
 |---|---|
 | F1–F7 | `RestoreColor` for the Nth color in play order (also unlocks its ability) |
-| F8 | Toggle god mode (forces `Health.Invulnerable` and `Health.GodMode` every frame; even piercing needles can't hurt) |
 | F9 | `LevelController.Current.Complete()` |
 | F10 | Wipe the save, then `NewGame()` |
 | PageDown / PageUp | Level_Violet only: reload at the next / previous checkpoint (intro skipped) |
@@ -788,7 +787,7 @@ Build Settings order: MainMenu, Hub, Level_Yellow…Level_Violet, Ending, Sandbo
 2. Put one attack cycle in `RunPhase(phase)`, branching on `phase`.
 3. Add any serialized prefab references, then assign them on `Prefabs/Bosses/Boss_<Color>.prefab`.
 4. Tune `phaseThresholds` and `Health.maxHealth` on the prefab.
-5. Test: open `Level_<Color>`, press Play, use F1–F7 to grant earlier abilities and F8 for god mode.
+5. Test: open `Level_<Color>`, press Play, use F1–F7 to grant earlier abilities.
 
 ### Add a new ability
 1. Add a value at the **end** of `AbilityId`.

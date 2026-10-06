@@ -25,9 +25,6 @@ namespace Roygbiv
         /// <summary>Set by abilities/bosses for i-frames or armored phases. A hit with pierceInvulnerability ignores it.</summary>
         public bool Invulnerable { get; set; }
 
-        /// <summary>Debug god mode (F8): blocks every hit, piercing ones included.</summary>
-        public bool GodMode { get; set; }
-
         /// <summary>Optional veto checked on every hit: return false to ignore it (Yellow: only reflected orbs hurt).</summary>
         public Func<DamageInfo, bool> DamageFilter { get; set; }
 
@@ -39,7 +36,7 @@ namespace Roygbiv
 
         public bool TakeDamage(in DamageInfo info)
         {
-            if (IsDead || GodMode || Time.time < invulnerableUntil) return false;
+            if (IsDead || Time.time < invulnerableUntil) return false;
             if (Invulnerable && !info.pierceInvulnerability) return false;
             if (!Combat.CanHurt(info.sourceTeam, team)) return false;
             if (DamageFilter != null && !DamageFilter(info)) return false;
