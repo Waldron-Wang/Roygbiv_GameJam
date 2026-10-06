@@ -7,16 +7,28 @@ namespace Roygbiv
     /// Put on any sprite / tilemap that belongs to a color's district. It shows gray until that color
     /// is restored, then fades to its authored color.
     ///
-    /// PLACEHOLDER LOOK: lerps the renderer tint (works with white/flat sprites). Once the art style is
-    /// chosen, swap the body of Apply() for a desaturation material/shader — nothing else changes.
+    /// Two looks:
+    ///   Tint (default): lerps the renderer tint from gray. Fine for white/flat placeholder sprites, but
+    ///     painted art keeps its hue (it only gets darker).
+    ///   Desaturate: swaps in the Roygbiv/Recolor Sprite material, which grays out the actual texture
+    ///     and fades its painted colors back in. Use this for real art (tilemaps, painted sprites).
     /// </summary>
     public class Recolorable : MonoBehaviour
     {
+        const string DesaturateShader = "RecolorSprite"; // Resources/RecolorSprite.shader
+        static readonly int AmountId = Shader.PropertyToID("_ColorAmount");
+        static readonly int GrayBrightnessId = Shader.PropertyToID("_GrayBrightness");
+        static Material desaturateMaterial;
+
         [SerializeField] ColorId color;
         [Range(0f, 1f)] [SerializeField] float grayBrightness = 0.45f;
+        [Tooltip("For painted art: grays out the texture itself instead of tinting it. Replaces the renderer's material.")]
+        [SerializeField] bool desaturate;
 
         SpriteRenderer sprite;
         Tilemap tilemap;
+        Renderer target;
+        MaterialPropertyBlock block;
         Color authored;
 
         void Awake()
@@ -24,6 +36,13 @@ namespace Roygbiv
             sprite = GetComponent<SpriteRenderer>();
             tilemap = GetComponent<Tilemap>();
             authored = sprite ? sprite.color : tilemap ? tilemap.color : Color.white;
+
+            if (desaturate && TryGetComponent(out target))
+            {
+                if (!desaturateMaterial) desaturateMaterial = new Material(Resources.Load<Shader>(DesaturateShader));
+                target.sharedMaterial = desaturateMaterial;
+                block = new MaterialPropertyBlock();
+            }
         }
 
         void OnEnable()
@@ -45,6 +64,15 @@ namespace Roygbiv
 
         void Apply(float amount)
         {
+            if (block != null)
+            {
+                target.GetPropertyBlock(block);
+                block.SetFloat(AmountId, amount);
+                block.SetFloat(GrayBrightnessId, grayBrightness);
+                target.SetPropertyBlock(block);
+                return;
+            }
+
             float g = authored.grayscale * grayBrightness * 2f;
             var gray = new Color(g, g, g, authored.a);
             var c = Color.Lerp(gray, authored, amount);

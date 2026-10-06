@@ -251,9 +251,9 @@ Helpers available to subclasses: `Player`, `AimDirection`, `Fire(...)`, `Wait(..
 ### Recoloring the world (`ColorWorld`, `Recolorable`) — art-style agnostic
 - `ColorWorld` stores a value from 0 to 1 for each color, animated when the color is restored. It also sets shader globals:
   `_Roygbiv_Red` … `_Roygbiv_Violet` and `_Roygbiv_Saturation`.
-- `Recolorable` goes on any sprite or tilemap that belongs to a color. **It is a placeholder:** it lerps the tint from gray.
-  Once the art style is picked, change the inside of `Recolorable.Apply()`, or write a shader that reads the globals.
-  Nothing else in the project needs to change.
+- `Recolorable` goes on any sprite or tilemap that belongs to a color. By default it lerps the tint from gray (fine for flat
+  placeholder sprites). Tick **Desaturate** for painted art: it swaps in `Resources/RecolorSprite.shader`, which grays out
+  the texture itself and fades the painted colors back in. Nothing else in the project needs to change.
 
 ---
 
