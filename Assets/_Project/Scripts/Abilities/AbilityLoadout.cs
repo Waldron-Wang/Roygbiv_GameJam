@@ -31,7 +31,13 @@ namespace Roygbiv
         static bool warnedInstall;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetStatics() => warnedInstall = false;
+        static void ResetStatics()
+        {
+            warnedInstall = false;
+#if UNITY_EDITOR
+            explainedDownDash = null;
+#endif
+        }
 
         public IEnumerable<AbilityBase> All => abilities.Values;
 
@@ -121,6 +127,9 @@ namespace Roygbiv
             // never turns into a plain Dash); anything else = Dash's. A Dash fired mid Down Dash ends that first.
             var downDash = Get(AbilityId.DownDash) as DownDashAbility;
             bool pressIsDownDash = intent.dashPressed && downDash && downDash.enabled && downDash.IsDownHeld(intent);
+#if UNITY_EDITOR
+            if (syncWithProgress && intent.dashPressed && intent.move.y < -0.5f && !pressIsDownDash) ExplainNoDownDash(downDash);
+#endif
             if (intent.dashPressed && !pressIsDownDash && downDash && downDash.IsActive && Get(AbilityId.Dash) is { IsReady: true })
                 downDash.Cancel();
 
@@ -135,6 +144,22 @@ namespace Roygbiv
             }
             return consumed;
         }
+
+#if UNITY_EDITOR
+        static string explainedDownDash;
+
+        /// <summary>Editor only: Down + Dash was pressed but Down Dash didn't take it. Says why, once per reason.</summary>
+        void ExplainNoDownDash(DownDashAbility downDash)
+        {
+            string why = !downDash ? "the player has no DownDashAbility component"
+                : stolen.Contains(AbilityId.DownDash) ? "it's stolen right now (Green)"
+                : !Game.Progress.HasAbility(AbilityId.DownDash) ? "it isn't unlocked in this save (Blue grants it: F5 restores Blue)"
+                : "it's disabled";
+            if (explainedDownDash == why) return;
+            explainedDownDash = why;
+            Debug.Log($"[ROYGBIV] Down + Dash pressed, but Down Dash didn't fire: {why}. It was a normal Dash instead.", this);
+        }
+#endif
 
         void OnStolen(AbilityId id)
         {
