@@ -276,6 +276,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.AbilityLoadout
   syncWithProgress: 1
+  debugUnlockAll: 1
 --- !u!114 &7944926118124775745
 MonoBehaviour:
   m_ObjectHideFlags: 0

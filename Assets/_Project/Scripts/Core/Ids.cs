@@ -7,7 +7,9 @@ namespace Roygbiv
     public enum ColorId { Red, Orange, Yellow, Green, Blue, Indigo, Violet }
 
     /// <summary>Every unlockable ability. Add Indigo / Violet abilities here once designed.</summary>
-    public enum AbilityId { None, LightShot, Dash, BlazeStrike, HeavySlam }
+    public enum AbilityId { None, LightShot, Dash, BlazeStrike, HeavySlam,
+        DoubleJump
+    }
 
     /// <summary>Who can hurt whom. Neutral = environment / switches, hit by everyone.</summary>
     public enum Team { Neutral, Player, Enemy }
