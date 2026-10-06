@@ -60,6 +60,7 @@ Assets/_Project/
 │   ├── Projectile_PlayerShot / Projectile_EnemyOrb
 │   └── Bosses/Boss_<Color>.prefab
 ├── Resources/GameConfig.asset   play order + global tuning (auto-loaded)
+├── Resources/ScreenWarp.shader  full-screen distortion used by ScreenWarp (in Resources so builds include it)
 ├── Scenes/
 │   ├── MainMenu · Hub · Ending
 │   ├── Level_Yellow … Level_Violet   one per color = district + boss fight
@@ -72,6 +73,7 @@ Assets/_Project/
     ├── Abilities/   AbilityBase, AbilityLoadout, LightShot, Dash, BlazeStrike, HeavySlam
     ├── Bosses/      BossBase + one folder per color
     ├── Levels/      LevelController, LevelTrigger, ShootableSwitch, CameraFollow
+    ├── Effects/     ScreenWarp (camera disorientation: color, wobble, glitch, trails, roll), DashAfterImage
     ├── World/       ColorWorld, Recolorable
     ├── Dialogue/    DialogueData, DialogueRunner
     ├── Instructions/ InstructionData, InstructionRunner   (optional how-to cards, opened from the Tip button)
@@ -198,7 +200,8 @@ Player death: `Health.Died` → `GameEvents.PlayerDied` → `LevelController.Fai
   Move WASD/Arrows · Jump Z/Space · Attack X (hold + release = Blaze Strike) · Shoot C · Dash Shift · Pause Esc.
 - Gameplay reads `Game.Input.Intent` and never reads the keyboard directly. This makes three things possible:
   - **Dialogue and pause freeze the player** through `Game.Input.BlockGameplay()` / `UnblockGameplay()`.
-  - **Indigo scrambles the controls** by pushing an `IInputModifier` (`InvertHorizontalModifier`, `SwapJumpAndAttackModifier`).
+  - **Indigo scrambles the controls** by pushing `IInputModifier`s (mirror, swap jump/attack, swap shoot/dash, input delay),
+    one set per phase, and warps the screen to match with `ScreenWarp`.
   - Gamepad support works for free.
 
 ### Combat (`Health`, `Hitbox`, `Projectile`, interfaces)
@@ -243,7 +246,7 @@ Helpers available to subclasses: `Player`, `AimDirection`, `Fire(...)`, `Wait(..
 - Genre-shifting is handled per level. Examples:
   - Orange has a `ChaseDirector` that drives `PlayerMotor.autoRunSpeed` and `CameraFollow.autoScrollSpeed`, and a `ChaseCourse` that builds an endless track.
   - Blue is a vertical layout.
-  - Indigo uses input modifiers.
+  - Indigo casts a curse each phase: input modifiers + a `ScreenWarp` look (any boss can use `ScreenWarp.Main`).
 
 ### Recoloring the world (`ColorWorld`, `Recolorable`) — art-style agnostic
 - `ColorWorld` stores a value from 0 to 1 for each color, animated when the color is restored. It also sets shader globals:

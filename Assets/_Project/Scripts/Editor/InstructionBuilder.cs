@@ -78,7 +78,7 @@ namespace Roygbiv.EditorTools
             new()
             {
                 color = ColorId.Indigo, accent = "#7B6CFF", demo = InstructionDemo.FlipControls,
-                caption = "Your controls will <color=#7B6CFF>flip</color>, so stay calm",
+                caption = "Each spell <color=#7B6CFF>scrambles</color> your controls. Read the sigil",
                 keys = new[] { "Left", "Right", "Space", "LMB" },
                 loop = "idle", loopFps = 8f,
             },

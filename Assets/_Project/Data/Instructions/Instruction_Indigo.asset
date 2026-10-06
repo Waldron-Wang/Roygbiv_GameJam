@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 12318c8aed804240bb8554c07e0446f5, type: 3}
   m_Name: Instruction_Indigo
   m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.InstructionData
-  caption: "Your controls will <color=#7B6CFF>flip</color>, so stay calm"
+  caption: "Each spell <color=#7B6CFF>scrambles</color> your controls. Read the sigil"
   subCaption: 
   accent: {r: 0.48235294, g: 0.42352942, b: 1, a: 1}
   demo: 6
