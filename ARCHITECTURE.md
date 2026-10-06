@@ -16,11 +16,12 @@ flowchart TB
         GM[GameManager<br/>save + game flow]
         SL[SceneLoader]
         IR[InputReader]
+        TC[TimeController<br/>pause + slow motion]
         CW[ColorWorld<br/>how colorful is each color]
         DR[DialogueRunner]
         IN[InstructionRunner<br/>Tip button → how-to card]
         AM[AudioManager]
-        UI[Placeholder UI<br/>HUD · Dialogue box · Tip button + card · Pause]
+        UI[Placeholder UI<br/>HUD · Dialogue box · Tip button + card · Pause · Serenity meter]
     end
 
     subgraph Scene["Current scene (one at a time)"]
@@ -66,11 +67,11 @@ Assets/_Project/
 │   ├── Level_Yellow … Level_Violet   one per color = district + boss fight
 │   └── Sandbox                       test mechanics, no level flow
 └── Scripts/
-    ├── Core/        Game, GameEvents, GameManager, SceneLoader, Bootstrapper, ColorData, GameConfig, GameProgress, Ids
+    ├── Core/        Game, GameEvents, GameManager, SceneLoader, TimeController, Bootstrapper, ColorData, GameConfig, GameProgress, Ids
     ├── Input/       InputReader, PlayerIntent, InputModifiers
     ├── Combat/      Health, Hitbox, Projectile, CombatInterfaces (IDamageable, IReflectable, IActor)
     ├── Player/      PlayerController, PlayerMotor, PlayerCombat
-    ├── Abilities/   AbilityBase, AbilityLoadout, LightShot, Dash, BlazeStrike, DoubleJump, DownDash (HeavySlam: no longer granted)
+    ├── Abilities/   AbilityBase, AbilityLoadout, LightShot, Dash, BlazeStrike, DoubleJump, DownDash, Serenity (HeavySlam: no longer granted)
     ├── Bosses/      BossBase + one folder per color
     ├── Levels/      LevelController, LevelTrigger, ShootableSwitch, CameraFollow
     ├── Effects/     ScreenWarp (camera disorientation: color, wobble, glitch, trails, roll), DashAfterImage
@@ -197,12 +198,21 @@ Player death: `Health.Died` → `GameEvents.PlayerDied` → `LevelController.Fai
 
 ### Input (`InputReader` → `PlayerIntent` → gameplay)
 - Bindings are defined in **one place**: `InputReader.Awake`. The defaults are:
-  Move WASD/Arrows · Jump Z/Space · Attack X (hold + release = Blaze Strike) · Shoot C · Dash Shift · Pause Esc.
+  Move WASD/Arrows · Jump Space · Attack Left Click (hold + release = Blaze Strike) · Shoot Right Click / C · Dash Shift
+  (hold Down too = Down Dash) · Serenity Q · Pause Esc.
 - Gameplay reads `Game.Input.Intent` and never reads the keyboard directly. This makes three things possible:
   - **Dialogue and pause freeze the player** through `Game.Input.BlockGameplay()` / `UnblockGameplay()`.
   - **Indigo scrambles the controls** by pushing `IInputModifier`s (mirror, swap jump/attack, swap shoot/dash, input delay),
     one set per phase, and warps the screen to match with `ScreenWarp`.
   - Gamepad support works for free.
+
+### Time (`TimeController`, `Game.Time`)
+- **Nothing writes `Time.timeScale` or `Time.fixedDeltaTime` directly.** Ask `Game.Time`:
+  `Pause(owner)` / `Resume(owner)` (pause menu, Tip card: any pause = time stopped) and `SetScale(owner, s)` / `ClearScale(owner)`
+  (slow motion: requests multiply). A pause wins over every scale and lifting it puts the slow motion back. `fixedDeltaTime`
+  follows the scale so physics stays smooth. Scene loads reset everything.
+- Gameplay timers use scaled time (`Time.time`, `deltaTime`, `WaitForSeconds`), so Indigo's **Serenity** slows the boss, its attacks,
+  projectiles and traps (and the player) for free. Only UI, fades and audio use unscaled time. Keep it that way.
 
 ### Combat (`Health`, `Hitbox`, `Projectile`, interfaces)
 - **Convention:** *Hurtboxes* (bodies) are **non-trigger** colliders. *Hitboxes, projectiles and zones* are **triggers**.

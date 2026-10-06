@@ -14,7 +14,8 @@ namespace Roygbiv
     ///   Jump    Z / Space / A(south)
     ///   Attack  Left click / X(west)           (hold + release = Blaze Strike)
     ///   Shoot   Right Click / C / Y(north)   (Light Shot; aims at the mouse unless fired from a gamepad)
-    ///   Dash    Left Shift / RB
+    ///   Dash    Left Shift / RB             (hold Down too = Down Dash)
+    ///   Serenity Q / LB
     ///   Pause   Esc / Start
     /// </summary>
     [DefaultExecutionOrder(-100)]
@@ -27,7 +28,7 @@ namespace Roygbiv
         int gameplayBlockers;
         bool pointerCaptured;
 
-        InputAction move, jump, attack, shoot, dash, confirm, pause;
+        InputAction move, jump, attack, shoot, dash, serenity, confirm, pause;
 
         /// <summary>False while dialogue, pause, cutscenes etc. hold a block.</summary>
         public bool GameplayEnabled => gameplayBlockers == 0;
@@ -64,6 +65,7 @@ namespace Roygbiv
             attack = Button("Attack", "<Mouse>/leftButton", "<Gamepad>/buttonWest");
             shoot = Button("Shoot", "<Mouse>/rightButton", "<Keyboard>/c", "<Gamepad>/buttonNorth");
             dash = Button("Dash", "<Keyboard>/leftShift", "<Gamepad>/rightShoulder");
+            serenity = Button("Serenity", "<Keyboard>/q", "<Gamepad>/leftShoulder");
             confirm = Button("Confirm", "<Keyboard>/enter", "<Keyboard>/z", "<Keyboard>/x", "<Gamepad>/buttonSouth");
             pause = Button("Pause", "<Keyboard>/escape", "<Gamepad>/start");
 
@@ -87,6 +89,7 @@ namespace Roygbiv
                 attackReleased = attack.WasReleasedThisFrame(),
                 shootPressed = shoot.WasPressedThisFrame(),
                 dashPressed = dash.WasPressedThisFrame(),
+                serenityPressed = serenity.WasPressedThisFrame(),
                 confirmPressed = confirm.WasPressedThisFrame(),
                 pausePressed = pause.WasPressedThisFrame(),
             };
@@ -137,7 +140,7 @@ namespace Roygbiv
         IEnumerable<InputAction> All()
         {
             yield return move; yield return jump; yield return attack; yield return shoot;
-            yield return dash; yield return confirm; yield return pause;
+            yield return dash; yield return serenity; yield return confirm; yield return pause;
         }
     }
 }

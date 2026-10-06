@@ -5,7 +5,7 @@ namespace Roygbiv.EditorTools
 {
     /// <summary>
     /// Menu: ROYGBIV > Add New Abilities To Player.
-    /// Adds the abilities designed after the skeleton was built (Down Dash) to Player.prefab › Abilities.
+    /// Adds the abilities designed after the skeleton was built (Down Dash, Serenity) to Player.prefab › Abilities.
     /// Safe to re-run: an ability that's already on the prefab is left exactly as it is.
     /// </summary>
     public static class AbilitySetup
@@ -32,6 +32,12 @@ namespace Roygbiv.EditorTools
                     var downDash = abilities.gameObject.AddComponent<DownDashAbility>();
                     SetFloat(downDash, "cooldown", 0.6f);
                     added.Add("Down Dash");
+                }
+                if (!root.GetComponentInChildren<SerenityAbility>(true))
+                {
+                    var serenity = abilities.gameObject.AddComponent<SerenityAbility>();
+                    SetFloat(serenity, "cooldown", 0f); // it runs its own real-time duration / recharge
+                    added.Add("Serenity");
                 }
 
                 PrefabUtility.SaveAsPrefabAsset(root, PlayerPath);

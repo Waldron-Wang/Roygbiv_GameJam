@@ -18,6 +18,6 @@ MonoBehaviour:
   emotion: Calm, perceptiveness, spirituality
   sceneName: Level_Indigo
   instruction: {fileID: 11400000, guid: fd80a4bdb90001e498b00413094fe28b, type: 2}
-  grantedAbility: 0
+  grantedAbility: 7
   storyFragment: {fileID: 11400000, guid: 2be7fca89e22b4f0d9eb085add4fc3a0, type: 2}
   musicLayer: {fileID: 0}

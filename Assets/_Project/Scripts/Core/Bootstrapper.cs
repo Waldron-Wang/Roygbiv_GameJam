@@ -24,6 +24,7 @@ namespace Roygbiv
 
             // Order matters a little: anything later may use earlier services in its Awake.
             Game.Input = systems.AddComponent<InputReader>();
+            Game.Time = systems.AddComponent<TimeController>();
             Game.Scenes = systems.AddComponent<SceneLoader>();
             Game.Manager = systems.AddComponent<GameManager>();
             Game.Colors = systems.AddComponent<ColorWorld>();
@@ -35,6 +36,7 @@ namespace Roygbiv
             systems.AddComponent<PauseMenu>();
             systems.AddComponent<DialogueView>();
             systems.AddComponent<InstructionView>();
+            systems.AddComponent<SerenityView>();
             systems.AddComponent<DebugHud>();
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             systems.AddComponent<DebugCheats>();

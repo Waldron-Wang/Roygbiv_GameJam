@@ -40,7 +40,7 @@ namespace Roygbiv
             IsLoading = true;
             yield return Fade(0f, 1f);
 
-            Time.timeScale = 1f;
+            Game.Time.ResetAll(); // normal speed: no pause or slow motion carries into the next scene
             var op = SceneManager.LoadSceneAsync(sceneName);
             while (!op.isDone) yield return null;
             GameEvents.RaiseSceneLoaded(sceneName);

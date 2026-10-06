@@ -10,6 +10,7 @@ namespace Roygbiv
     public enum AbilityId { None, LightShot, Dash, BlazeStrike, HeavySlam,
         DoubleJump,
         DownDash,
+        Serenity,
     }
 
     /// <summary>Who can hurt whom. Neutral = environment / switches, hit by everyone.</summary>

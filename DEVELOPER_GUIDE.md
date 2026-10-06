@@ -69,7 +69,8 @@ There are two deliberate exceptions, so treat them with care:
 | `ColorWorld` | Game, GameEvents, shader globals | Recolorable, GameManager.NewGame |
 | `DialogueRunner` | Game.Input, GameEvents, DialogueData | GameManager, LevelController, EndingScreen |
 | `InstructionData` | — | ColorData, InstructionRunner, InstructionView, GameEvents |
-| `InstructionRunner` | Game.Input, Game.Config, Game.Dialogue, Game.Scenes, GameEvents, InstructionData, `SceneManager`, `Time.timeScale` | InstructionView, PauseMenu |
+| `InstructionRunner` | Game.Input, Game.Config, Game.Dialogue, Game.Scenes, Game.Time, GameEvents, InstructionData, `SceneManager` | InstructionView, PauseMenu |
+| `TimeController` | `Time.timeScale`, `Time.fixedDeltaTime` (its only writer) | PauseMenu, InstructionRunner, SceneLoader, SerenityAbility |
 | `AudioManager` | Game.Config, Game.Progress | SceneMusic, any gameplay that plays SFX |
 | `CombatInterfaces` | Ids (Team), Health | Health, Hitbox, Projectile, abilities, PlayerController, BossBase, ShootableSwitch |
 | **`Health`** | IDamageable, Combat, `Rigidbody2D` | PlayerController, BossBase, abilities (i-frames), LevelTrigger, CameraFollow, DebugCheats |
@@ -107,7 +108,7 @@ SubsystemRegistration   GameEvents.ResetAll(), Game.ResetAll()        (wipe stat
 BeforeSceneLoad         Bootstrapper.Init()
                           ├─ Game.Config = Resources/GameConfig
                           └─ new "[Systems]" (DontDestroyOnLoad), AddComponent in this order:
-                             InputReader → SceneLoader → GameManager → ColorWorld → DialogueRunner
+                             InputReader → TimeController → SceneLoader → GameManager → ColorWorld → DialogueRunner
                              → InstructionRunner → AudioManager → PauseMenu → DialogueView
                              → InstructionView → DebugHud → DebugCheats
                              (each Awake runs immediately inside AddComponent)
@@ -137,7 +138,7 @@ Every frame             InputReader.Update   (DefaultExecutionOrder -100: always
 
 `Game.Scenes.Load(name)` does the following:
 1. Fades to black (unscaled time).
-2. Sets `Time.timeScale = 1`.
+2. Calls `Game.Time.ResetAll()`: normal speed, no pause, no slow motion.
 3. Calls `LoadSceneAsync`, which destroys the old scene's objects. Their `OnDisable` runs and unsubscribes them from events.
 4. Raises `GameEvents.SceneLoaded(name)`.
 5. Fades back in.
@@ -186,7 +187,7 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
 
 #### `PlayerIntent.cs` — struct
 - **Purpose:** One frame of player intention, independent of the input device.
-- **Fields:** `move`, `jumpPressed/Held`, `attackPressed/Held/Released`, `shootPressed`, `aimPoint`/`hasAimPoint` (mouse world position; false on gamepad), `dashPressed`, `confirmPressed`, `pausePressed`.
+- **Fields:** `move`, `jumpPressed/Held`, `attackPressed/Held/Released`, `shootPressed`, `aimPoint`/`hasAimPoint` (mouse world position; false on gamepad), `dashPressed`, `serenityPressed`, `confirmPressed`, `pausePressed`.
 - **API:** `ClearGameplay()` zeroes everything except confirm and pause.
 - **Extend:** To add an action, add a field here, bind it in `InputReader`, clear it in `ClearGameplay()`, and read it in an ability or controller.
 
@@ -194,7 +195,7 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
 
 #### `Game.cs` — static service locator
 - **Purpose:** The single access point for persistent systems.
-- **API:** `Game.Config`, `Game.Manager`, `Game.Progress`, `Game.Scenes`, `Game.Input`, `Game.Colors`, `Game.Dialogue`, `Game.Instructions`, `Game.Audio`.
+- **API:** `Game.Config`, `Game.Manager`, `Game.Progress`, `Game.Scenes`, `Game.Input`, `Game.Time`, `Game.Colors`, `Game.Dialogue`, `Game.Instructions`, `Game.Audio`.
 - **Rule:** Use `Game.*` to **command** a service ("load this scene", "play this dialogue"). Use `GameEvents` to **announce** something.
 - **Gotchas:** Setters are `internal` and only `Bootstrapper` sets them. Never cache these in fields across scenes; just call `Game.X` each time.
 
@@ -231,11 +232,19 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
   fragment is skipped. The waits use scaled time, so pausing during the reclaim sequence delays it.
 
 #### `SceneLoader.cs`
-- **Purpose:** Fade, then load the scene asynchronously. Always use this rather than calling `SceneManager` directly, so the fades, the `SceneLoaded` event and the time-scale reset all happen.
+- **Purpose:** Fade, then load the scene asynchronously. Always use this rather than calling `SceneManager` directly, so the fades, the `SceneLoaded` event and the time reset (`Game.Time.ResetAll`) all happen.
 - **API:** `Load(string)`, `Reload()`, `IsLoading`, `Current`.
 - **Raises:** `SceneLoaded`.
 - **Gotchas:** `Load` is ignored while another load is running. A scene that isn't in Build Settings logs an error and doesn't load.
   The fade is drawn with IMGUI. Replace it when the real UI exists.
+
+#### `TimeController.cs` (`Game.Time`)
+- **Purpose:** The single owner of `Time.timeScale` and `Time.fixedDeltaTime`, so pause and slow motion can't undo each other.
+- **API:** `Pause(owner)`, `Resume(owner)`, `IsPaused`; `SetScale(owner, scale)`, `ClearScale(owner)`, `Scale`; `ResetAll()`.
+- **Rules:** any held pause = `timeScale` 0. Scales multiply. `fixedDeltaTime` = the project's step (0.02) × scale, restored exactly
+  when nothing is held. `SceneLoader` calls `ResetAll()` on every load. Real-time timers that must not run while paused
+  (Serenity) check `IsPaused`.
+- **Gotchas:** never write `Time.timeScale` yourself. An owner must call `Resume` / `ClearScale` with the same object it paused / scaled with.
 
 #### `InputReader.cs` — `[DefaultExecutionOrder(-100)]`
 - **Purpose:** Reads the devices once per frame and publishes `Intent`.
@@ -283,8 +292,8 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
   FlipControls, None), an `accent` color and the demo's sprites. `[LMB]` `[RMB]` `[Left]` `[Space]`… in a caption draw as keycaps.
 - **API:** `Game.Instructions.LevelCard`, `CanOpen` (the button shows when true), `IsOpen`, `Open()`, `Close()`, `Toggle()`, `BlocksPause`.
 - **Flow:** `LevelStarted` makes the level's card available; `InstructionView` draws the Tip button while `CanOpen` and calls
-  `Toggle()` on a click. `Open()` blocks gameplay input and sets `Time.timeScale = 0` (so the Orange chase doesn't scroll);
-  `Close()` restores both exactly as they were. Open it as often as you like.
+  `Toggle()` on a click. `Open()` blocks gameplay input and holds a pause on `Game.Time` (so the Orange chase doesn't scroll);
+  `Close()` lifts both, so any slow motion (Serenity) comes back exactly as it was. Open it as often as you like.
 - **Closes on:** the card's X or the Tip button (view → `Close` / `Toggle`), confirm (Z / Enter) or Esc (read in `Update`),
   the level completing / failing (F9 too), or the scene changing.
 - **Button hidden when:** the ColorData has no `instruction` (Violet for now), dialogue is playing, the pause menu is open
@@ -422,6 +431,7 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
 | `BlazeStrikeAbility` | Red | Hold attack ≥ `chargeTime`, then release | Opens a big hitbox; sets the hitbox team to the owner's team (so it works when stolen) | `strikeHitbox`, `chargeTime`, `activeTime`. Exposes `ChargeFraction` for UI/VFX |
 | `DoubleJumpAbility` | Green | Jump again in mid-air | Sets the upward speed; recharges on touching the ground (own contact check) | `jumpVelocity`, `extraJumps`, `groundNormalY` |
 | `DownDashAbility` | Blue | Hold Down + Dash (Shift) | **Air:** DIVE 55° down-forward at 22 u/s until it lands (wall = clean cancel; landing shockwave, 1 dmg). **Ground / on landing:** SURF, 16 u/s easing to run speed over 0.55 s, body collider at 45% height (feet anchored). Jump = SURF JUMP (keeps momentum + boost). Steer a little, never reverse; walls end it. Afterwards it stays low in a slow slide while there's a ceiling overhead or Down is held, and only stands up where there's room. Not invulnerable. Visual squash/tilt, blue wake, blue dive afterimage (all restored after) | `diveSpeed`, `diveAngle`, `maxDiveTime`, `surfStartSpeed`, `surfEndSpeed`, `surfTime`, `lowHeight`, `surfJump*`, `lowSlideSpeed`, `holdDownToStayLow`, look fields; cooldown 0.6 |
+| `SerenityAbility` | Indigo | `serenityPressed` (Q / LB) | `Game.Time.SetScale(0.35)`: EVERYTHING slows (the player too) for `duration` real seconds; press again to end early. Then it recharges for `rechargeTime` real seconds and can't be used (a press raises `SerenityDenied`). Both timers use unscaled time and don't run while `Game.Time.IsPaused`. Ends on death, level won/lost, dialogue start, scene unload; can't start during dialogue or pause. Raises `SerenityChanged` | `duration` 4, `rechargeTime` 10, `timeScale` 0.35 (cooldown 0: it runs its own timers) |
 | `HeavySlamAbility` | (none: Blue gives Down Dash now) | Down + attack while airborne | Locks movement and plunges until grounded, then opens a landing hitbox. Kept for old saves and the enum | `landingHitbox`, `slamSpeed`, `maxFallTime` |
 
 Interactions to know about:
@@ -542,7 +552,8 @@ Calls `Game.Audio.PlayMusic(music)` on `Start`. Put one in each scene.
 | `DebugHud` | `[Systems]` | `PlayerHealthChanged`, `BossFightStarted/HealthChanged/Defeated`, `SceneLoaded`, `Game.Progress`, `PlayerController.Instance.Loadout` | — |
 | `DialogueView` | `[Systems]` | `DialogueLineShown`, `DialogueEnded` | — |
 | `InstructionView` (+ `CardGui`, `InstructionDemos`) | `[Systems]` | `InstructionShown`, `InstructionClosed`, `Game.Instructions.CanOpen / LevelCard`, `Game.Config` | `Game.Instructions.Toggle/Close` on clicks; `Game.Input.AddPointerBlocker`. Tip button top-right; card on a 1920×1080 canvas, unscaled time |
-| `PauseMenu` | `[Systems]` | `Intent.pausePressed` (only inside a level) | `Time.timeScale`, `Game.Input.Block/Unblock`, `Game.Scenes.Reload`, `Game.Manager.ReturnToHub`; raises `PauseChanged` |
+| `SerenityView` (+ `SerenityFilter` on the camera) | `[Systems]` | `SerenityChanged`, `SerenityDenied`, `SceneLoaded`, `PlayerController.Instance` (ripple origin) | Indigo vignette + washed-out colors while active, ripple ring on start, soft ring on release; meter top-left (draining / recharging / READY, red shake when denied). Unscaled time |
+| `PauseMenu` | `[Systems]` | `Intent.pausePressed` (only inside a level) | `Game.Time.Pause/Resume`, `Game.Input.Block/Unblock`, `Game.Scenes.Reload`, `Game.Manager.ReturnToHub`; raises `PauseChanged` |
 | `MainMenuScreen` | MainMenu scene | `GameProgress.HasSave` | `Game.Manager.NewGame/ContinueGame` |
 | `HubScreen` | Hub scene | `Game.Config.colorOrder`, `Game.Progress`, `Game.Manager.IsUnlocked` | `Game.Manager.EnterLevel` |
 | `EndingScreen` | Ending scene | `endingDialogue` | `Game.Dialogue.Play`, `Game.Manager.ReturnToMenu` |
@@ -582,6 +593,8 @@ Then remove the matching `AddComponent` lines in `Bootstrapper`.
 | `AbilityUnlocked` | `AbilityId` | GameManager.RestoreColor | **Player AbilityLoadout** | "New ability" popup |
 | `AbilityStolen` | `AbilityId` | GreenBoss | **Player AbilityLoadout** | HUD icon grayed out |
 | `AbilityReturned` | `AbilityId` | GreenBoss | **Player AbilityLoadout** | HUD icon restored |
+| `SerenityChanged` | `SerenityState, float` | SerenityAbility (every frame while active / recharging) | SerenityView | Music filter, SFX |
+| `SerenityDenied` | — | SerenityAbility (pressed while not ready) | SerenityView | "Not ready" SFX |
 | `PlayerHealthChanged` | `int current, int max` | PlayerController | DebugHud | Real HUD, hurt SFX, screen shake |
 | `PlayerDied` | — | PlayerController | **LevelController** | Death SFX/VFX |
 | `BossFightStarted` | `BossBase` | BossBase.StartFight | DebugHud | Boss bar, boss music |
@@ -674,8 +687,8 @@ Game.Dialogue.Play(data)
 
 ### 5.8 Pause
 ```
-Esc in a level → PauseMenu.SetPaused(true): timeScale 0, BlockGameplay, PauseChanged(true)
-Resume → reverse. Restart / Back to hub → unpause, then load (SceneLoader also resets timeScale).
+Esc in a level → PauseMenu.SetPaused(true): Game.Time.Pause(this), BlockGameplay, PauseChanged(true)
+Resume → reverse (Serenity's slow motion, if on, comes back). Restart / Back to hub → unpause, then load (SceneLoader also resets Game.Time).
 ```
 
 ---
@@ -833,6 +846,6 @@ Useful habits:
   If it matters, lock the motor briefly in `PlayerController` when `Health.Damaged` fires.
 - **`Health.Invulnerable`** is one shared flag. If two systems fight over it, switch it to a counter or a set of sources.
 - **ScreenWarp** is a built-in pipeline post effect (`OnRenderImage`). Moving to URP means porting it to a full-screen pass.
-- **Indigo** and **Violet** abilities, and **Green's** reward, are undecided. Add them to `AbilityId` when they're designed.
+- **Violet** grants no ability (it's the last level).
 - **Single save slot** in PlayerPrefs.
 - The `InputSystem_Actions.inputactions` asset, `SampleScene` and the `Welcome` folder are unused leftovers from the template.

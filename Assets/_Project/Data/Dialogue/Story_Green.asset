@@ -17,3 +17,5 @@ MonoBehaviour:
     text: "<color=#4CD964>Green</color> returns."
   - speaker: 
     text: "The envy fades. What's yours is yours again."
+  - speaker: 
+    text: "<color=#4CD964>Double Jump</color> unlocked: press Space again in mid-air."

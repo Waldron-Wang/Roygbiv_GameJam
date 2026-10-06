@@ -6,9 +6,10 @@ namespace Roygbiv
     /// <summary>
     /// The optional how-to card for the current level. Nothing pops up on its own: during a level the player can
     /// open the color's card (ColorData.instruction) from the on-screen Tip button, as often as they like.
-    /// While it's open, gameplay input is blocked and time is frozen (the Orange chase must not scroll); closing
-    /// puts both back exactly as they were. Like DialogueRunner it only owns state and raises events:
-    /// InstructionView draws the card and the button and reports clicks (Toggle / Close).
+    /// While it's open, gameplay input is blocked and time is frozen (the Orange chase must not scroll) through a pause
+    /// held on Game.Time; closing lifts both, which puts any slow motion (Serenity) back exactly as it was.
+    /// Like DialogueRunner it only owns state and raises events: InstructionView draws the card and the button
+    /// and reports clicks (Toggle / Close).
     ///
     /// Closes on: the card's X or the Tip button (view), confirm (Z / Enter) or Esc (here), the level ending,
     /// or the scene changing. PauseMenu checks BlocksPause so the Esc that closes the card doesn't also pause.
@@ -21,7 +22,7 @@ namespace Roygbiv
         ColorId levelColor;
         Scene levelScene;
         bool inLevel, paused;
-        float openedAt, timeScaleBefore = 1f;
+        float openedAt;
         int closedFrame = -1;
 
         public bool IsOpen { get; private set; }
@@ -55,8 +56,7 @@ namespace Roygbiv
             var card = LevelCard;
             IsOpen = true;
             openedAt = Time.unscaledTime;
-            timeScaleBefore = Time.timeScale;
-            Time.timeScale = 0f;
+            Game.Time.Pause(this);
             Game.Input.BlockGameplay();
             GameEvents.RaiseInstructionShown(levelColor, card);
         }
@@ -66,7 +66,7 @@ namespace Roygbiv
             if (!IsOpen) return;
             IsOpen = false;
             closedFrame = Time.frameCount;
-            Time.timeScale = timeScaleBefore;
+            Game.Time.Resume(this);
             Game.Input.UnblockGameplay();
             GameEvents.RaiseInstructionClosed();
         }

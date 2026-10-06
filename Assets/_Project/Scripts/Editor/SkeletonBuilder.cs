@@ -43,7 +43,7 @@ namespace Roygbiv.EditorTools
             [ColorId.Red] = new ColorSpec { name = "Red", emotion = "Hot-blooded, anger", boss = "Red Rager", tint = new Color(.9f, .15f, .15f), ability = AbilityId.BlazeStrike, bossHp = 12, bossType = typeof(RedBoss) },
             [ColorId.Green] = new ColorSpec { name = "Green", emotion = "Envy, disgust", boss = "Bramble Thief", tint = new Color(.2f, .75f, .3f), ability = AbilityId.None, bossHp = 12, bossType = typeof(GreenBoss) },
             [ColorId.Blue] = new ColorSpec { name = "Blue", emotion = "Loneliness, sadness, melancholy", boss = "Rising Gloom", tint = new Color(.2f, .4f, .95f), ability = AbilityId.DownDash, bossHp = 1, bossType = typeof(BlueBoss) },
-            [ColorId.Indigo] = new ColorSpec { name = "Indigo", emotion = "Calm, perceptiveness, spirituality", boss = "Indigo Seer", tint = new Color(.3f, .2f, .65f), ability = AbilityId.None, bossHp = 12, bossType = typeof(IndigoBoss) },
+            [ColorId.Indigo] = new ColorSpec { name = "Indigo", emotion = "Calm, perceptiveness, spirituality", boss = "Indigo Seer", tint = new Color(.3f, .2f, .65f), ability = AbilityId.Serenity, bossHp = 12, bossType = typeof(IndigoBoss) },
             [ColorId.Violet] = new ColorSpec { name = "Violet", emotion = "Royalty, wisdom, creativity", boss = "Violet Sovereign", tint = new Color(.6f, .3f, .85f), ability = AbilityId.None, bossHp = 15, bossType = typeof(VioletBoss) },
         };
 
@@ -186,7 +186,7 @@ namespace Roygbiv.EditorTools
 
                 var abilities = new GameObject("Abilities").transform;
                 abilities.SetParent(go.transform, false);
-                AddAbilities(abilities, shot, Team.Player, AbilityId.LightShot, AbilityId.Dash, AbilityId.BlazeStrike, AbilityId.HeavySlam, AbilityId.DownDash);
+                AddAbilities(abilities, shot, Team.Player, AbilityId.LightShot, AbilityId.Dash, AbilityId.BlazeStrike, AbilityId.HeavySlam, AbilityId.DownDash, AbilityId.Serenity);
                 return go;
             });
         }
@@ -214,6 +214,9 @@ namespace Roygbiv.EditorTools
                         break;
                     case AbilityId.DownDash:
                         Set(go.AddComponent<DownDashAbility>(), "cooldown", 0.6f);
+                        break;
+                    case AbilityId.Serenity:
+                        Set(go.AddComponent<SerenityAbility>(), "cooldown", 0f);
                         break;
                 }
             }

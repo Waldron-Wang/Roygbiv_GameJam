@@ -64,7 +64,7 @@ namespace Roygbiv
             pending.Enqueue((now, i));
 
             var o = shown;
-            o.jumpPressed = o.attackPressed = o.attackReleased = o.shootPressed = o.dashPressed = false;
+            o.jumpPressed = o.attackPressed = o.attackReleased = o.shootPressed = o.dashPressed = o.serenityPressed = false;
             while (pending.Count > 0 && pending.Peek().time <= now - delay)
             {
                 var e = pending.Dequeue().intent;
@@ -77,6 +77,7 @@ namespace Roygbiv
                 o.attackReleased |= e.attackReleased;
                 o.shootPressed |= e.shootPressed;
                 o.dashPressed |= e.dashPressed;
+                o.serenityPressed |= e.serenityPressed;
             }
             shown = o;
 
