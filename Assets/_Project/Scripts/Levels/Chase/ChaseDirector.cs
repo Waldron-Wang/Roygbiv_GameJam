@@ -23,6 +23,8 @@ namespace Roygbiv
         [SerializeField] float maxSpeed = 11f;
         [Tooltip("Added per second of fight.")]
         [SerializeField] float rampPerSecond = 0.04f;
+        [Tooltip("Once the boss is beaten, the chase brakes to a stop over this many seconds.")]
+        [SerializeField] float stopTime = 1.5f;
 
         [Header("Catch-up")]
         [Tooltip("Extra run speed per unit the player is behind their home spot.")]
@@ -45,7 +47,11 @@ namespace Roygbiv
         PlayerMotor motor;
         BossBase boss;
         SpriteRenderer warnGlow;
-        float fightTime;
+        float fightTime, brake;
+
+        // "Stopped" is a crawl, not 0: at 0 the camera and the motor would drop out of auto-scroll mode
+        // (the camera would swing back onto the player, the player would get their controls back).
+        const float StoppedSpeed = 0.001f;
 
         public static ChaseDirector Current { get; private set; }
         public float Speed { get; private set; }
@@ -81,7 +87,12 @@ namespace Roygbiv
         void Update()
         {
             if (boss && boss.IsFighting) fightTime += Time.deltaTime;
-            Speed = Mathf.Min(maxSpeed, startSpeed + rampPerSecond * fightTime);
+            if (boss && boss.Health.IsDead)
+            {
+                if (brake <= 0f) brake = Speed / Mathf.Max(0.01f, stopTime); // constant braking from the speed at the win
+                Speed = Mathf.MoveTowards(Speed, StoppedSpeed, brake * Time.deltaTime);
+            }
+            else Speed = Mathf.Min(maxSpeed, startSpeed + rampPerSecond * fightTime);
             if (cam) cam.autoScrollSpeed = Speed;
 
             var player = PlayerController.Instance;
@@ -91,7 +102,8 @@ namespace Roygbiv
             if (motor)
             {
                 float behind = HomeX - p.x;
-                motor.autoRunSpeed = Speed + Mathf.Clamp(behind * catchUpGain, -maxEaseBack, maxCatchUp);
+                float catchUp = Mathf.Clamp(behind * catchUpGain, -maxEaseBack, maxCatchUp);
+                motor.autoRunSpeed = Mathf.Max(StoppedSpeed, Speed + catchUp);
             }
 
             if (p.y < groundY - fallDeathDepth) player.Health.Kill();

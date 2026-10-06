@@ -434,6 +434,7 @@ namespace Roygbiv.EditorTools
         {
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
             square = MakeSprite("Square", false);
+            circle = MakeSprite("Circle", true); // the firecracker / barrel prefabs need it
             noFriction = LoadOrCreate($"{Art}/NoFriction.physicsMaterial2D", () => new PhysicsMaterial2D { friction = 0f, bounciness = 0f });
 
             var bossPath = $"{Prefabs}/Bosses/Boss_Orange.prefab";

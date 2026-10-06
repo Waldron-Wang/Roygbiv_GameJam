@@ -93,14 +93,17 @@ namespace Roygbiv
         public static ChaseCourse Current { get; private set; }
         public PhysicsMaterial2D SolidMaterial => solidMaterial;
 
-        /// <summary>A hanging cage is on screen: the boss holds its attacks so the player can focus on the shot.</summary>
+        /// <summary>
+        /// A hanging cage's latch is on screen and still ahead of the player: they're lining up the shot, so the
+        /// boss holds its attacks. Once the player is past the latch the chance is gone and attacks resume.
+        /// </summary>
         public bool CageInPlay
         {
             get
             {
                 if (!chase) return false;
                 foreach (var c in cages)
-                    if (c && c.IsArmed && c.LatchX < chase.RightEdgeX && c.X > chase.LeftEdgeX) return true;
+                    if (c && c.IsArmed && c.LatchX < chase.RightEdgeX && c.LatchX > chase.HomeX - 1f) return true;
                 return false;
             }
         }
