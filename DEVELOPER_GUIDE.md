@@ -421,6 +421,9 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
   - Listens for `AbilityStolen` → disable and remember it as stolen.
   - Listens for `AbilityReturned` → un-steal it and re-grant if it's owned.
 - **With `syncWithProgress = false` (bosses):** only code calls `Grant` and `Revoke`.
+- **Runtime install (player only):** in `Awake`, before collecting, it adds `DownDashAbility` / `SerenityAbility` under `Abilities`
+  if Player.prefab lacks them (they need no prefab references), with their default settings, and warns once in the editor.
+  **ROYGBIV > Add New Abilities To Player** makes it permanent.
 - **Gotchas:** Each `AbilityId` may appear only once per loadout; duplicates are ignored with a warning.
 
 #### Concrete abilities
@@ -746,7 +749,9 @@ Variants: **Orange** has no fixed ground: a `Chase` object (ChaseDirector + Chas
 **Blue** is a vertical ledge climb with a Goal `LevelTrigger(CompleteLevel)` at the top.
 **Violet** has no hand-placed geometry: a `Violet` object (VioletCourse + VioletApproach + an inactive `BlockTemplate` with Recolorable(Violet),
 drawn with `Art/tiles/violetTile`) builds the approach and the arena at runtime; `LevelController.startBossImmediately` is off
-(walking into the arena starts the fight). Set up by **ROYGBIV > Build Violet Level** (safe to re-run).
+(walking into the arena starts the fight). Set up by **ROYGBIV > Build Violet Level** (safe to re-run). If the menu was never run,
+`VioletSetup` (called from `VioletBoss.Awake`) builds the same thing at runtime (flat blocks instead of the tile art) and warns once.
+`VioletBoss` applies its own HP (24), threshold (0.5) and body size in Awake, and snaps to the real ground if nothing placed it.
 
 ### Other scenes
 `MainMenu`, `Hub` and `Ending` each contain a camera plus their IMGUI screen. `Sandbox` has a player, platforms and a 999-HP training dummy,

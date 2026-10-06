@@ -38,8 +38,9 @@ namespace Roygbiv
         /// <summary>Real seconds it recharges after it ends.</summary>
         public float RechargeTime => rechargeTime;
 
-        // The press is handled here, not by AbilityBase's scaled-time cooldown.
-        void Reset() => cooldown = 0f;
+        // The press is handled here, not by AbilityBase's scaled-time cooldown. A constructor so a copy added at
+        // runtime gets it too; serialized prefab values still win.
+        public SerenityAbility() => cooldown = 0f;
 
         void OnEnable()
         {

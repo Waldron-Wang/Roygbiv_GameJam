@@ -19,6 +19,9 @@ namespace Roygbiv
         Tilemap tilemap;
         Color authored;
 
+        /// <summary>Which color it belongs to. Set it before the object wakes up (on an inactive template) when made from code.</summary>
+        public ColorId ColorId { get => color; set => color = value; }
+
         void Awake()
         {
             sprite = GetComponent<SpriteRenderer>();

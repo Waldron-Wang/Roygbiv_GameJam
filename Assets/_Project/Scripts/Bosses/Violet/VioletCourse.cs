@@ -165,6 +165,14 @@ namespace Roygbiv
         public VioletGate ArenaDoor { get; private set; }
         public VioletGate Dais { get; private set; }
 
+        /// <summary>Sets the building blocks from code (VioletSetup builds the level at runtime when the menu wasn't run).</summary>
+        public void Configure(GameObject template, PhysicsMaterial2D material, Sprite tile)
+        {
+            blockTemplate = template;
+            solidMaterial = material;
+            tileSprite = tile;
+        }
+
         public void Build()
         {
             if (Built) return;

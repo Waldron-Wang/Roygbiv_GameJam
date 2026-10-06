@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -19,10 +20,24 @@ namespace Roygbiv
         readonly Dictionary<AbilityId, AbilityBase> abilities = new();
         readonly HashSet<AbilityId> stolen = new();
 
+        // Abilities designed after Player.prefab was built. If the prefab doesn't have them yet (nobody ran
+        // ROYGBIV > Add New Abilities To Player and committed it), the player's loadout adds them at runtime with
+        // their defaults, so they always exist. They need no prefab references, unlike Light Shot or Blaze Strike.
+        static readonly (AbilityId id, Type type)[] RuntimeInstallable =
+        {
+            (AbilityId.DownDash, typeof(DownDashAbility)),
+            (AbilityId.Serenity, typeof(SerenityAbility)),
+        };
+        static bool warnedInstall;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics() => warnedInstall = false;
+
         public IEnumerable<AbilityBase> All => abilities.Values;
 
         void Awake()
         {
+            if (syncWithProgress) InstallMissing();
             foreach (var a in GetComponentsInChildren<AbilityBase>(true))
             {
                 if (abilities.ContainsKey(a.Id)) { Debug.LogWarning($"Duplicate ability {a.Id} on {name}"); continue; }
@@ -53,6 +68,32 @@ namespace Roygbiv
             GameEvents.AbilityUnlocked -= Grant;
             GameEvents.AbilityStolen -= OnStolen;
             GameEvents.AbilityReturned -= OnReturned;
+        }
+
+        /// <summary>Adds any RuntimeInstallable ability the prefab doesn't have, under the "Abilities" child.</summary>
+        void InstallMissing()
+        {
+            List<string> added = null;
+            foreach (var (id, type) in RuntimeInstallable)
+            {
+                if (GetComponentInChildren(type, true)) continue;
+                var parent = transform.Find("Abilities");
+                if (!parent)
+                {
+                    parent = new GameObject("Abilities").transform;
+                    parent.SetParent(transform, false);
+                }
+                parent.gameObject.AddComponent(type);
+                (added ??= new List<string>()).Add(type.Name);
+            }
+#if UNITY_EDITOR
+            if (added != null && !warnedInstall)
+            {
+                warnedInstall = true;
+                Debug.LogWarning($"[ROYGBIV] {name} has no {string.Join(" / ", added)}: added at runtime with default settings. " +
+                    "To make it permanent, run ROYGBIV > Add New Abilities To Player, then save and commit Player.prefab.", this);
+            }
+#endif
         }
 
         public bool Has(AbilityId id) => abilities.TryGetValue(id, out var a) && a.enabled;

@@ -57,6 +57,14 @@ namespace Roygbiv
         [Tooltip("Inner face of the arena's right wall.")]
         [SerializeField] float arenaMaxX = 12f;
 
+        [Header("Body (applied at runtime, so the boss is right even if the prefab wasn't updated)")]
+        [Tooltip("Max HP (overrides Health.maxHealth).")]
+        [SerializeField] int maxHealth = 24;
+        [Tooltip("Twin Blades starts at this health fraction (the boss's only phase threshold).")]
+        [SerializeField, Range(0.1f, 0.9f)] float twinBladesAt = 0.5f;
+        [Tooltip("Body collider size (the procedural king is ~3.3 tall).")]
+        [SerializeField] Vector2 bodySize = new(1.6f, 3.2f);
+
         [Header("Look")]
         [Tooltip("Lowest sorting order the procedural king uses.")]
         [SerializeField] int sortingBase = 6;
@@ -284,6 +292,7 @@ namespace Roygbiv
         int cycle, gridCycle, lanceCycle;
         bool transitionPending, descendPending, untouchable, twinBlades, restoringCheckpoint, startOnFloor;
         float realClock, lastDecreeAt = float.NegativeInfinity;
+        bool arenaKnown;
 
         public State CurrentState => state;
         public bool TwinBlades => twinBlades;
@@ -308,9 +317,14 @@ namespace Roygbiv
         protected override void Awake()
         {
             base.Awake();
+            Health.Configure(maxHealth);
+            SetPhaseThresholds(twinBladesAt);
             bodyCollider = GetComponent<Collider2D>();
             if (bodyCollider is BoxCollider2D box)
             {
+                box.size = bodySize;
+                box.offset = Vector2.zero;
+
                 halfHeight = box.size.y * 0.5f * transform.lossyScale.y;
                 halfWidth = box.size.x * 0.5f * transform.lossyScale.x;
             }
@@ -323,6 +337,29 @@ namespace Roygbiv
             figure.Build(transform, new Vector2(0f, -halfHeight / Mathf.Max(0.01f, transform.lossyScale.y)), sortingBase);
             ThronePose();
             Health.DamageFilter = FilterHit;
+            VioletSetup.EnsureLevel(this); // the scene has no Violet setup (menu not run): build it now
+        }
+
+        // If nothing told him where the arena is, find the real ground under him: his feet are never in mid-air.
+        void Start()
+        {
+            if (!arenaKnown) SnapToGround();
+        }
+
+        void SnapToGround()
+        {
+            Vector2 from = transform.position;
+            float best = float.PositiveInfinity, groundY = from.y - halfHeight;
+            foreach (var hit in Physics2D.RaycastAll(from + Vector2.up * 2f, Vector2.down, 80f))
+            {
+                var c = hit.collider;
+                if (!c || c.isTrigger || c.transform.IsChildOf(transform) || c.GetComponentInParent<PlayerController>()) continue;
+                if (hit.distance < best) { best = hit.distance; groundY = hit.point.y; }
+            }
+            floorY = groundY;
+            arenaMinX = from.x - 12f;
+            arenaMaxX = from.x + 12f;
+            Teleport(new Vector2(from.x, GroundedY));
         }
 
         protected override void OnEnable()
@@ -357,6 +394,7 @@ namespace Roygbiv
             floorY = floor;
             arenaMinX = minX;
             arenaMaxX = maxX;
+            arenaKnown = true;
         }
 
         /// <summary>Stand with the feet at `feet` (the dais).</summary>

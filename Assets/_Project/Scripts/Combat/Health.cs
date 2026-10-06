@@ -64,6 +64,13 @@ namespace Roygbiv
         }
 
         /// <summary>Sets HP directly, no hit (checkpoints: a boss resumed at its phase threshold). Raises Changed.</summary>
+        /// <summary>Sets max HP and fills up, without raising anything (setup in Awake, before the fight).</summary>
+        public void Configure(int max)
+        {
+            maxHealth = Mathf.Max(1, max);
+            Current = maxHealth;
+        }
+
         public void SetCurrent(int value)
         {
             if (IsDead) return;

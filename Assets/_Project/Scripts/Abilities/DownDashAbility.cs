@@ -121,7 +121,9 @@ namespace Roygbiv
         /// <summary>True when this intent holds Down far enough for the dash button to mean Down Dash.</summary>
         public bool IsDownHeld(in PlayerIntent intent) => intent.move.y < -downThreshold;
 
-        void Reset() => cooldown = 0.6f;
+        // The default cooldown, also for a copy added at runtime (AbilityLoadout installs it when the prefab lacks it).
+        // Serialized prefab values still win: Unity deserializes them after the constructor.
+        public DownDashAbility() => cooldown = 0.6f;
 
         protected override void Awake()
         {
