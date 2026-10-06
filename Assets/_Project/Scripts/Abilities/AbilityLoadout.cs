@@ -75,9 +75,23 @@ namespace Roygbiv
         /// <summary>Player path. Returns true if any ability consumed the input.</summary>
         public bool HandleInput(in PlayerIntent intent)
         {
+            // Dash and Down Dash share the dash button. Who gets a press is decided here, once, never by
+            // dictionary order: Down Dash unlocked + Down held = Down Dash's press (even while it cools down, so it
+            // never turns into a plain Dash); anything else = Dash's. A Dash fired mid Down Dash ends that first.
+            var downDash = Get(AbilityId.DownDash) as DownDashAbility;
+            bool pressIsDownDash = intent.dashPressed && downDash && downDash.enabled && downDash.IsDownHeld(intent);
+            if (intent.dashPressed && !pressIsDownDash && downDash && downDash.IsActive && Get(AbilityId.Dash) is { IsReady: true })
+                downDash.Cancel();
+
             bool consumed = false;
             foreach (var a in abilities.Values)
-                if (a.enabled && a.HandleInput(intent)) consumed = true;
+            {
+                if (!a.enabled) continue;
+                var routed = intent;
+                if (a.Id == AbilityId.Dash) routed.dashPressed = intent.dashPressed && !pressIsDownDash;
+                else if (a.Id == AbilityId.DownDash) routed.dashPressed = pressIsDownDash;
+                if (a.HandleInput(routed)) consumed = true;
+            }
             return consumed;
         }
 

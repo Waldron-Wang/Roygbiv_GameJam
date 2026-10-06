@@ -18,6 +18,6 @@ MonoBehaviour:
   emotion: Loneliness, sadness, melancholy
   sceneName: Level_Blue
   instruction: {fileID: 11400000, guid: c5105edd55413174fa9b9770942cc18f, type: 2}
-  grantedAbility: 4
+  grantedAbility: 6
   storyFragment: {fileID: 11400000, guid: 97403a33bdf394019b51a4d2dd86c748, type: 2}
   musicLayer: {fileID: 0}

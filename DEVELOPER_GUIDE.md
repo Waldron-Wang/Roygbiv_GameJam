@@ -81,7 +81,7 @@ There are two deliberate exceptions, so treat them with care:
 | **`PlayerController`** | PlayerMotor, Health, PlayerCombat, AbilityLoadout, Game.Input, GameEvents | BossBase (`Player`), CameraFollow, LevelTrigger, OrangeBoss, BlueBoss, DebugHud, DebugCheats |
 | `AbilityBase` | IActor, PlayerIntent | AbilityLoadout, all abilities |
 | `AbilityLoadout` | AbilityBase, Game.Progress, GameEvents | PlayerController, GreenBoss, DebugHud |
-| Abilities (`LightShot`, `Dash`, `BlazeStrike`, `HeavySlam`) | AbilityBase, IActor, Projectile / Hitbox / Health | AbilityLoadout (player & Green boss) |
+| Abilities (`LightShot`, `Dash`, `BlazeStrike`, `DoubleJump`, `DownDash`, `HeavySlam`) | AbilityBase, IActor, Projectile / Hitbox / Health | AbilityLoadout (player & Green boss) |
 | **`BossBase`** | Health, IActor, PlayerController.Instance, Projectile, GameEvents | LevelController, DebugHud, 7 bosses |
 | `YellowBoss` … `VioletBoss` | BossBase (+ see each) | prefab only |
 | **`LevelController`** | BossBase, DialogueData, Game.Dialogue, GameEvents | LevelTrigger, PauseMenu, DebugHud, DebugCheats |
@@ -420,9 +420,14 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
 | `LightShotAbility` | Yellow | `shootPressed` (Left Click / C) | Spawns `projectilePrefab` along `AimDirection` | `projectilePrefab`, `spawnOffset`, `cooldown` |
 | `DashAbility` | Orange | `dashPressed` (Shift) | Locks movement, removes gravity, sets velocity to `facing * speed` for `duration`, gives i-frames | `speed`, `duration`, `invulnerableWhileDashing` |
 | `BlazeStrikeAbility` | Red | Hold attack ≥ `chargeTime`, then release | Opens a big hitbox; sets the hitbox team to the owner's team (so it works when stolen) | `strikeHitbox`, `chargeTime`, `activeTime`. Exposes `ChargeFraction` for UI/VFX |
-| `HeavySlamAbility` | Blue (tentative) | Down + attack while airborne | Locks movement and plunges until grounded, then opens a landing hitbox | `landingHitbox`, `slamSpeed`, `maxFallTime` |
+| `DoubleJumpAbility` | Green | Jump again in mid-air | Sets the upward speed; recharges on touching the ground (own contact check) | `jumpVelocity`, `extraJumps`, `groundNormalY` |
+| `DownDashAbility` | Blue | Hold Down + Dash (Shift) | **Air:** DIVE 55° down-forward at 22 u/s until it lands (wall = clean cancel; landing shockwave, 1 dmg). **Ground / on landing:** SURF, 16 u/s easing to run speed over 0.55 s, body collider at 45% height (feet anchored). Jump = SURF JUMP (keeps momentum + boost). Steer a little, never reverse; walls end it. Afterwards it stays low in a slow slide while there's a ceiling overhead or Down is held, and only stands up where there's room. Not invulnerable. Visual squash/tilt, blue wake, blue dive afterimage (all restored after) | `diveSpeed`, `diveAngle`, `maxDiveTime`, `surfStartSpeed`, `surfEndSpeed`, `surfTime`, `lowHeight`, `surfJump*`, `lowSlideSpeed`, `holdDownToStayLow`, look fields; cooldown 0.6 |
+| `HeavySlamAbility` | (none: Blue gives Down Dash now) | Down + attack while airborne | Locks movement and plunges until grounded, then opens a landing hitbox. Kept for old saves and the enum | `landingHitbox`, `slamSpeed`, `maxFallTime` |
 
 Interactions to know about:
+- **Dash and Down Dash share the dash button.** `AbilityLoadout.HandleInput` decides once per press, never by dictionary order:
+  Down Dash unlocked + Down held = Down Dash's press (even while it cools down, so it never becomes a plain Dash); otherwise Dash's.
+  A Dash fired while a Down Dash is running cancels it first (`DownDashAbility.Cancel()`; the body stays low until there's room).
 - **Blaze Strike and the basic attack:** Blaze Strike consumes input only on release, so the press still triggers a basic attack. Pressing gives a quick swing; holding and releasing gives the heavy strike.
 - **Revoking mid-use:** if an ability is revoked partway through (e.g., stolen during a dash), its coroutine still finishes.
 
@@ -607,7 +612,7 @@ PlayerController.Update
   │     LightShot: shootPressed → TryActivate → Projectile.Launch
   │     Dash:      dashPressed  → TryActivate → coroutine (Locked, i-frames)
   │     Blaze:     accumulate hold; on release & charged → open hitbox
-  │     Slam:      down+attack in air → plunge → landing hitbox
+  │     DownDash:  down+dash → dive (air) → surf (low collider) → slow slide while low → stand when there's room
   └─ if nothing consumed && attackPressed → PlayerCombat.TryAttack → melee Hitbox.Open
 PlayerMotor.FixedUpdate
   ground check → (if !Locked) run accel, jump buffer+coyote, gravity multipliers
@@ -685,7 +690,7 @@ Player                      Rigidbody2D (Dynamic, gravity 3, freeze rot, interpo
 │                           PlayerMotor · PlayerCombat · AbilityLoadout(sync ✓) · PlayerController
 ├── Visual                  SpriteRenderer  ← artists replace this
 ├── MeleeHitbox (inactive)  BoxCollider2D trigger · Hitbox(Player, 1 dmg, reflects ✓)
-└── Abilities               LightShot · Dash · BlazeStrike · HeavySlam
+└── Abilities               LightShot · Dash · BlazeStrike · HeavySlam · DownDash   (DoubleJump sits on the root)
     ├── BlazeHitbox (inactive)  Hitbox 3 dmg
     └── SlamHitbox  (inactive)  Hitbox 2 dmg
 ```

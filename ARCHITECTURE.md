@@ -70,7 +70,7 @@ Assets/_Project/
     ├── Input/       InputReader, PlayerIntent, InputModifiers
     ├── Combat/      Health, Hitbox, Projectile, CombatInterfaces (IDamageable, IReflectable, IActor)
     ├── Player/      PlayerController, PlayerMotor, PlayerCombat
-    ├── Abilities/   AbilityBase, AbilityLoadout, LightShot, Dash, BlazeStrike, HeavySlam
+    ├── Abilities/   AbilityBase, AbilityLoadout, LightShot, Dash, BlazeStrike, DoubleJump, DownDash (HeavySlam: no longer granted)
     ├── Bosses/      BossBase + one folder per color
     ├── Levels/      LevelController, LevelTrigger, ShootableSwitch, CameraFollow
     ├── Effects/     ScreenWarp (camera disorientation: color, wobble, glitch, trails, roll), DashAfterImage

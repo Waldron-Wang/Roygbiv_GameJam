@@ -6,9 +6,10 @@ namespace Roygbiv
     /// <summary>The seven colors, in spectrum order. Play order lives in GameConfig, not here.</summary>
     public enum ColorId { Red, Orange, Yellow, Green, Blue, Indigo, Violet }
 
-    /// <summary>Every unlockable ability. Add Indigo / Violet abilities here once designed.</summary>
+    /// <summary>Every unlockable ability. HeavySlam is no longer granted (Blue gives DownDash) but stays: saves store these as ints.</summary>
     public enum AbilityId { None, LightShot, Dash, BlazeStrike, HeavySlam,
-        DoubleJump
+        DoubleJump,
+        DownDash,
     }
 
     /// <summary>Who can hurt whom. Neutral = environment / switches, hit by everyone.</summary>
