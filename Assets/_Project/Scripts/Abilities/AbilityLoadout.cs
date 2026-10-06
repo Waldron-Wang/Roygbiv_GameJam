@@ -13,6 +13,8 @@ namespace Roygbiv
     public class AbilityLoadout : MonoBehaviour
     {
         [SerializeField] bool syncWithProgress;
+        [Tooltip("TESTING ONLY: enables every ability found, ignoring the save. Untick before shipping.")]
+        [SerializeField] bool debugUnlockAll;
 
         readonly Dictionary<AbilityId, AbilityBase> abilities = new();
         readonly HashSet<AbilityId> stolen = new();
@@ -27,13 +29,14 @@ namespace Roygbiv
                 abilities.Add(a.Id, a);
                 a.enabled = false;
             }
+            Debug.Log($"[AbilityLoadout] {name} registered: {string.Join(", ", abilities.Keys)}", this);
         }
 
         void Start()
         {
             if (!syncWithProgress) return;
             foreach (var id in abilities.Keys)
-                abilities[id].enabled = Game.Progress.HasAbility(id) && !stolen.Contains(id);
+                abilities[id].enabled = debugUnlockAll || (Game.Progress.HasAbility(id) && !stolen.Contains(id));
         }
 
         void OnEnable()
