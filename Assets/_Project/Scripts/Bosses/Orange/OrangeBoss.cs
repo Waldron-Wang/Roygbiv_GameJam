@@ -13,7 +13,7 @@ namespace Roygbiv
     /// (see CageTrap) to trap it, then run into it to "catch" it (1 damage). After a catch, or if the trap
     /// runs out, it dashes back to its spot, passing through the player. 3 HP = 3 catches = 3 phases.
     ///
-    /// Attacks (none while a cage trap is on screen, so the player can focus on the shot):
+    /// Attacks (held while a cage latch is coming up, so the player can focus on the shot):
     ///   Phase 0: none, it just runs.
     ///   Phase 1: firecrackers lobbed back at where the player will be (marked on the ground).
     ///            Jump them, shoot them down, or punch them back.
@@ -48,19 +48,22 @@ namespace Roygbiv
         [SerializeField] float windUpTime = 0.5f;
         [SerializeField] UnityEvent onWindUp = new();
         [SerializeField] int[] firecrackersPerPhase = { 0, 1, 2 };
-        [SerializeField] float firecrackerFlightTime = 1.1f;
+        [Tooltip("How high above the boss each firecracker climbs. Higher = longer in the air = more time to react.")]
+        [SerializeField] float firecrackerApexHeight = 4f;
         [SerializeField] float firecrackerGravityScale = 1.5f;
         [SerializeField] float firecrackerStagger = 0.35f;
         [Tooltip("Each firecracker lands this far (random in [x, y]) from where the player will be.")]
         [SerializeField] Vector2 firecrackerScatter = new(-0.5f, 1.5f);
         [SerializeField] Color landingMarkerColor = new(1f, 0.4f, 0.1f, 0.8f);
         [SerializeField] int barrelMinPhase = 2;
+        [Tooltip("World speed the barrel rolls back at (the player closes in at this + the scroll speed).")]
+        [SerializeField] float barrelRollSpeed = 1.5f;
         [SerializeField, Range(0f, 1f)] float barrelChance = 0.4f;
 
         [Tooltip("Placeholder telegraph squashes this transform. Defaults to the child named Visual.")]
         [SerializeField] Transform visual;
 
-        Collider2D body;
+        Collider2D bodyCollider;
         CageTrap trap;
         Vector3 visualScale;
         float stunnedUntil, currentLead, swayAngle, hopClock, halfHeight = 1f;
@@ -78,9 +81,9 @@ namespace Roygbiv
         protected override void Awake()
         {
             base.Awake();
-            body = GetComponent<Collider2D>();
+            bodyCollider = GetComponent<Collider2D>();
             // Cached: bounds read empty while the collider is switched off (dashing back).
-            if (body is BoxCollider2D box) halfHeight = box.size.y * 0.5f * transform.lossyScale.y;
+            if (bodyCollider is BoxCollider2D box) halfHeight = box.size.y * 0.5f * transform.lossyScale.y;
             if (!visual) visual = transform.Find("Visual");
             if (visual) visualScale = visual.localScale;
         }
@@ -114,7 +117,9 @@ namespace Roygbiv
             if (interval <= 0f) { yield return Wait(0.5f); yield break; }
 
             yield return Wait(interval);
-            if (!CanAttack) yield break;
+            // Held (cage shot coming up, trapped, dashing back)? Attack as soon as it clears, not a whole cycle later.
+            yield return new WaitUntil(() => CanAttack || !IsFighting || Phase != phase);
+            if (!CanAttack || Phase != phase) yield break;
 
             bool barrel = barrelPrefab && phase >= barrelMinPhase && Random.value < barrelChance;
             onWindUp.Invoke();
@@ -164,7 +169,7 @@ namespace Roygbiv
             }
 
             // Dashing back, it passes through the player instead of shoving them.
-            if (body) body.enabled = IsStunned || !rejoining;
+            if (bodyCollider) bodyCollider.enabled = IsStunned || !rejoining;
             transform.position = pos;
         }
 
@@ -175,30 +180,40 @@ namespace Roygbiv
             for (int i = 0; i < count; i++)
             {
                 if (!CanAttack || !firecrackerPrefab) yield break;
-                // Aim where the player will be when it lands: they can't change pace, only jump.
-                float landX = Player.position.x + Chase.Speed * firecrackerFlightTime + Random.Range(firecrackerScatter.x, firecrackerScatter.y);
-                Lob(new Vector2(landX, Chase.GroundY), firecrackerFlightTime);
+                Lob();
                 yield return Wait(firecrackerStagger);
             }
         }
 
-        void Lob(Vector2 target, float flightTime)
+        /// <summary>
+        /// Lobs a firecracker up to firecrackerApexHeight and down onto where the player will be when it lands
+        /// (they can't change pace, only jump). The height sets the flight time, and so the reaction time.
+        /// </summary>
+        void Lob()
         {
             var from = (Vector2)transform.position + Vector2.up * halfHeight;
-            var delta = target - from;
-            float g = Physics2D.gravity.y * firecrackerGravityScale;
-            var velocity = new Vector2(delta.x / flightTime, delta.y / flightTime - 0.5f * g * flightTime);
+            float g = -Physics2D.gravity.y * firecrackerGravityScale;
+            float up = Mathf.Sqrt(2f * g * firecrackerApexHeight);
+            float fall = firecrackerApexHeight + from.y - Chase.GroundY;
+            float flightTime = up / g + Mathf.Sqrt(2f * fall / g);
+
+            float landX = Player.position.x + Chase.Speed * flightTime + Random.Range(firecrackerScatter.x, firecrackerScatter.y);
+            var target = new Vector2(landX, Chase.GroundY);
+            var velocity = new Vector2((landX - from.x) / flightTime, up);
             Fire(firecrackerPrefab, velocity, from).Arc(velocity, firecrackerGravityScale);
 
             var marker = FlatSprite.Create("LandingMarker", null, target + Vector2.up * 0.06f, new Vector2(1f, 0.12f), landingMarkerColor, 15);
             Destroy(marker.gameObject, flightTime);
         }
 
+        /// <summary>Drops a barrel at its back heel (it lands on the ground right there), rolling back toward the player.</summary>
         void RollBarrel()
         {
             float radius = barrelPrefab.transform.localScale.y * 0.5f;
-            var from = new Vector2(transform.position.x - 1.5f, Chase.GroundY + radius);
-            Fire(barrelPrefab, Vector2.left, from);
+            float backHeel = bodyCollider ? bodyCollider.bounds.extents.x * 0.5f : 0.5f;
+            var from = new Vector2(transform.position.x - backHeel, Chase.GroundY + radius);
+            var barrel = Fire(barrelPrefab, Vector2.left, from);
+            barrel.ScaleSpeed(barrelRollSpeed / barrel.speed);
         }
 
         // ---------- Catching ----------
