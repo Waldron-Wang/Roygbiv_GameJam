@@ -139,8 +139,9 @@ MonoBehaviour:
   color: 5
   displayName: Indigo Seer
   phaseThresholds:
-  - 0.66
-  - 0.33
+  - 0.75
+  - 0.5
+  - 0.25
   projectilePrefab: {fileID: 8066445332528177978, guid: 5325d2bc32a8b421b98c9c1653e8fbab, type: 3}
 --- !u!1 &3173141961783652111
 GameObject:

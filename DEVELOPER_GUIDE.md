@@ -64,7 +64,8 @@ There are two deliberate exceptions, so treat them with care:
 | `GameManager` | Game, GameProgress, GameEvents | MainMenuScreen, HubScreen, PauseMenu, EndingScreen, DebugCheats |
 | `SceneLoader` | GameEvents, `SceneManager` | GameManager, PauseMenu |
 | `InputReader` | PlayerIntent, IInputModifier, Unity Input System | PlayerController, DialogueRunner, InstructionRunner, PauseMenu, IndigoBoss, InstructionView (pointer blocker), AbilityBase (indirectly) |
-| `InputModifiers` | PlayerIntent | IndigoBoss |
+| `InputModifiers` | PlayerIntent, `Time` (delay) | IndigoBoss |
+| `ScreenWarp` (+ `Resources/ScreenWarp.shader`) | Camera, `Resources` | IndigoBoss (any boss or level can use it) |
 | `ColorWorld` | Game, GameEvents, shader globals | Recolorable, GameManager.NewGame |
 | `DialogueRunner` | Game.Input, GameEvents, DialogueData | GameManager, LevelController, EndingScreen |
 | `InstructionData` | — | ColorData, InstructionRunner, InstructionView, GameEvents |
@@ -253,10 +254,12 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
   - Each Block call needs exactly one matching Unblock. An extra Block leaves the player frozen.
   - The project's `InputSystem_Actions.inputactions` asset is **not used**.
 
-#### `InputModifiers.cs` — `IInputModifier` + `InvertHorizontalModifier`, `SwapJumpAndAttackModifier`
+#### `InputModifiers.cs` — `IInputModifier` + `InvertHorizontalModifier`, `SwapJumpAndAttackModifier`, `SwapShootAndDashModifier`, `DelayedInputModifier`
 - **Purpose:** Transforms the intent. Built for Indigo's disorientation mechanic, but usable anywhere (status effects, tutorials).
+- **Notes:** The jump/attack swap also re-derives `attackReleased`, so Blaze Strike charges and fires on the same key.
+  `DelayedInputModifier(seconds)` replays every press exactly once, late; aim, confirm and pause stay live.
 - **Extend:** Implement `PlayerIntent Modify(PlayerIntent i)`. Always remove the modifier when your effect ends
-  (Indigo removes its modifier in `OnDefeated` and `OnDestroy`).
+  (Indigo removes its modifiers when a phase ends, in `OnDefeated` and in `OnDestroy`).
 
 #### `ColorWorld.cs` (`Scripts/World`)
 - **Purpose:** The visual "how colorful is each color" state, from 0 to 1 per color, animated on restore.
@@ -452,7 +455,7 @@ Interactions to know about:
 | `RedBoss` | Flies overhead, **armored** (`Health.DamageFilter` rejects every hit and turns it into rage: melee `rageFromMelee`, Light Shot `rageFromShot` at most once per `shotRageCooldown`) while `Rage` also climbs slowly on its own. Each cycle: drift → wind up → Spread fan / Arc lobs (warning strip; phase 1+ leave fire) / Ground fire wave (phase 1+, jump it). Every `chargeCooldownPerPhase` it **charges** instead: lands at the far end, winds up (path lit), rushes the arena (`ChargeHitbox`, jump or dash through), skids, then **pants** (`pantTime`), the opening to punch it for rage; phase 2 rushes back first. At max rage it **overheats**: stops, smokes, flashes, falls, lies exposed for `overheatDuration` or `maxHitsPerOverheat` hits. Its body doesn't collide with the player. All animation is procedural on the `Pose` child (`CurrentState`), with `FirePatch` (ground fire / markers) and `HeatPuff` (smoke, steam, dust) as placeholder FX. 12 HP, thresholds 0.67 / 0.34 = one phase per overheat | Projectile (`Projectile_Fireball`), Hitbox, Hazard, FlatSprite, `Health.DamageFilter` | Art on `onWindUp` / `onOverheat`, playtest tuning |
 | `GreenBoss` | Rooted bramble, **armored** (`Health.DamageFilter`) except while **wilted**. Steals the ability the player used **most recently** (`AbilityBase.LastUsedAt`; `stealOrder` only if nothing's been used): by **Covet** (telegraphed thread in that ability's color, unavoidable, whenever no pod is growing) or when a **Lash** (floor vine, jump it; phase 2 adds a high one, stay down) connects while there's room (`maxPodsPerPhase` 1/2/3). Each stolen ability grows into a `GreenPod` somewhere in the arena: break it up close (`podHitsPerPhase`; shots bounce off unless `podsTakeShots`; each hit sets off thorns under the player, `guardWarnTime` / `guardCooldown`) and the ability returns and the boss **wilts** (`wiltTime` or `maxHitsPerWilt`); let it ripen and it bursts in spores and reseeds. While holding an ability it uses its own copy: Light Shot volleys, Dash (uproots, dashes at the player, `DashHitbox`), Blaze Strike when the player is close. Phase 1+ adds thorns (`FirePatch`, green). Each phase change it burrows to the root spot farthest from the player and covets again. Its body doesn't collide with the player. Procedural animation on a `Pose` child (made at runtime if missing; `CurrentState`). 12 HP, thresholds 0.67 / 0.34 = one phase per wilt. Returns everything on defeat or destroy | AbilityLoadout (own + player's), `AbilityStolen` / `AbilityReturned`, GreenPod, FirePatch, HeatPuff, FlatSprite, Hitbox | Art on `onSteal` / `onWilt`, playtest tuning, reward |
 | `BlueBoss` | A rising kill-trigger (invulnerable). The level is won at the top through `LevelTrigger(CompleteLevel)` | PlayerController | The climb itself |
-| `IndigoBoss` | Phase 1 inverts horizontal input; phase 2 swaps jump and attack; cleans up on defeat or destroy | `Game.Input`, InputModifiers | Visual disorientation (VFX) |
+| `IndigoBoss` | A floating seer. Each of its 4 phases opens with a **curse** (Inspector data: which controls to scramble + a `WarpLook`): MIRROR (left/right; mirrored ghost, split colors, rocking camera), SWAP (jump/attack + shoot/dash; hues inverted, glitch slices), ECHO (0.2 s input delay; heavy trails), INVERSION (world upside down + mirror + swap; hue cycling). **Between phases it casts:** the old curse lifts at once (clean screen, normal controls, invulnerable, orbs dispelled), it rises over the player and draws a sigil naming the next curse and what it does (`IndigoSigil`), then the curse lands with a flash and shockwave. Attacks: **Gaze** (eye tracks with a line, locks, beam), **Mandala** (orb rings / spirals, reflectable), **Blink** (vanish, a mark hunts the player, drop + floor ripples, then meditates on the floor: the melee opening), **Illusions** (copies shuffle with eyes shut; only the real one casts light below it and watches you; hitting a copy bursts it into orbs, `IndigoDecoy`), **Starfall** (`FirePatch` pillars around the player). Procedural diamond / halo / eye (`IndigoShapes`). 12 HP, thresholds 0.75 / 0.5 / 0.25. Cleans up on defeat or destroy | `Game.Input`, InputModifiers, ScreenWarp, Projectile (`Projectile_EnemyOrb`), FirePatch, HeatPuff, FlatSprite | Art on `onCast` / `onCurse`, playtest tuning, reward |
 | `VioletBoss` | Placeholder shooting | Projectile | Everything (final boss) |
 
 ### 3.7 Level flow (`Scripts/Levels`)
@@ -503,6 +506,19 @@ Interactions to know about:
 - **Setup:** menu **ROYGBIV > Upgrade Orange Chase (Level_Orange)** converts an older Orange scene (removes the fixed ground, bumps and switches; adds `Chase`; wires the boss prefab). Fresh skeleton builds already include it.
 
 ### 3.8 Presentation (`Scripts/World`, `Scripts/Audio`, `Scripts/UI`, `Scripts/Debug`)
+
+#### `ScreenWarp.cs` (`Scripts/Effects`) + `Resources/ScreenWarp.shader`
+- **Purpose:** Full-screen disorientation on a camera. Indigo's curses use it; any boss or level can.
+- **API:** `ScreenWarp.Main` / `ScreenWarp.On(camera)` (added on demand), `BlendTo(WarpLook, seconds)`, `Clear(seconds)`,
+  one-shots `Flash(color, seconds)`, `Shockwave(worldPoint, strength, seconds)`, `Pulse(strength, seconds)`, `Current`.
+- **`WarpLook`** (a serializable struct, all zero = clear): tint, desaturate, hue shift / cycle, invert, vignette, chromatic split,
+  wave, mirrored ghost, glitch slices, jitter, motion trails (smear + tunnel zoom), camera roll (180 = upside down), sway, breathing zoom.
+- **Gotchas:**
+  - Roll and zoom move the real camera transform / `orthographicSize`, so mouse aim stays correct; everything else is a
+    built-in pipeline `OnRenderImage` post effect. IMGUI (HUD, dialogue, Tip card) draws afterwards and stays readable.
+  - Colors are converted to linear for the shader (the project is in Linear color space). Pick them in the Inspector as usual.
+  - Scaled time: pause freezes it. Disabling it puts the camera back.
+  - If you move to URP, port the shader to a full-screen pass; the C# API can stay.
 
 #### `Recolorable.cs`
 - **Purpose:** Makes a sprite or tilemap gray until its color is restored, then fades it to its authored color.
@@ -811,6 +827,7 @@ Useful habits:
 - **Knockback on the player** is mostly absorbed by `PlayerMotor` steering.
   If it matters, lock the motor briefly in `PlayerController` when `Health.Damaged` fires.
 - **`Health.Invulnerable`** is one shared flag. If two systems fight over it, switch it to a counter or a set of sources.
+- **ScreenWarp** is a built-in pipeline post effect (`OnRenderImage`). Moving to URP means porting it to a full-screen pass.
 - **Indigo** and **Violet** abilities, and **Green's** reward, are undecided. Add them to `AbilityId` when they're designed.
 - **Single save slot** in PlayerPrefs.
 - The `InputSystem_Actions.inputactions` asset, `SampleScene` and the `Welcome` folder are unused leftovers from the template.
