@@ -114,6 +114,7 @@ GameObject:
   - component: {fileID: 1705274042657021578}
   - component: {fileID: 8185696262344408519}
   - component: {fileID: -4810051579614231288}
+  - component: {fileID: 6846266543294441999}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -276,7 +277,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.AbilityLoadout
   syncWithProgress: 1
-  debugUnlockAll: 1
+  debugUnlockAll: 0
 --- !u!114 &7944926118124775745
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -343,6 +344,22 @@ MonoBehaviour:
   fadeTime: 0.4
   sortingOrderOffset: -1
   spawnInterval: 0.04
+--- !u!114 &6846266543294441999
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1435134940357129603}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a584c3b2b88c1e948b4deebe44fe16db, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.DoubleJumpAbility
+  cooldown: 0.5
+  jumpVelocity: 12
+  extraJumps: 1
+  groundNormalY: 0.7
 --- !u!1 &3063216648248826422
 GameObject:
   m_ObjectHideFlags: 0

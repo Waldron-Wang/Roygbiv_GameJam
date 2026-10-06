@@ -18,6 +18,6 @@ MonoBehaviour:
   emotion: Envy, disgust
   sceneName: Level_Green
   instruction: {fileID: 11400000, guid: 67e6c77fc25a76942ad9c200af81e13d, type: 2}
-  grantedAbility: 0
+  grantedAbility: 5
   storyFragment: {fileID: 11400000, guid: 885106ee9f3d543af8851578c32f1e2d, type: 2}
   musicLayer: {fileID: 0}
