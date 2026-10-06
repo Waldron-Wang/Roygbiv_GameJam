@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Roygbiv
@@ -138,6 +139,9 @@ namespace Roygbiv
 
         /// <summary>Show the attack pose for at least `seconds` from now (wind-ups, volleys).</summary>
         protected void HoldAttackPose(float seconds) => attackPoseUntil = Mathf.Max(attackPoseUntil, Time.time + seconds);
+
+        /// <summary>The health fractions where each next phase starts (read-only; checkpoints resume a boss at one).</summary>
+        protected IReadOnlyList<float> PhaseThresholds => phaseThresholds;
 
         /// <summary>Per-phase Inspector tuning: values[phase], or the last entry once phases run past the array.</summary>
         protected static T PerPhase<T>(T[] values, int phase) => values[Mathf.Clamp(phase, 0, values.Length - 1)];

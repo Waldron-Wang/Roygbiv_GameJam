@@ -319,7 +319,7 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
 #### `CombatInterfaces.cs`
 | Type | What | Implemented by |
 |---|---|---|
-| `DamageInfo` | `amount`, `sourceTeam`, `knockback`, `source` | — |
+| `DamageInfo` | `amount`, `sourceTeam`, `knockback`, `source`, `pierceInvulnerability` (opt-in: lands through `Health.Invulnerable`, e.g. Dash's i-frames; post-hit i-frames still apply. Only Violet's needles set it) | — |
 | `IDamageable` | `Team`, `bool TakeDamage(in DamageInfo)` | `Health`, `ShootableSwitch` |
 | `IReflectable` | `CanBeReflected`, `Reflect(Team, Vector2)` | `Projectile` |
 | `IActor` | `Team`, `Root`, `Body`, `Health`, `FacingSign`, `AimDirection`, `IsGrounded`, `MovementLocked` | `PlayerController`, `BossBase` |
@@ -330,7 +330,8 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
 #### `Health.cs` — implements `IDamageable`
 - **Purpose:** HP for anything.
 - **API:**
-  - Properties: `Current`, `Max`, `Fraction`, `IsDead`, `Invulnerable` (settable), `DamageFilter` (optional veto; Yellow uses it to take damage only from reflected orbs)
+  - Properties: `Current`, `Max`, `Fraction`, `IsDead`, `Invulnerable` (settable; a `pierceInvulnerability` hit ignores it), `GodMode` (debug F8: blocks everything), `DamageFilter` (optional veto; Yellow uses it to take damage only from reflected orbs)
+  - `SetCurrent(hp)`: set HP without a hit (Violet resumes at its Twin Blades threshold from a checkpoint)
   - Methods: `TakeDamage`, `Heal`, `Kill`
 - **Events (local C#, not global):** `Changed(current, max)`, `Damaged(DamageInfo)`, `Died`.
 - **Inspector:** `team`, `maxHealth`, `hitInvulnerability`.
@@ -454,7 +455,8 @@ Interactions to know about:
 - **Subclass contract:**
   - **Required:** `protected abstract IEnumerator RunPhase(int phase)`. It runs **one attack cycle** and is called again and again.
   - **Optional:** `OnFightStarted`, `OnPhaseChanged(int)`, `OnDefeated`, and override `FacingSign`, `AimDirection` or `IsGrounded`.
-- **Helpers:** `Player` (Transform or null), `Fire(prefab, dir, from?)`, `Wait(seconds)`, `Color`, `DisplayName`, `Phase`, `IsFighting`.
+- **Helpers:** `Player` (Transform or null), `Fire(prefab, dir, from?)`, `Wait(seconds)`, `Color`, `DisplayName`, `Phase`, `IsFighting`, `PhaseThresholds` (read-only).
+- **Careful:** inside a BossBase subclass `Color` is the boss's `ColorId` property. Write `UnityEngine.Color.white` for colors.
 - **Inspector:** `color`, `displayName`, `phaseThresholds` (e.g., `{0.66, 0.33}` gives 3 phases: 0, 1, 2).
 - **Gotchas:**
   - A phase change takes effect at the **end of the current cycle**. Keep cycles short, or react immediately in `OnPhaseChanged`.
@@ -471,7 +473,7 @@ Interactions to know about:
 | `GreenBoss` | Rooted bramble, **armored** (`Health.DamageFilter`) except while **wilted**. Steals the ability the player used **most recently** (`AbilityBase.LastUsedAt`; `stealOrder` only if nothing's been used): by **Covet** (telegraphed thread in that ability's color, unavoidable, whenever no pod is growing) or when a **Lash** (floor vine, jump it; phase 2 adds a high one, stay down) connects while there's room (`maxPodsPerPhase` 1/2/3). Each stolen ability grows into a `GreenPod` somewhere in the arena: break it up close (`podHitsPerPhase`; shots bounce off unless `podsTakeShots`; each hit sets off thorns under the player, `guardWarnTime` / `guardCooldown`) and the ability returns and the boss **wilts** (`wiltTime` or `maxHitsPerWilt`); let it ripen and it bursts in spores and reseeds. While holding an ability it uses its own copy: Light Shot volleys, Dash (uproots, dashes at the player, `DashHitbox`), Blaze Strike when the player is close. Phase 1+ adds thorns (`FirePatch`, green). Each phase change it burrows to the root spot farthest from the player and covets again. Its body doesn't collide with the player. Procedural animation on a `Pose` child (made at runtime if missing; `CurrentState`). 12 HP, thresholds 0.67 / 0.34 = one phase per wilt. Returns everything on defeat or destroy | AbilityLoadout (own + player's), `AbilityStolen` / `AbilityReturned`, GreenPod, FirePatch, HeatPuff, FlatSprite, Hitbox | Art on `onSteal` / `onWilt`, playtest tuning, reward |
 | `BlueBoss` | A rising kill-trigger (invulnerable). The level is won at the top through `LevelTrigger(CompleteLevel)` | PlayerController | The climb itself |
 | `IndigoBoss` | A floating seer. Each of its 4 phases opens with a **curse** (Inspector data: which controls to scramble + a `WarpLook`): MIRROR (left/right; mirrored ghost, split colors, rocking camera), SWAP (jump/attack + shoot/dash; hues inverted, glitch slices), ECHO (0.2 s input delay; heavy trails), INVERSION (world upside down + mirror + swap; hue cycling). **Between phases it casts:** the old curse lifts at once (clean screen, normal controls, invulnerable, orbs dispelled), it rises over the player and draws a sigil naming the next curse and what it does (`IndigoSigil`), then the curse lands with a flash and shockwave. Attacks: **Gaze** (eye tracks with a line, locks, beam), **Mandala** (orb rings / spirals, reflectable), **Blink** (vanish, a mark hunts the player, drop + floor ripples, then meditates on the floor: the melee opening), **Illusions** (copies shuffle with eyes shut; only the real one casts light below it and watches you; hitting a copy bursts it into orbs, `IndigoDecoy`), **Starfall** (`FirePatch` pillars around the player). Procedural diamond / halo / eye (`IndigoShapes`). 12 HP, thresholds 0.75 / 0.5 / 0.25. Cleans up on defeat or destroy | `Game.Input`, InputModifiers, ScreenWarp, Projectile (`Projectile_EnemyOrb`), FirePatch, HeatPuff, FlatSprite | Art on `onCast` / `onCurse`, playtest tuning, reward |
-| `VioletBoss` | Placeholder shooting | Projectile | Everything (final boss) |
+| `VioletBoss` | The final exam: a KING (crown, segmented cape, broad armor, one-handed greatsword, glowing left hand), all procedural (`VioletFigure` on a Pose child, pivot at the feet; `VioletShapes` rasterizes polygons into sprites; `CurrentState`). **Phase 1, the Approach** (not a BossBase phase): on a dais at the far end of the course, untouchable; `VioletApproach` spawns his long-range attacks per segment, each telegraphed at the right screen edge (`VioletTelegraph`) while he plays the matching `FarGesture`. **Duel** (BossBase phase 0): Crescent Slash (low wave: jump / high wave: Down Dash under or dash), Earthsplitter (leap + slam, eruptions both ways: double jump; sword stuck 1.2 s = the opening), Royal Lance (tracking beam), Arcane Rings (orb rings with gaps, gold orbs reflectable), Blade Rain, Lunge (low thrust: jump / dash). Casting = untouchable (aura; hits clang). **Twin Blades** (phase 1 at 50%): untouchable transition (dispel, roar, cape torn off, second sword forms), then Twin Crescent, Whirlwind, Double Earthsplitter (+ shockwave rings: dash through), Laser Grid (fan / sliding bars / pinwheel), and below 25% **Royal Decree**: a short dense storm of piercing needles + orb rings, announced, never again before Serenity could have recharged (real time). Defeat: kneels, swords shatter, crown falls. 24 HP, threshold 0.5 | VioletApproach / VioletCourse / VioletCheckpoint, VioletWave, VioletBeam, VioletRing, VioletNeedle, VioletShots (runtime Projectiles), FirePatch, ScreenWarp | Art (replace `VioletFigure`), playtest tuning |
 
 ### 3.7 Level flow (`Scripts/Levels`)
 
@@ -512,6 +514,7 @@ Interactions to know about:
 - **Purpose:** A smooth follow for `PlayerController.Instance`. If `autoScrollSpeed > 0`, the camera scrolls on its own and **kills the player if they fall off the left edge**.
 - **API:** `Shake(amplitude, duration)` jitters the view, fading out over `duration`. A weaker shake never cuts a stronger one short. The jitter is removed before following, so it doesn't disturb the smoothing or the auto-scroll kill check.
 - **Auto-scroll:** On `Start` the camera snaps so the player is `autoScrollLead` units left of center, so they start on screen at any aspect ratio. The player dies `leftBehindGrace` units past the left edge (`KillLineX`). `ScrollX` is the steady (unshaken) camera X.
+- **Hold:** `Hold(position, snap)` frames a point instead of the player until `Release()` (Violet's intro pull, its locked arena); `SnapToPlayer()` after a respawn moves the player; `Offset`.
 - **Gotchas:** It's fine to replace with Cinemachine later; only the Orange chase reads `ScrollX` / `HalfWidth` / `KillLineX`.
 
 #### Orange chase (`Levels/Chase`)
@@ -566,11 +569,20 @@ Then remove the matching `AddComponent` lines in `Bootstrapper`.
 | Key | Effect |
 |---|---|
 | F1–F7 | `RestoreColor` for the Nth color in play order (also unlocks its ability) |
-| F8 | Toggle god mode (forces `Health.Invulnerable` every frame) |
+| F8 | Toggle god mode (forces `Health.Invulnerable` and `Health.GodMode` every frame; even piercing needles can't hurt) |
 | F9 | `LevelController.Current.Complete()` |
 | F10 | Wipe the save, then `NewGame()` |
+| PageDown / PageUp | Level_Violet only: reload at the next / previous checkpoint (intro skipped) |
+| Home / End | Level_Violet only: reload at the duel / at Twin Blades |
 
 ### 3.9 Editor (`Scripts/Editor`)
+
+#### `AbilitySetup.cs` — menu **ROYGBIV > Add New Abilities To Player**
+Adds `DownDashAbility` and `SerenityAbility` under Player.prefab › Abilities if they're missing. Safe to re-run.
+
+#### `VioletBuilder.cs` — menu **ROYGBIV > Build Violet Level**
+Boss_Violet: 24 HP, thresholds {0.5}, a 1.6 × 3.2 body. Level_Violet: removes the skeleton's flat arena, adds the `Violet` object
+(course, director, block template with the violet tile), turns off `startBossImmediately`, stretches the KillZone. Safe to re-run.
 
 #### `SkeletonBuilder.cs` — menu **ROYGBIV > Build Skeleton**
 - **Purpose:** Generates placeholder sprites, a physics material, ColorData and dialogue assets, `GameConfig`, prefabs, all scenes and Build Settings.
@@ -606,6 +618,7 @@ Then remove the matching `AddComponent` lines in `Bootstrapper`.
 | `DialogueEnded` | — | DialogueRunner | DialogueView | — |
 | `InstructionShown` | `ColorId, InstructionData` | InstructionRunner.Open (Tip button) | InstructionView | Card SFX, music duck |
 | `InstructionClosed` | — | InstructionRunner | InstructionView | — |
+| `TitleCardShown` | `string title, string subtitle` | VioletApproach (intro), VioletBoss (Twin Blades, Royal Decree) | TitleCardView | Stinger SFX |
 | `SceneLoaded` | `string` | SceneLoader | DebugHud | — |
 | `PauseChanged` | `bool` | PauseMenu | — | Music low-pass |
 
@@ -731,6 +744,9 @@ Boss_<Color>       prefab instance
 ```
 Variants: **Orange** has no fixed ground: a `Chase` object (ChaseDirector + ChaseCourse + an inactive `BlockTemplate`) builds the endless track and drives the speed.
 **Blue** is a vertical ledge climb with a Goal `LevelTrigger(CompleteLevel)` at the top.
+**Violet** has no hand-placed geometry: a `Violet` object (VioletCourse + VioletApproach + an inactive `BlockTemplate` with Recolorable(Violet),
+drawn with `Art/tiles/violetTile`) builds the approach and the arena at runtime; `LevelController.startBossImmediately` is off
+(walking into the arena starts the fight). Set up by **ROYGBIV > Build Violet Level** (safe to re-run).
 
 ### Other scenes
 `MainMenu`, `Hub` and `Ending` each contain a camera plus their IMGUI screen. `Sandbox` has a player, platforms and a 999-HP training dummy,

@@ -54,6 +54,8 @@ namespace Roygbiv
         // ---------- Meta ----------
         public static event Action<string> SceneLoaded;
         public static event Action<bool> PauseChanged;
+        /// <summary>A big title should flash on screen (a boss's name, a phase): title, subtitle (may be empty).</summary>
+        public static event Action<string, string> TitleCardShown;
 
         public static void RaiseLevelStarted(ColorId c) => LevelStarted?.Invoke(c);
         public static void RaiseLevelCompleted(ColorId c) => LevelCompleted?.Invoke(c);
@@ -82,6 +84,7 @@ namespace Roygbiv
 
         public static void RaiseSceneLoaded(string scene) => SceneLoaded?.Invoke(scene);
         public static void RaisePauseChanged(bool paused) => PauseChanged?.Invoke(paused);
+        public static void RaiseTitleCardShown(string title, string subtitle) => TitleCardShown?.Invoke(title, subtitle);
 
         // Domain reload is disabled in this project (faster Play mode), so statics survive between
         // play sessions. Wipe all subscribers at the start of each session.
@@ -95,7 +98,7 @@ namespace Roygbiv
             BossFightStarted = null; BossHealthChanged = null; BossPhaseChanged = null; BossDefeated = null;
             DialogueStarted = null; DialogueLineShown = null; DialogueEnded = null;
             InstructionShown = null; InstructionClosed = null;
-            SceneLoaded = null; PauseChanged = null;
+            SceneLoaded = null; PauseChanged = null; TitleCardShown = null;
         }
     }
 }

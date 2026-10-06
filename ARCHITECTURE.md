@@ -257,6 +257,10 @@ Helpers available to subclasses: `Player`, `AimDirection`, `Fire(...)`, `Wait(..
   - Orange has a `ChaseDirector` that drives `PlayerMotor.autoRunSpeed` and `CameraFollow.autoScrollSpeed`, and a `ChaseCourse` that builds an endless track.
   - Blue is a vertical layout.
   - Indigo casts a curse each phase: input modifiers + a `ScreenWarp` look (any boss can use `ScreenWarp.Main`).
+  - **Violet** (the final exam) is a long approach + a duel. A `Violet` object holds `VioletCourse` (builds the course and the
+    arena at runtime from an Inspector list, one segment per ability) and `VioletApproach` (intro camera pull, the king's
+    long-range attacks while the player crosses the course, then the arena lock + `StartBoss`). `VioletCheckpoint` remembers
+    the last checkpoint across death reloads (one per segment, the arena, Twin Blades). Built by **ROYGBIV > Build Violet Level**.
 
 ### Recoloring the world (`ColorWorld`, `Recolorable`) — art-style agnostic
 - `ColorWorld` stores a value from 0 to 1 for each color, animated when the color is restored. It also sets shader globals:
@@ -286,7 +290,7 @@ Talk to each other before editing someone else's scene or prefab.
 
 | Task | Steps |
 |------|-------|
-| **Test my boss directly** | Open `Level_<Color>` and press Play. Use **F1–F7** to grant earlier colors/abilities, **F8** god mode, **F9** win the level, **F10** wipe the save. |
+| **Test my boss directly** | Open `Level_<Color>` and press Play. Use **F1–F7** to grant earlier colors/abilities, **F8** god mode, **F9** win the level, **F10** wipe the save. In Level_Violet: **PageDown/PageUp** next/previous checkpoint, **Home** the duel, **End** Twin Blades (abilities are granted automatically in the editor). |
 | **Add an ability** | 1. Add a value at the **end** of `AbilityId`. 2. Subclass `AbilityBase`. 3. Add it under `Player/Abilities`. 4. Set `grantedAbility` in that color's `ColorData`. |
 | **Add a boss mechanic** | Edit `Bosses/<Color>/<Color>Boss.cs`. Each stub has a TODO plus the design notes. |
 | **Edit a how-to card** | Select `Data/Instructions/Instruction_<Color>`: caption (`[LMB]`, `[C]`, `[Space]`… become keycaps), keys, demo, sprites. Missing? Run **ROYGBIV > Build Instructions**. |

@@ -20,6 +20,8 @@ namespace Roygbiv
 
         Camera cam;
         Vector3 velocity;
+        Vector2? held;
+        bool heldSnap;
         float shakeAmplitude, shakeDuration, shakeLeft;
         Vector3 shakeOffset;
 
@@ -44,6 +46,34 @@ namespace Roygbiv
             float x = autoScrollSpeed > 0f ? p.x + autoScrollLead : p.x + offset.x;
             transform.position = new Vector3(x, p.y + offset.y, transform.position.z);
             ScrollX = x;
+        }
+
+        /// <summary>
+        /// Frames `position` instead of following the player, until Release() (cutscenes, a locked arena).
+        /// snap = sit exactly there every frame (the caller animates it); otherwise ease there.
+        /// </summary>
+        public void Hold(Vector2 position, bool snap = false)
+        {
+            held = position;
+            heldSnap = snap;
+        }
+
+        public void Release() => held = null;
+        public bool IsHeld => held.HasValue;
+        /// <summary>Where the camera sits relative to the player while following.</summary>
+        public Vector2 Offset => offset;
+
+        /// <summary>Jumps straight onto the player (after a respawn moved them).</summary>
+        public void SnapToPlayer()
+        {
+            var player = PlayerController.Instance;
+            if (!player) return;
+            transform.position -= shakeOffset;
+            shakeOffset = Vector3.zero;
+            var p = player.transform.position;
+            transform.position = new Vector3(p.x + offset.x, p.y + offset.y, transform.position.z);
+            ScrollX = transform.position.x;
+            velocity = Vector3.zero;
         }
 
         /// <summary>Jitters the view for a moment. A weaker shake never cuts a stronger one short.</summary>
@@ -71,6 +101,13 @@ namespace Roygbiv
         {
             var player = PlayerController.Instance;
             var pos = transform.position;
+
+            if (held is { } h)
+            {
+                var spot = new Vector3(h.x, h.y, pos.z);
+                transform.position = heldSnap ? spot : Vector3.SmoothDamp(pos, spot, ref velocity, smoothTime * 2f);
+                return;
+            }
 
             if (autoScrollSpeed > 0f)
             {
