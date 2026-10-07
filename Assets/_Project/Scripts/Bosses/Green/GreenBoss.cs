@@ -430,7 +430,7 @@ namespace Roygbiv
             // From the surface the pod grows on, so it works on a platform too.
             float half = guardWidth * 0.5f;
             float x = Mathf.Clamp(Player.position.x, floorMinX + half, floorMaxX - half);
-            FirePatch.Spawn(x, pod.Spot.y, guardWidth, thornHeight, guardWarnTime, thornTime, thornColor, thornTip);
+            FirePatch.Spawn(x, pod.Spot.y, guardWidth, thornHeight, guardWarnTime, thornTime, thornColor, thornTip, FirePatch.Style.Thorns);
             jolt = Mathf.Max(jolt, 0.6f); // flinches, as if it felt that
         }
 
@@ -567,32 +567,27 @@ namespace Roygbiv
                 // The whip races out to the wall, hangs there a moment, and snaps back.
                 CurrentState = State.Lash;
                 Kick();
-                var vine = Transient(FlatSprite.Create("Lash", null, new Vector2(startX, y), new Vector2(0.01f, lashThickness), vineColor, 6));
                 float length = Mathf.Abs(endX - startX), reach = 0f;
+                var vine = GreenVine.Create(startX, dir, length, y, lashThickness, vineColor, 6);
+                transients.Add(vine.gameObject);
                 bool hit = false;
                 for (float held = 0f; held < lashHold;)
                 {
                     if (reach < length) reach = Mathf.Min(length, reach + lashSpeed * Time.deltaTime);
                     else held += Time.deltaTime;
-                    SetVine(vine, startX, dir, reach, y);
+                    vine.Set(reach);
                     if (!hit) hit = LashHits(startX, dir, reach, y);
                     yield return null;
                 }
                 while (reach > 0f)
                 {
                     reach = Mathf.Max(0f, reach - lashSpeed * 2f * Time.deltaTime);
-                    SetVine(vine, startX, dir, reach, y);
+                    vine.Set(reach);
                     yield return null;
                 }
                 DestroyTransient(vine.gameObject);
             }
             CurrentState = State.Rooted;
-        }
-
-        void SetVine(SpriteRenderer vine, float startX, int dir, float reach, float y)
-        {
-            vine.transform.position = new Vector2(startX + dir * reach * 0.5f, y);
-            vine.transform.localScale = new Vector3(Mathf.Max(0.01f, reach), lashThickness, 1f);
         }
 
         /// <summary>Hurts the player if the vine reaches them, and takes something while there's room for a pod.</summary>
@@ -631,7 +626,7 @@ namespace Roygbiv
             {
                 float x = centerX + (i - (count - 1) * 0.5f) * thornSpacing;
                 if (x - thornWidth * 0.5f < floorMinX || x + thornWidth * 0.5f > floorMaxX) continue;
-                FirePatch.Spawn(x, groundY, thornWidth, thornHeight, thornWarnTime, thornTime, thornColor, thornTip);
+                FirePatch.Spawn(x, groundY, thornWidth, thornHeight, thornWarnTime, thornTime, thornColor, thornTip, FirePatch.Style.Thorns);
                 yield return Wait(thornStagger);
             }
             yield return Wait(thornWarnTime);

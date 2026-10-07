@@ -34,13 +34,44 @@ namespace Roygbiv
         {
             if (!placedInScene) return;
             SpriteRenderer glow = null;
-            if (anchor)
-            {
-                glow = IndigoShapes.Create("AnchorGlow", IndigoShapes.Ring, transform.parent, anchor.position - (transform.parent ? transform.parent.position : Vector3.zero),
-                    1.4f, new Color(1f, 0.9f, 0.6f, 0.8f), 8);
-                glow.gameObject.AddComponent<VioletPulse>();
-            }
+            if (anchor) glow = DressAnchor(anchor);
+            DressChain(chainLinks);
             Setup(gameObject, transform.position.y - dropDistance, chainLinks, glow);
+        }
+
+        /// <summary>
+        /// The anchor wears the shared "shoot this" target (as Orange's cage latch does). Its own square is hidden;
+        /// the look is a child (unscaled, so it isn't squashed), so breaking the anchor hides it too.
+        /// </summary>
+        static SpriteRenderer DressAnchor(Transform anchor)
+        {
+            if (anchor.TryGetComponent<SpriteRenderer>(out var square)) square.enabled = false;
+            var holder = new GameObject("Look").transform;
+            holder.SetParent(anchor, false);
+            var s = anchor.lossyScale;
+            holder.localScale = new Vector3(1f / Mathf.Max(0.01f, s.x), 1f / Mathf.Max(0.01f, s.y), 1f);
+            return ShootSwitchLook.Create(holder, Vector2.zero, 0.6f, 8).Ring;
+        }
+
+        /// <summary>Iron links instead of gray squares: face-on rings alternating with edge-on bars.</summary>
+        static void DressChain(Transform[] links)
+        {
+            for (int i = 0; i < links.Length; i++)
+            {
+                if (!links[i] || !links[i].TryGetComponent<SpriteRenderer>(out var sr)) continue;
+                var scale = links[i].localScale;
+                if (i % 2 == 0)
+                {
+                    sr.sprite = IndigoShapes.Ring;
+                    sr.color = new Color(0.5f, 0.46f, 0.56f);
+                    links[i].localScale = new Vector3(scale.x * 1.3f, scale.y * 1.25f, 1f);
+                }
+                else
+                {
+                    sr.color = new Color(0.36f, 0.33f, 0.42f);
+                    links[i].localScale = new Vector3(scale.x * 0.4f, scale.y * 1.2f, 1f);
+                }
+            }
         }
 
         /// <param name="slabBlock">The slab: a solid block. It gets a kinematic body here.</param>

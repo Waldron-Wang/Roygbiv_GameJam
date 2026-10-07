@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace Roygbiv
@@ -11,13 +12,18 @@ namespace Roygbiv
     {
         [SerializeField] float launchVelocity = 17f;
 
+        /// <summary>It just threw the player (for visuals).</summary>
+        public event Action Launched;
+
         void Awake() => GetComponent<Collider2D>().isTrigger = true;
 
         void OnTriggerEnter2D(Collider2D other)
         {
             if (other.isTrigger) return;
             var motor = other.GetComponentInParent<PlayerMotor>();
-            if (motor) motor.Launch(launchVelocity);
+            if (!motor) return;
+            motor.Launch(launchVelocity);
+            Launched?.Invoke();
         }
     }
 }

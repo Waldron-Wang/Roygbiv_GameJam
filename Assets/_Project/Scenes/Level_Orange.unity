@@ -559,7 +559,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.Recolorable
   color: 1
   grayBrightness: 0.45
-  desaturate: 0
+  desaturate: 1
 --- !u!212 &1614328367
 SpriteRenderer:
   serializedVersion: 3
@@ -609,11 +609,11 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300000, guid: e475a2b094697464c892e7a30d8a6006, type: 3}
-  m_Color: {r: 1, g: 0.55, b: 0.1, a: 1}
+  m_Sprite: {fileID: 539926227, guid: 6beb453291fa74058ae68653653b09e1, type: 3}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
-  m_DrawMode: 0
+  m_DrawMode: 2
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
@@ -734,6 +734,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.ChaseCourse
   blockTemplate: {fileID: 1614328365}
+  obstacleSprite: {fileID: -1344189979, guid: 6beb453291fa74058ae68653653b09e1, type: 3}
   solidMaterial: {fileID: 6200000, guid: 2d74fec989e4c4388b437e4571ff6af2, type: 2}
   runway: 30
   buildAhead: 25

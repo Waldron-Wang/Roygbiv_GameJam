@@ -14,8 +14,10 @@ namespace Roygbiv
     /// speeds up. Each boss phase unlocks more obstacle types and tightens the gaps.
     ///
     /// Everything is built from `blockTemplate` (an inactive sprite with Recolorable, so the track grays /
-    /// recolors with the rest of the level). Hazards, springs and latches keep their real colors so they
-    /// read even while the world is gray.
+    /// recolors with the rest of the level). Give it a 9-slice sprite in Tiled draw mode and every block is
+    /// drawn with the tile art at its real size. Obstacles can swap in a borderless fill tile
+    /// (`obstacleSprite`), since the 9-slice corners get squeezed on small blocks. Hazards, springs, crates and cages are flat colored squares
+    /// that keep their real colors, so they read against the art even while the world is gray.
     /// </summary>
     public class ChaseCourse : MonoBehaviour
     {
@@ -30,8 +32,11 @@ namespace Roygbiv
             public float weight;
         }
 
-        [Tooltip("Inactive square sprite with a Recolorable. Copies of it make up the track.")]
+        [Tooltip("Inactive sprite with a Recolorable. Copies of it make up the track. Tiled/Sliced draw mode = sized " +
+                 "with the renderer (tile art stays crisp); Simple = stretched by scale.")]
         [SerializeField] GameObject blockTemplate;
+        [Tooltip("Optional: the sprite hurdles and walls tile instead of the template's (e.g. the tile set's plain center tile).")]
+        [SerializeField] Sprite obstacleSprite;
         [SerializeField] PhysicsMaterial2D solidMaterial;
 
         [Header("Layout")]
@@ -41,6 +46,8 @@ namespace Roygbiv
         [SerializeField] float buildAhead = 25f;
         [Tooltip("Ground is one long collider per stretch (seams can snag the player); a new one starts after this length.")]
         [SerializeField] float maxGroundLength = 120f;
+        [Tooltip("How far the ground reaches below the running surface. Deep enough to fill the screen while falling into a pit.")]
+        [SerializeField] float groundDepth = 14f;
         [Tooltip("Seconds of flat running between obstacles, per phase (random in [x, y]).")]
         [SerializeField] Vector2[] gapSecondsPerPhase = { new(1.4f, 2.2f), new(1.1f, 1.8f), new(0.85f, 1.5f) };
         [SerializeField] ObstacleOption[] obstacles =
@@ -173,20 +180,24 @@ namespace Roygbiv
                     // The beam starts well before the hurdle, so a full jump taken early still meets it.
                     const float beamLength = 5f;
                     Block("HotBeamHurdle", x + 3f, 0f, hotBeamHurdleSize, groundColor);
-                    var beam = Block("HotBeam", x, hotBeamHeight, new Vector2(beamLength, 0.6f), hazardColor, solid: false, keepColor: true);
+                    var beamSize = new Vector2(beamLength, 0.6f);
+                    var beam = Block("HotBeam", x, hotBeamHeight, beamSize, hazardColor, solid: false, keepColor: true);
                     beam.AddComponent<BoxCollider2D>();
                     beam.AddComponent<Hazard>();
+                    HotBeamLook.Dress(beam, beamSize, hazardColor);
                     cursor += beamLength;
                     break;
                 case Obstacle.CrateWall:
-                    Block("CrateWall (break it)", x, 0f, crateSize, crateColor, keepColor: true).AddComponent<Breakable>();
+                    CrateWallLook.Dress(Block("CrateWall (break it)", x, 0f, crateSize, crateColor, keepColor: true), crateSize, crateColor);
                     cursor += crateSize.x;
                     break;
                 case Obstacle.SpringWall:
                     const float springToWall = 4f;
-                    var spring = Block("Spring", x, 0f, new Vector2(1.2f, 0.3f), springColor, solid: false, keepColor: true);
+                    var springSize = new Vector2(1.2f, 0.3f);
+                    var spring = Block("Spring", x, 0f, springSize, springColor, solid: false, keepColor: true);
                     spring.AddComponent<BoxCollider2D>();
                     spring.AddComponent<SpringPad>();
+                    SpringPadLook.Dress(spring, springSize, springColor);
                     // Missed the spring? It's breakable, just slowly: a mistake costs ground, not the run.
                     Block("SpringWall", x + springToWall, 0f, new Vector2(1f, springWallHeight), groundColor)
                         .AddComponent<Breakable>().Hits = springWallHits;
@@ -222,8 +233,8 @@ namespace Roygbiv
                 pieces.Add(ground);
             }
             ground.endX = endX;
-            ground.go.transform.position = new Vector3((ground.startX + endX) * 0.5f, chase.GroundY - 0.5f, 0f);
-            ground.go.transform.localScale = new Vector3(endX - ground.startX, 1f, 1f);
+            ground.go.transform.position = new Vector3((ground.startX + endX) * 0.5f, chase.GroundY - groundDepth * 0.5f, 0f);
+            Resize(ground.go, new Vector2(endX - ground.startX, groundDepth));
             groundStart = endX;
         }
 
@@ -231,26 +242,48 @@ namespace Roygbiv
         GameObject Block(string name, float x, float height, Vector2 size, Color color, bool solid = true, bool keepColor = false)
         {
             var center = new Vector2(x + size.x * 0.5f, chase.GroundY + height + size.y * 0.5f);
-            var go = Make(name, center, size, color, solid, null, keepColor);
+            var go = Make(name, center, size, color, solid, null, keepColor, keepColor ? null : obstacleSprite);
             pieces.Add(new Piece { go = go, endX = x + size.x });
             return go;
         }
 
         /// <summary>
         /// Copies the template: `size` world units at local `position` under `parent` (the track by default).
-        /// keepColor = skip the gray-until-restored look (hazards, targets).
+        /// keepColor = a flat colored square that skips the gray-until-restored look (hazards, targets).
+        /// sprite = draw with this instead of the template's sprite.
         /// </summary>
-        public GameObject Make(string name, Vector2 position, Vector2 size, Color color, bool solid, Transform parent = null, bool keepColor = false)
+        public GameObject Make(string name, Vector2 position, Vector2 size, Color color, bool solid, Transform parent = null,
+                               bool keepColor = false, Sprite sprite = null)
         {
             var go = Instantiate(blockTemplate, parent ? parent : track); // the template is inactive, so is the copy
             go.name = name;
             go.transform.localPosition = position;
-            go.transform.localScale = new Vector3(size.x, size.y, 1f);
-            go.GetComponent<SpriteRenderer>().color = color;
-            if (keepColor && go.TryGetComponent<Recolorable>(out var recolor)) DestroyImmediate(recolor); // before it wakes up
+            var sr = go.GetComponent<SpriteRenderer>();
+            sr.color = color;
+            if (sprite) sr.sprite = sprite;
+            if (keepColor)
+            {
+                if (go.TryGetComponent<Recolorable>(out var recolor)) DestroyImmediate(recolor); // before it wakes up
+                sr.sprite = FlatSprite.Square;
+                sr.drawMode = SpriteDrawMode.Simple;
+            }
             if (solid) go.AddComponent<BoxCollider2D>().sharedMaterial = solidMaterial;
+            Resize(go, size);
             go.SetActive(true);
             return go;
+        }
+
+        /// <summary>Tiled/Sliced sprites are sized through the renderer (and their collider); Simple ones by scale.</summary>
+        static void Resize(GameObject go, Vector2 size)
+        {
+            var sr = go.GetComponent<SpriteRenderer>();
+            if (sr.drawMode == SpriteDrawMode.Simple)
+            {
+                go.transform.localScale = new Vector3(size.x, size.y, 1f);
+                return;
+            }
+            sr.size = size;
+            if (go.TryGetComponent<BoxCollider2D>(out var col)) col.size = size;
         }
 
         void Despawn()

@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 5444393776813733457}
   - component: {fileID: 823666844088868537}
   - component: {fileID: 5684214600904172131}
+  - component: {fileID: 1347031806044259708}
   m_Layer: 0
   m_Name: Projectile_Barrel
   m_TagString: Untagged
@@ -179,3 +180,16 @@ MonoBehaviour:
   destroyOnWorld: 0
   bounces: 0
   shootable: 1
+--- !u!114 &1347031806044259708
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6795532874580834344}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b54720ac96d743c78c48407b6a80ae6b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.ProjectileLook
+  style: 4

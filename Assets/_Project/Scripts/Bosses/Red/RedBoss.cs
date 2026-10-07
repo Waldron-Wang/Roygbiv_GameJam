@@ -424,7 +424,7 @@ namespace Roygbiv
             var velocity = new Vector2(delta.x / arcFlightTime, delta.y / arcFlightTime - 0.5f * g * arcFlightTime);
             Fire(firePrefab, velocity).Arc(velocity, arcGravityScale);
             // The warning strip is the landing marker; with a burn time it catches fire as the ball lands.
-            FirePatch.Spawn(target.x, groundY, burnTime > 0f ? burnPatchWidth : 1f, burnPatchHeight, arcFlightTime, burnTime, fireColor);
+            FirePatch.Spawn(target.x, groundY, burnTime > 0f ? burnPatchWidth : 1f, burnPatchHeight, arcFlightTime, burnTime, fireColor, style: FirePatch.Style.Fire);
         }
 
         IEnumerator GroundFire(int waves)
@@ -453,7 +453,7 @@ namespace Roygbiv
         {
             float half = pillarSpacing * 0.45f;
             if (x - half < floorMinX || x + half > floorMaxX) return;
-            FirePatch.Spawn(x, groundY, pillarSpacing * 0.9f, pillarHeight, pillarWarnTime, pillarBurnTime, fireColor);
+            FirePatch.Spawn(x, groundY, pillarSpacing * 0.9f, pillarHeight, pillarWarnTime, pillarBurnTime, fireColor, style: FirePatch.Style.Fire);
         }
 
         // ---------- Charge ----------
