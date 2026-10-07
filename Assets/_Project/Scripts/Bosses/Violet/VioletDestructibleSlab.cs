@@ -13,23 +13,33 @@ namespace Roygbiv
         bool broken;
         public Team Team => Team.Neutral;
 
-        public void Setup(VioletSlab owner)
+        public void Setup(VioletSlab owner, int maxHealth)
         {
             shelter = owner;
             visual = GetComponent<SpriteRenderer>();
             baseColor = visual.color;
             // Keep Health off the collider object so combat always finds this neutral facade.
-            // Enemy shots shatter against the roof, but their damage is rejected by the filter.
+            // Enemy projectiles are blocked without damaging the roof.
             var durability = new GameObject("Slab durability");
             durability.transform.SetParent(transform, false);
             health = durability.AddComponent<Health>();
-            health.Configure(4);
-            health.DamageFilter = VioletShelterWeakPoint.Accepts;
+            health.Configure(maxHealth, Team.Neutral, 0f);
+            health.DamageFilter = Accepts;
             health.Damaged += OnDamaged;
             health.Died += Break;
         }
 
-        public bool TakeDamage(in DamageInfo hit) => !broken && health && health.TakeDamage(hit);
+        bool Accepts(DamageInfo hit) => VioletShelterWeakPoint.Accepts(hit)
+            || (hit.amount > 0 && hit.sourceTeam == Team.Player && hit.source
+                && hit.source.TryGetComponent<Hitbox>(out var swing) && swing.team == Team.Player
+                && hit.source.GetComponentInParent<PlayerCombat>()
+                && hit.source.GetComponentInParent<PlayerController>());
+
+        public bool TakeDamage(in DamageInfo hit)
+        {
+            if (broken || !health) return false;
+            return health.TakeDamage(hit);
+        }
 
         void OnDamaged(DamageInfo _)
         {

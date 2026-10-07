@@ -68,6 +68,14 @@ namespace Roygbiv
             Current = maxHealth;
         }
 
+        /// <summary>Opt-in setup for damageable structures that must count every physical impact.</summary>
+        public void Configure(int max, Team ownerTeam, float hitCooldown)
+        {
+            Configure(max);
+            team = ownerTeam;
+            hitInvulnerability = Mathf.Max(0f, hitCooldown);
+        }
+
         public void SetCurrent(int value)
         {
             if (IsDead) return;

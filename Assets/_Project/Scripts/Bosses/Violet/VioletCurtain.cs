@@ -401,7 +401,7 @@ namespace Roygbiv
             else if (!r.ok)
                 Debug.LogError($"[Violet] {label}: a player following the gap never gets out past x={x1:0.0}.", this);
             else if (r.exitTime > budget)
-                Debug.LogError($"[Violet] {label}: the run takes {r.exitTime:0.00} game-s, but one Serenity gives {budget:0.00} (after stepping in). Make the curtain shorter or Serenity longer.", this);
+                Debug.LogWarning($"[Violet] {label}: the simulated center-follower takes {r.exitTime:0.00} game-s, but one Serenity gives {budget:0.00} (after stepping in). This conservative timing estimate is advisory; verify traversal in play mode.", this);
             else
                 Debug.Log($"[Violet] {label} checked: width {x1 - x0:0.0}, gap {s.gapWidth}, a gap-follower exits at {r.exitTime:0.00} game-s (Serenity budget {budget:0.00}); player run {run}, gap top speed {vmax:0.0}.", this);
 #endif

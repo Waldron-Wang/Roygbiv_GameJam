@@ -122,6 +122,8 @@ namespace Roygbiv
         [SerializeField] Vector2 slabHangAndAnchor = new(6.4f, 8.5f);
         [Tooltip("Royal Rain: yellow anchor's horizontal distance to the right of the slab center. Keeps an upper-right shot from inside clear of the slab.")]
         [SerializeField, Min(0f)] float shelterAnchorOffset = 6f;
+        [Tooltip("Shared slab HP consumed by player Light Shot and melee sword attacks.")]
+        [SerializeField, Min(1)] int shelterSlabHealth = 4;
         [Tooltip("Seal height (taller than any jump).")]
         [SerializeField] float sealHeight = 14f;
         [Tooltip("Crystal gate height (taller than any jump; lobbed orbs come over it).")]
@@ -130,7 +132,16 @@ namespace Roygbiv
         [SerializeField] Vector3 curtainLayout = new(10f, 7f, 6f);
         [Tooltip("Curtain: ceiling height (needles fall from it).")]
         [SerializeField] float curtainCeiling = 4.4f;
-        [SerializeField] VioletCurtain.Settings curtain = new();
+        [SerializeField] VioletCurtain.Settings curtain = new()
+        {
+            gapWidth = 2f,
+            speedFraction = 0.9f,
+            accelerationFraction = 0.9f,
+            burstTime = new Vector2(0.10f, 0.16f),
+            stopTime = new Vector2(0.08f, 0.14f),
+            // Keep the entry trigger and the player's full body inside the narrower waiting gap.
+            parkOverlap = 0.9f,
+        };
 
         [Header("The end of the course")]
         [Tooltip("Floor between the last piece and the foot of the hill; the arrival triggers halfway along it.")]
@@ -468,7 +479,7 @@ namespace Roygbiv
 
             var s = slab.AddComponent<VioletSlab>();
             s.Setup(slab, shelterHeight + slabH * 0.5f, links.ToArray(), glow);
-            slab.AddComponent<VioletDestructibleSlab>().Setup(s);
+            slab.AddComponent<VioletDestructibleSlab>().Setup(s, shelterSlabHealth);
             anchor.AddComponent<VioletShelterWeakPoint>().Setup(s);
             return s;
         }

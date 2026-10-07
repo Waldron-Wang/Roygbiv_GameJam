@@ -66,7 +66,10 @@ namespace Roygbiv
             p.lifetime = 3f;
             p.destroyOnWorld = true;
             p.Launch(Vector2.down, Team.Enemy);
-            if (shelterRain) VioletRainPassThrough.Register(box);
+            if (shelterRain)
+            {
+                VioletRainPassThrough.Register(box);
+            }
             return p;
         }
     }
