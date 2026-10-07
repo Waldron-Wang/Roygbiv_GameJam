@@ -39,6 +39,8 @@ namespace Roygbiv
         public bool Locked { get; set; }
         /// <summary>Can't run or turn (horizontal speed brakes to 0), but gravity and jumping still work. Standing attack uses it.</summary>
         public bool Rooted { get; set; }
+        /// <summary>Sideways speed added on top of running, + = right (a gust: the Blue boss's sighs). Runtime only.</summary>
+        public float Wind { get; set; }
 
         void Awake()
         {
@@ -74,7 +76,7 @@ namespace Roygbiv
             var v = rb.linearVelocity;
             if (launched && v.y <= 0f) launched = false;
 
-            float target = Rooted ? 0f : autoRunSpeed > 0f ? autoRunSpeed : moveInput.x * runSpeed;
+            float target = (Rooted ? 0f : autoRunSpeed > 0f ? autoRunSpeed : moveInput.x * runSpeed) + Wind;
             float accel = IsGrounded ? groundAcceleration : airAcceleration;
             v.x = Mathf.MoveTowards(v.x, target, accel * Time.fixedDeltaTime);
 
