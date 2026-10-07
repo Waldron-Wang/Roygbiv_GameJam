@@ -202,7 +202,7 @@ namespace Roygbiv
 
         // ---------- Text ----------
 
-        static GUIStyle Style(int size, FontStyle fontStyle, TextAnchor align)
+        static GUIStyle Style(int size, FontStyle fontStyle, TextAnchor align, bool wrap = false)
         {
             style ??= new GUIStyle(GUI.skin.label)
             {
@@ -212,6 +212,7 @@ namespace Roygbiv
             style.fontSize = size;
             style.fontStyle = fontStyle;
             style.alignment = align;
+            style.wordWrap = wrap;
             return style;
         }
 
@@ -221,6 +222,13 @@ namespace Roygbiv
         static float CanvasScale => Mathf.Max(0.01f, GUI.matrix.lossyScale.x);
         static int ScreenFontSize(int size, float scale) => Mathf.Max(1, Mathf.RoundToInt(size * scale));
 
+        /// <summary>Height of `text` wrapped to `width` canvas units (dialogue boxes size themselves with it).</summary>
+        public static float WrappedHeight(string text, int size, float width, FontStyle fontStyle = FontStyle.Normal)
+        {
+            float s = CanvasScale;
+            return Style(ScreenFontSize(size, s), fontStyle, TextAnchor.UpperLeft, true).CalcHeight(new GUIContent(text), width * s) / s;
+        }
+
         /// <summary>Size of `text` in canvas units.</summary>
         public static Vector2 Measure(string text, int size, FontStyle fontStyle = FontStyle.Normal)
         {
@@ -228,12 +236,14 @@ namespace Roygbiv
             return Style(ScreenFontSize(size, s), fontStyle, TextAnchor.MiddleLeft).CalcSize(new GUIContent(text)) / s;
         }
 
-        public static void Text(Rect r, string text, int size, Color c, TextAnchor align = TextAnchor.MiddleCenter, FontStyle fontStyle = FontStyle.Normal)
+        /// <param name="wrap">Break lines to fit r's width (dialogue); otherwise one line that may overflow.</param>
+        public static void Text(Rect r, string text, int size, Color c, TextAnchor align = TextAnchor.MiddleCenter, FontStyle fontStyle = FontStyle.Normal,
+                                bool wrap = false)
         {
             var canvas = GUI.matrix;
             float s = CanvasScale;
             Vector2 min = canvas.MultiplyPoint3x4(r.min), max = canvas.MultiplyPoint3x4(r.max);
-            var st = Style(ScreenFontSize(size, s), fontStyle, align);
+            var st = Style(ScreenFontSize(size, s), fontStyle, align, wrap);
             // Same color in every state: GUI.Label draws the hover state under the mouse, and the skin's hover
             // color (near white) would otherwise make text change, or vanish on a light fill, when hovered.
             st.normal.textColor = st.hover.textColor = st.active.textColor = st.focused.textColor = c;

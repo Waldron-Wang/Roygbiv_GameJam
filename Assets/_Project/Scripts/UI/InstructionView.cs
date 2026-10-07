@@ -8,18 +8,17 @@ namespace Roygbiv
     /// when the button may show (CanOpen), owns open / close and the frozen time, and raises InstructionShown /
     /// InstructionClosed, which this listens to.
     ///
-    /// Tip button: a small, quiet gray "? Tip" pill in the top-right corner,
-    /// half see-through until hovered. Clicking it toggles the card. Its rect (and the card's X) is registered with
+    /// Tip button: a small, quiet gray "? TIP" slab with notched corners (the UiKit look, without color) in the top-right
+    /// corner, half see-through until hovered. Clicking it toggles the card. Its rect (and the card's X) is registered with
     /// InputReader as a pointer blocker, so the click never reaches gameplay as an attack or a shot.
     ///
-    /// Card: a dark holographic frame in the accent around a light "screen" playing the demo (InstructionDemos),
-    /// the caption with keycaps, an X to close and a close hint. Laid out on a 1920x1080 canvas scaled to fit the
-    /// screen, animated on unscaled time (the level is frozen underneath).
-    /// To reskin: replace this, CardGui and InstructionDemos; InstructionRunner and the data stay.
+    /// Card: the UiKit panel and header in the accent around a light "screen" playing the demo (InstructionDemos),
+    /// the caption with keycaps, an X to close and a close hint. Laid out on UiKit's 1920x1080 canvas (Fit),
+    /// animated on unscaled time (the level is frozen underneath).
+    /// To reskin: change UiKit (every screen follows), or this, CardGui and InstructionDemos; InstructionRunner and the data stay.
     /// </summary>
     public class InstructionView : MonoBehaviour
     {
-        const float RefWidth = 1920f, RefHeight = 1080f;
         const string Hint = "Click X or press [Z] / [Enter] to close";
 
         // Card layout on the 1920x1080 canvas, top to bottom.
@@ -36,7 +35,6 @@ namespace Roygbiv
         const float TipWidth = 112f, TipHeight = 42f, TipMargin = 14f;
         const float TipTop = 10f;
 
-        static readonly Color Ink = new(0.02f, 0.04f, 0.06f, 0.86f);
         static readonly Color Paper = new(0.93f, 0.93f, 0.91f, 0.97f);
 
         InstructionData data;
@@ -102,9 +100,9 @@ namespace Roygbiv
             closeVisible = open;
             if (!tipVisible) return;
 
-            float ui = Mathf.Clamp(Screen.height / RefHeight, 0.6f, 2f);
+            float ui = Mathf.Clamp(Screen.height / UiKit.RefHeight, 0.6f, 2f);
             tipButton = new Rect(Screen.width - (TipWidth + TipMargin) * ui, TipTop, TipWidth * ui, TipHeight * ui);
-            var canvas = CanvasMatrix();
+            var canvas = UiKit.Fit().Matrix;
             var panel = open ? PanelRect() : default;
             if (open) closeButton = ToScreen(canvas, CloseRect(panel));
 
@@ -125,25 +123,24 @@ namespace Roygbiv
         // ---------- Tip button ----------
 
         /// <summary>
-        /// Neutral and quiet, so it doesn't draw the eye: all gray, about half see-through while idle; on hover or
-        /// while the card is open, fully opaque and a little brighter. No color, no glow, nothing moving.
-        /// The whole pill is one hover target with one look: the "?" disc only brightens a touch with the rest,
-        /// and its glyph stays dark, so it reads the same in both states.
+        /// Neutral and quiet, so it doesn't draw the eye: the UiKit slab (dark fill, thin border, notched corners) all in
+        /// gray, about half see-through while idle; on hover or while the card is open, fully opaque and a little
+        /// brighter. No color, no glow, nothing moving. The "?" sits on a small gray tab that brightens with the rest.
         /// </summary>
         static void DrawTipButton(Rect r, bool active, float ui)
         {
-            float radius = r.height * 0.5f;
             CardGui.Alpha = active ? 1f : 0.55f;
-            CardGui.Round(r, active ? new Color(0.22f, 0.22f, 0.23f, 0.92f) : new Color(0.14f, 0.14f, 0.15f, 0.88f), radius);
-            CardGui.Outline(r, active ? new Color(0.82f, 0.82f, 0.82f) : new Color(0.52f, 0.52f, 0.52f), Mathf.Max(1f, 1.5f * ui), radius);
+            var line = active ? new Color(0.82f, 0.82f, 0.82f) : new Color(0.52f, 0.52f, 0.52f);
+            CardGui.Box(r, active ? new Color(0.2f, 0.2f, 0.21f, 0.92f) : new Color(0.12f, 0.12f, 0.13f, 0.88f));
+            UiKit.Scanlines(r, new Color(1f, 1f, 1f, 0.03f), 4f * ui, Mathf.Max(1f, ui));
+            CardGui.Outline(r, line, Mathf.Max(1f, 1.5f * ui));
+            UiKit.Notches(r, line, 9f * ui, Mathf.Max(2f, 2.5f * ui));
 
-            var icon = new Vector2(r.x + radius, r.center.y);
-            CardGui.Disc(icon, r.height * 0.3f, active ? new Color(0.66f, 0.66f, 0.66f) : new Color(0.58f, 0.58f, 0.58f));
-            CardGui.Text(new Rect(icon.x - radius, r.y, radius * 2f, r.height), "?", Mathf.RoundToInt(r.height * 0.44f),
-                         new Color(0.13f, 0.13f, 0.14f), TextAnchor.MiddleCenter, FontStyle.Bold);
-            CardGui.Text(new Rect(icon.x + radius * 0.6f, r.y, r.xMax - icon.x - radius * 0.6f - radius * 0.4f, r.height), "Tip",
-                         Mathf.RoundToInt(r.height * 0.42f), active ? new Color(0.95f, 0.95f, 0.95f) : new Color(0.68f, 0.68f, 0.68f),
-                         TextAnchor.MiddleCenter, FontStyle.Bold);
+            var tab = new Rect(r.x + 7f * ui, r.y + 7f * ui, r.height - 14f * ui, r.height - 14f * ui);
+            CardGui.Box(tab, active ? new Color(0.66f, 0.66f, 0.66f) : new Color(0.56f, 0.56f, 0.56f));
+            CardGui.Text(tab, "?", Mathf.RoundToInt(r.height * 0.44f), new Color(0.12f, 0.12f, 0.13f), TextAnchor.MiddleCenter, FontStyle.Bold);
+            CardGui.Text(new Rect(tab.xMax, r.y, r.xMax - tab.xMax, r.height), "T I P", Mathf.RoundToInt(r.height * 0.36f),
+                         active ? new Color(0.95f, 0.95f, 0.95f) : new Color(0.68f, 0.68f, 0.68f), TextAnchor.MiddleCenter, FontStyle.Bold);
             CardGui.Alpha = 1f;
         }
 
@@ -165,7 +162,7 @@ namespace Roygbiv
             float h = Mathf.Max(4f, frame.height * open);
             frame.y += (frame.height - h) * 0.5f;
             frame.height = h;
-            DrawFrame(frame, accent, t);
+            UiKit.Panel(frame, accent, t);
 
             CardGui.Alpha = Smooth((t - 0.18f) / 0.2f);
             if (CardGui.Alpha > 0f) DrawContent(panel, accent, t - 0.18f, closeHover);
@@ -174,45 +171,10 @@ namespace Roygbiv
             GUI.matrix = screenMatrix;
         }
 
-        static void DrawFrame(Rect p, Color accent, float t)
-        {
-            CardGui.Outline(Expand(p, 7f), WithAlpha(accent, 0.15f), 2f);
-            CardGui.Box(p, Ink);
-            CardGui.Box(p, WithAlpha(accent, 0.07f));
-            for (float y = p.y + 3f; y < p.yMax; y += 6f)
-                CardGui.Box(new Rect(p.x, y, p.width, 1.5f), WithAlpha(accent, 0.035f));
-
-            // A faint band sweeping down, like a projector refreshing.
-            float bandY = p.y + (Mathf.Repeat(t * 0.3f, 1.25f) - 0.1f) * p.height;
-            float top = Mathf.Max(p.y, bandY), bottom = Mathf.Min(p.yMax, bandY + 70f);
-            if (bottom > top) CardGui.Box(new Rect(p.x, top, p.width, bottom - top), WithAlpha(accent, 0.05f));
-
-            CardGui.Outline(p, WithAlpha(accent, 0.9f), 2f);
-            const float len = 38f, thick = 6f;
-            Corner(new Vector2(p.x, p.y), 1f, 1f);
-            Corner(new Vector2(p.xMax, p.y), -1f, 1f);
-            Corner(new Vector2(p.x, p.yMax), 1f, -1f);
-            Corner(new Vector2(p.xMax, p.yMax), -1f, -1f);
-
-            // An L-bracket on corner `c`, its arms running inward along +-x and +-y.
-            void Corner(Vector2 c, float sx, float sy)
-            {
-                float x = sx > 0f ? c.x - thick * 0.5f : c.x - len + thick * 0.5f;
-                float y = sy > 0f ? c.y - thick * 0.5f : c.y - len + thick * 0.5f;
-                CardGui.Box(new Rect(x, c.y - thick * 0.5f, len, thick), accent);
-                CardGui.Box(new Rect(c.x - thick * 0.5f, y, thick, len), accent);
-            }
-        }
-
         void DrawContent(Rect p, Color accent, float t, bool closeHover)
         {
             // Header: tab and the spaced-out color name; the X on the right.
-            var header = new Rect(p.x + 2f, p.y + 2f, p.width - 4f, 46f);
-            CardGui.Box(header, WithAlpha(accent, 0.14f));
-            CardGui.Box(new Rect(p.x, header.yMax, p.width, 2f), WithAlpha(accent, 0.6f));
-            CardGui.Box(new Rect(p.x + 22f, header.y + 13f, 8f, 20f), accent);
-            string title = Spaced((colorData ? colorData.displayName : data.name).ToUpperInvariant());
-            CardGui.Text(new Rect(p.x + 44f, header.y, 500f, header.height), title, 24, accent, TextAnchor.MiddleLeft, FontStyle.Bold);
+            UiKit.Header(p, colorData ? colorData.displayName : data.name, accent);
             DrawClose(CloseRect(p), accent, closeHover);
 
             // The screen the demo plays on: light, because the player art is a black silhouette.
@@ -259,15 +221,7 @@ namespace Roygbiv
         Rect PanelRect()
         {
             float h = StageTop + StageHeight + CaptionGap + (HasSubCaption ? SubCaptionGap : 0f) + HintRow;
-            return new Rect((RefWidth - PanelWidth) * 0.5f, (RefHeight - h) * 0.5f - 10f, PanelWidth, h);
-        }
-
-        /// <summary>The 1920x1080 canvas, scaled to fit and centered on the screen.</summary>
-        static Matrix4x4 CanvasMatrix()
-        {
-            float s = Mathf.Min(Screen.width / RefWidth, Screen.height / RefHeight);
-            return Matrix4x4.TRS(new Vector3((Screen.width - RefWidth * s) * 0.5f, (Screen.height - RefHeight * s) * 0.5f, 0f),
-                                 Quaternion.identity, new Vector3(s, s, 1f));
+            return new Rect((UiKit.RefWidth - PanelWidth) * 0.5f, (UiKit.RefHeight - h) * 0.5f - 10f, PanelWidth, h);
         }
 
         static Rect ToScreen(Matrix4x4 m, Rect r)
@@ -283,8 +237,6 @@ namespace Roygbiv
             return size;
         }
 
-        static string Spaced(string s) => string.Join(" ", s.ToCharArray());
-        static Rect Expand(Rect r, float by) => new(r.x - by, r.y - by, r.width + by * 2f, r.height + by * 2f);
         static Color WithAlpha(Color c, float a) => new(c.r, c.g, c.b, a);
 
         static float Smooth(float x)

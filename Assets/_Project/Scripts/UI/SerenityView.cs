@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Roygbiv
 {
     /// <summary>
-    /// PLACEHOLDER Serenity look + HUD meter. It only LISTENS to GameEvents.SerenityChanged / SerenityDenied and reads
+    /// Serenity's look in the world (its meter is part of GameHud). It only LISTENS to GameEvents.SerenityChanged / SerenityDenied and reads
     /// the player's position; gameplay never calls it. Everything runs on unscaled time, so it stays snappy in slow motion.
     ///   Start:   a big INDIGO shockwave: three concentric rings (deep #4B2BFF core, lighter #7B6CFF edge) race out
     ///            from the player past the screen edges, drawn in the world on top of gameplay; a short indigo flash;
@@ -13,18 +13,12 @@ namespace Roygbiv
     ///            aura pulsing around the player (a glow behind them plus an outline copy of their sprite).
     ///   End:     the rings contract back into the player and the look fades out (~0.3 s).
     ///   Denied:  pressed while recharging: a small gray ring blips at the player.
-    ///   Meter:   top left, under the HUD. Active = a bright bar draining; recharging = a dim bar filling up;
-    ///            ready = full and glowing with READY. A denied press shakes it red.
     /// </summary>
     public class SerenityView : MonoBehaviour
     {
         static readonly Color Core = new(0.294f, 0.169f, 1f);   // #4B2BFF
         static readonly Color Edge = new(0.482f, 0.424f, 1f);   // #7B6CFF
 
-        [SerializeField] Color activeColor = new(0.62f, 0.55f, 1f);
-        [SerializeField] Color readyColor = new(0.48f, 0.42f, 1f);
-        [SerializeField] Color rechargeColor = new(0.32f, 0.3f, 0.48f);
-        [SerializeField] Color deniedColor = new(1f, 0.35f, 0.4f);
         [Tooltip("Seconds the screen look takes to come in / go out (unscaled).")]
         [SerializeField] float easeIn = 0.25f;
         [SerializeField] float easeOut = 0.3f;
@@ -36,9 +30,8 @@ namespace Roygbiv
         static Material lineMaterial;
 
         SerenityState state = SerenityState.Unavailable;
-        float fraction, look, deniedAt = -10f, readyAt = -10f;
+        float look;
         SerenityFilter filter;
-        GUIStyle label;
         SpriteRenderer auraGlow, auraOutline, auraSource;
         float auraAlpha;
 
@@ -66,7 +59,6 @@ namespace Roygbiv
 
         void OnDenied()
         {
-            deniedAt = Time.unscaledTime;
             var player = PlayerController.Instance;
             if (player) StartCoroutine(Blip(player.transform));
         }
@@ -75,12 +67,10 @@ namespace Roygbiv
         {
             var old = state;
             state = newState;
-            fraction = newFraction;
             if (old == newState) return;
 
             if (newState == SerenityState.Active) Begin();
             else if (old == SerenityState.Active) Release();
-            if (newState == SerenityState.Ready && old == SerenityState.Recharging) readyAt = Time.unscaledTime;
         }
 
         void Begin()
@@ -222,47 +212,6 @@ namespace Roygbiv
             auraOutline.transform.SetParent(player.transform, true);
             auraOutline.sortingOrder = order - 1;
             if (auraSource) auraOutline.sharedMaterial = auraSource.sharedMaterial;
-        }
-
-        void OnGUI()
-        {
-            if (state == SerenityState.Unavailable || !PlayerController.Instance) return;
-            label ??= new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold, fontSize = 13, richText = true };
-
-            float now = Time.unscaledTime;
-            float denied = Mathf.Clamp01(1f - (now - deniedAt) / 0.35f);
-            float shake = denied * Mathf.Sin(now * 70f) * 5f;
-            var bar = new Rect(12f + shake, 104f, 200f, 12f);
-
-            Color fill;
-            string text;
-            switch (state)
-            {
-                case SerenityState.Active:
-                    fill = activeColor;
-                    text = "SERENITY";
-                    break;
-                case SerenityState.Recharging:
-                    fill = rechargeColor;
-                    text = "SERENITY  <color=#9a96b8>recharging</color>";
-                    break;
-                default:
-                    float pulse = 0.5f + 0.5f * Mathf.Sin(now * 4f);
-                    float pop = Mathf.Clamp01(1f - (now - readyAt) / 0.5f);
-                    fill = Color.Lerp(readyColor, Color.white, 0.15f * pulse + 0.6f * pop);
-                    text = "SERENITY  <color=#c8c0ff>READY</color>  [Q]";
-                    break;
-            }
-            fill = Color.Lerp(fill, deniedColor, denied);
-
-            GUI.color = new Color(0f, 0f, 0f, 0.55f);
-            GUI.DrawTexture(new Rect(bar.x - 2f, bar.y - 2f, bar.width + 4f, bar.height + 4f), Texture2D.whiteTexture);
-            GUI.color = new Color(fill.r * 0.35f, fill.g * 0.35f, fill.b * 0.35f, 0.9f);
-            GUI.DrawTexture(bar, Texture2D.whiteTexture);
-            GUI.color = fill;
-            GUI.DrawTexture(new Rect(bar.x, bar.y, bar.width * Mathf.Clamp01(fraction), bar.height), Texture2D.whiteTexture);
-            GUI.color = Color.white;
-            GUI.Label(new Rect(bar.x, bar.y - 22f, 320f, 22f), text, label);
         }
 
         /// <summary>A circle of constant line width in the world, on top of gameplay: a bright core line inside a softer, wider edge.</summary>

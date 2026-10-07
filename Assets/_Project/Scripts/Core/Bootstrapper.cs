@@ -57,15 +57,16 @@ namespace Roygbiv
             Game.Instructions = systems.AddComponent<InstructionRunner>();
             Game.Audio = systems.AddComponent<AudioManager>();
 
-            // Placeholder UI (IMGUI) — replace with real UI once the art style is chosen.
+            // UI (IMGUI, all in the UiKit look). It only listens to GameEvents and reads state.
             systems.AddComponent<PauseMenu>();
             systems.AddComponent<DialogueView>();
             systems.AddComponent<InstructionView>();
             systems.AddComponent<SerenityView>();
             systems.AddComponent<TitleCardView>();
             systems.AddComponent<CinematicView>();
-            systems.AddComponent<DebugHud>();
+            systems.AddComponent<GameHud>();
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
+            systems.AddComponent<DevOverlay>(); // F12
             systems.AddComponent<DebugCheats>();
 #endif
         }

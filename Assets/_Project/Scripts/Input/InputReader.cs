@@ -11,17 +11,25 @@ namespace Roygbiv
     ///
     /// Default bindings (change them here, nowhere else):
     ///   Move    WASD / Arrows / left stick
-    ///   Jump    Z / Space / A(south)
+    ///   Jump    Space / A(south)
     ///   Attack  Left click / X(west)           (hold + release = Blaze Strike)
     ///   Shoot   Right Click / C / Y(north)   (Light Shot; aims at the mouse unless fired from a gamepad)
     ///   Dash    Left Shift / RB             (hold Down too = Down Dash)
     ///   Serenity Q / LB
+    ///   Confirm Z / X / Enter / A(south)    (dialogue, cards, menus)
     ///   Pause   Esc / Start
+    /// Menus read Navigate (the move keys, raw) and confirmPressed / pausePressed, which stay live while gameplay is blocked.
     /// </summary>
     [DefaultExecutionOrder(-100)]
     public class InputReader : MonoBehaviour
     {
         public PlayerIntent Intent { get; private set; }
+
+        /// <summary>
+        /// The move keys / stick as they are, for menus (pause, main menu, hub): never cleared by a gameplay block and
+        /// never scrambled by a curse. Gameplay reads Intent.move instead.
+        /// </summary>
+        public Vector2 Navigate { get; private set; }
 
         readonly List<IInputModifier> modifiers = new();
         readonly List<Func<Vector2, bool>> pointerBlockers = new();
@@ -93,6 +101,7 @@ namespace Roygbiv
                 confirmPressed = confirm.WasPressedThisFrame(),
                 pausePressed = pause.WasPressedThisFrame(),
             };
+            Navigate = i.move;
             ReadMouseAim(ref i);
             MaskPointerOverUI(ref i);
 

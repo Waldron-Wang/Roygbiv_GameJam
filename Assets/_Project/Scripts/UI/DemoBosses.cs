@@ -449,6 +449,51 @@ namespace Roygbiv
             return (KingPoint(feet, unit, facing, At(sword, new Vector2(0f, -2.8f), 0f).p), hand);
         }
 
+        // ---------- A boss as a portrait (the hub's cards) ----------
+
+        /// <summary>
+        /// The boss of color `id` standing in `box`, idling: the art sprite for Yellow, Orange and Red (their card's), the
+        /// procedural figure for the rest. silhouette: every part in that color (a locked district).
+        /// </summary>
+        public static void Portrait(ColorId id, Rect box, float time, Color? silhouette = null)
+        {
+            Silhouette = silhouette;
+            var feet = new Vector2(box.center.x, box.yMax - box.height * 0.04f);
+            switch (id)
+            {
+                case ColorId.Green:
+                {
+                    float unit = box.height / 2.7f;
+                    float sway = (Mathf.Sin(time * 1.3f) + 0.4f * Mathf.Sin(time * 2.9f)) * 4f;
+                    var squash = new Vector2(1f - 0.03f * Mathf.Sin(time * 2.2f), 1f + 0.04f * Mathf.Sin(time * 2.2f));
+                    Bramble(feet, unit, time, sway, squash);
+                    break;
+                }
+                case ColorId.Blue:
+                    Weeper(box.center + new Vector2(0f, box.height * 0.05f), box.height / 2.5f, -1, time);
+                    break;
+                case ColorId.Indigo:
+                {
+                    float unit = box.height / 4.2f;
+                    var accent = new Color(0.55f, 0.45f, 1f);
+                    LightPool(new Vector2(box.center.x, box.yMax - 4f), unit, accent, 0.4f);
+                    Seer(box.center + new Vector2(0f, -box.height * 0.04f), unit, accent, time, 1f, new Vector2(-0.8f, -0.4f));
+                    break;
+                }
+                case ColorId.Violet:
+                    King(feet, box.height / 4.6f, -1, KingPose.Throne, time);
+                    break;
+                default:
+                {
+                    var data = Game.Config ? Game.Config.Get(id) : null;
+                    var sprite = data && data.instruction ? data.instruction.boss : null;
+                    if (sprite) CardGui.DrawSprite(sprite, box, Tint(Color.white));
+                    break;
+                }
+            }
+            Silhouette = null;
+        }
+
         // ---------- Helpers ----------
 
         static Rect Expand(Rect r, float by) => new(r.x - by, r.y - by, r.width + by * 2f, r.height + by * 2f);

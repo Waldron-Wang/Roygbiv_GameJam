@@ -140,8 +140,8 @@ namespace Roygbiv
         /// <summary>Show the attack pose for at least `seconds` from now (wind-ups, volleys).</summary>
         protected void HoldAttackPose(float seconds) => attackPoseUntil = Mathf.Max(attackPoseUntil, Time.time + seconds);
 
-        /// <summary>The health fractions where each next phase starts (read-only; checkpoints resume a boss at one).</summary>
-        protected IReadOnlyList<float> PhaseThresholds => phaseThresholds;
+        /// <summary>The health fractions where each next phase starts (read-only; checkpoints resume a boss at one, the HUD ticks them).</summary>
+        public IReadOnlyList<float> PhaseThresholds => phaseThresholds;
 
         /// <summary>Replaces the thresholds (a boss whose tuning lives in its own script). Call in Awake.</summary>
         protected void SetPhaseThresholds(params float[] thresholds) => phaseThresholds = thresholds;
