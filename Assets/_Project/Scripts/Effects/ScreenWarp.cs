@@ -133,6 +133,13 @@ namespace Roygbiv
         /// <summary>The look on screen right now (mid-blend included), without one-shots.</summary>
         public WarpLook Current => current;
 
+        /// <summary>Updates the level's framing while preserving the warp's breathing zoom.</summary>
+        public void SetBaseSize(float size)
+        {
+            baseSize = Mathf.Max(0.01f, size);
+            cam.orthographicSize = baseSize * (enabled ? 1f + Mathf.Sin(zoomPhase) * current.zoomPulse : 1f);
+        }
+
         /// <summary>The camera's warp, added if it has none. Null if there's no camera.</summary>
         public static ScreenWarp On(Camera camera)
         {

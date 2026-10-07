@@ -42,6 +42,11 @@ namespace Roygbiv
         [Header("The run")]
         [Tooltip("Camera look-ahead to the right during the run, so incoming attacks (and the king) are in view.")]
         [SerializeField] float lookAhead = 5f;
+        [Tooltip("Minimum visible width / height during the approach, independent of screen aspect ratio.")]
+        [SerializeField] Vector2 approachViewSize = new(22f, 13f);
+        [Tooltip("Seconds the camera takes to ease between approach and arena framing.")]
+        [SerializeField] float cameraZoomTime = 0.4f;
+        [SerializeField] float duelViewSize = 7f;
         [Tooltip("While the needle curtain is running, he raises his hand again every this many seconds.")]
         [SerializeField] float curtainGestureEvery = 1.6f;
 
@@ -103,6 +108,8 @@ namespace Roygbiv
         VioletArena arena;
         VioletBoss boss;
         CameraFollow cam;
+        Camera viewCamera;
+        float viewSize, zoomVelocity;
         VioletZone activeZone;
         Coroutine encounter;
         Stage stage = Stage.Setup;
@@ -149,7 +156,9 @@ namespace Roygbiv
             }
             VioletCheckpoint.Bind(gameObject.scene.name);
             VioletCheckpoint.SegmentCount = checkpoints.Length;
-            cam = Camera.main ? Camera.main.GetComponent<CameraFollow>() : null;
+            viewCamera = Camera.main;
+            cam = viewCamera ? viewCamera.GetComponent<CameraFollow>() : null;
+            if (viewCamera) viewSize = viewCamera.orthographicSize;
 
             boss = LevelController.Current ? LevelController.Current.Boss as VioletBoss : FindAnyObjectByType<VioletBoss>();
             kingFeet = KingFeet();
@@ -256,6 +265,36 @@ namespace Roygbiv
             inputBlocked = block;
             if (block) Game.Input.BlockGameplay();
             else Game.Input.UnblockGameplay();
+        }
+
+        // Keep Violet's presentation wide without changing other levels' follow behavior.
+        Rect ArenaView
+        {
+            get
+            {
+                var a = arena.inner;
+                var v = arena.cameraView;
+                const float margin = 0.5f;
+                var view = Rect.MinMaxRect(Mathf.Min(a.xMin, v.xMin) - margin, Mathf.Min(a.yMin, v.yMin) - margin,
+                    Mathf.Max(a.xMax, v.xMax) + margin, Mathf.Max(a.yMax, v.yMax) + margin);
+                view.position += (Vector2)arena.transform.position;
+                return view;
+            }
+        }
+
+        void LateUpdate()
+        {
+            if (!viewCamera || stage == Stage.Setup || Time.deltaTime <= 0f) return;
+            bool inArena = arena && (stage == Stage.Arrival || stage == Stage.Duel);
+            var frame = inArena ? ArenaView.size : approachViewSize;
+            float target = stage == Stage.Duel ? duelViewSize
+                : Mathf.Max(frame.y * 0.5f, frame.x * 0.5f / Mathf.Max(0.01f, viewCamera.aspect));
+            var warp = viewCamera.GetComponent<ScreenWarp>();
+            // Reserve enough space that the warp's breathing zoom cannot crop the fitted frame.
+            if (stage != Stage.Duel && warp && warp.enabled) target /= Mathf.Max(0.01f, 1f - Mathf.Abs(warp.Current.zoomPulse));
+            viewSize = Mathf.SmoothDamp(viewSize, target, ref zoomVelocity, cameraZoomTime);
+            if (warp) warp.SetBaseSize(viewSize);
+            else viewCamera.orthographicSize = viewSize;
         }
 
         // ---------- Intro ----------
@@ -597,7 +636,7 @@ namespace Roygbiv
             if (cam)
             {
                 cam.Lead = Vector2.zero;
-                cam.Hold(arena.CameraCenter, true);
+                cam.Hold(ArenaView.center, true);
             }
             if (!boss) return;
             boss.PlaceInArena(arena.BossX);
@@ -624,7 +663,11 @@ namespace Roygbiv
         {
             stage = Stage.Duel;
             VioletCheckpoint.Reach(VioletCheckpoint.ArenaIndex);
-            if (cam) cam.Hold(arena.CameraCenter);
+            if (cam)
+            {
+                cam.Lead = Vector2.zero;
+                cam.Release();
+            }
             if (boss) boss.PrepareFloorStart(arena.BossX, false);
             LevelController.Current?.StartBoss();
         }
