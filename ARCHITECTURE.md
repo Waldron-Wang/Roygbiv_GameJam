@@ -246,7 +246,7 @@ Helpers available to subclasses: `Player`, `AimDirection`, `Fire(...)`, `Wait(..
 ### Levels (`LevelController`, `LevelTrigger`)
 - There is one `LevelController` per level scene, set with its `ColorId`. A level can be won in three ways:
   - **Defeat the boss assigned to `LevelController.boss`.**
-  - **Enter a `LevelTrigger` set to `CompleteLevel`.** This is how Blue's climb ends.
+  - **Enter a `LevelTrigger` set to `CompleteLevel`.**
   - **Any script calls `LevelController.Current.Complete()`.**
 - `LevelTrigger` actions: `StartBoss` (arena door), `CompleteLevel`, `KillPlayer` (pits), plus a UnityEvent for anything else.
 - `LevelController.Start` plays `introDialogue` (if any), then starts the boss right away. Nothing explains the fight

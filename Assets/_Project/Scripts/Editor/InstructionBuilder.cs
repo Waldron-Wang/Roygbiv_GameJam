@@ -71,7 +71,7 @@ namespace Roygbiv.EditorTools
             new()
             {
                 color = ColorId.Blue, accent = "#3D8BFF", demo = InstructionDemo.Climb,
-                caption = "Climb to the top and don't let it catch you",
+                caption = "Climb after it, then catch it at the top",
                 keys = new[] { "Space" },
                 loop = "idle", loopFps = 8f, action = "jump", actionFps = 15f,
             },
