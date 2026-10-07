@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 12318c8aed804240bb8554c07e0446f5, type: 3}
   m_Name: Instruction_Blue
   m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.InstructionData
-  caption: "Climb to the top and don't let it catch you"
+  caption: Climb after it, then catch it at the top
   subCaption: 
   accent: {r: 0.23921569, g: 0.54509807, b: 1, a: 1}
   demo: 5
