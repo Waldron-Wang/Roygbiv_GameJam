@@ -53,7 +53,7 @@ There are two deliberate exceptions, so treat them with care:
 | Script | Uses (depends on) | Used by |
 |---|---|---|
 | `Ids` | — | everything |
-| `ColorData` | Ids, DialogueData | GameConfig, GameManager, AudioManager, HubScreen, DebugHud |
+| `ColorData` | Ids, DialogueData | GameConfig, GameManager, AudioManager, HubScreen, GameHud |
 | `GameConfig` | ColorData | Game, Bootstrapper, GameManager, ColorWorld, AudioManager, UI, DebugCheats |
 | `GameProgress` | Ids, `PlayerPrefs` | GameManager (writes); AbilityLoadout, ColorWorld, AudioManager, GreenBoss, UI (read via `Game.Progress`) |
 | `PlayerIntent` | — | InputReader, InputModifiers, AbilityBase & abilities, PlayerController, DialogueRunner, PauseMenu |
@@ -63,7 +63,7 @@ There are two deliberate exceptions, so treat them with care:
 | `Bootstrapper` | Game, GameConfig, every `[Systems]` component | Unity (auto-run) |
 | `GameManager` | Game, GameProgress, GameEvents | MainMenuScreen, HubScreen, PauseMenu, EndingScreen, DebugCheats |
 | `SceneLoader` | GameEvents, `SceneManager` | GameManager, PauseMenu |
-| `InputReader` | PlayerIntent, IInputModifier, Unity Input System | PlayerController, DialogueRunner, InstructionRunner, PauseMenu, IndigoBoss, InstructionView (pointer blocker), AbilityBase (indirectly) |
+| `InputReader` | PlayerIntent, IInputModifier, Unity Input System | PlayerController, DialogueRunner, InstructionRunner, PauseMenu / MainMenuScreen / HubScreen (`Navigate`), IndigoBoss, InstructionView (pointer blocker), AbilityBase (indirectly) |
 | `InputModifiers` | PlayerIntent, `Time` (delay) | IndigoBoss |
 | `ScreenWarp` (+ `Resources/ScreenWarp.shader`) | Camera, `Resources` | IndigoBoss (any boss or level can use it) |
 | `ColorWorld` | Game, GameEvents, shader globals | Recolorable, GameManager.NewGame |
@@ -79,13 +79,13 @@ There are two deliberate exceptions, so treat them with care:
 | `HitFeedback` | Health, CameraFollow | boss prefabs |
 | `PlayerMotor` | `Rigidbody2D` | PlayerController |
 | `PlayerCombat` | Hitbox | PlayerController |
-| **`PlayerController`** | PlayerMotor, Health, PlayerCombat, AbilityLoadout, Game.Input, GameEvents | BossBase (`Player`), CameraFollow, LevelTrigger, OrangeBoss, BlueBoss, DebugHud, DebugCheats |
+| **`PlayerController`** | PlayerMotor, Health, PlayerCombat, AbilityLoadout, Game.Input, GameEvents | BossBase (`Player`), CameraFollow, LevelTrigger, OrangeBoss, BlueBoss, GameHud, DevOverlay, DebugCheats |
 | `AbilityBase` | IActor, PlayerIntent | AbilityLoadout, all abilities |
-| `AbilityLoadout` | AbilityBase, Game.Progress, GameEvents | PlayerController, GreenBoss, DebugHud |
+| `AbilityLoadout` | AbilityBase, Game.Progress, GameEvents | PlayerController, GreenBoss, GameHud, PauseMenu |
 | Abilities (`LightShot`, `Dash`, `BlazeStrike`, `DoubleJump`, `DownDash`, `HeavySlam`) | AbilityBase, IActor, Projectile / Hitbox / Health | AbilityLoadout (player & Green boss) |
-| **`BossBase`** | Health, IActor, PlayerController.Instance, Projectile, GameEvents | LevelController, DebugHud, 7 bosses |
+| **`BossBase`** | Health, IActor, PlayerController.Instance, Projectile, GameEvents | LevelController, GameHud (name, HP, `PhaseThresholds`), DevOverlay, 7 bosses |
 | `YellowBoss` … `VioletBoss` | BossBase (+ see each) | prefab only |
-| **`LevelController`** | BossBase, DialogueData, Game.Dialogue, GameEvents | LevelTrigger, PauseMenu, DebugHud, DebugCheats |
+| **`LevelController`** | BossBase, DialogueData, Game.Dialogue, GameEvents | LevelTrigger, PauseMenu, GameHud, DebugCheats |
 | `LevelTrigger` | LevelController.Current, PlayerController | scenes |
 | `ShootableSwitch` | IDamageable | scenes (UnityEvent → anything), CageTrap |
 | `CameraFollow` | PlayerController.Instance, `Camera.main` | scenes, HitFeedback (`Shake`), ChaseDirector |
@@ -93,7 +93,7 @@ There are two deliberate exceptions, so treat them with care:
 | `Breakable`, `Hazard` | IDamageable / PlayerController | ChaseCourse |
 | `Recolorable` | Game.Colors | scenes, boss prefabs |
 | `SceneMusic` | Game.Audio | scenes |
-| UI (`DebugHud`, `DialogueView`, `PauseMenu`, `MainMenuScreen`, `HubScreen`, `EndingScreen`) | Game, GameEvents, LevelController, PlayerController | nothing (top of the stack) |
+| UI (`UiKit`, `GameHud`, `DevOverlay`, `DialogueView`, `PauseMenu`, `MainMenuScreen`, `HubScreen`, `EndingScreen`, …) | Game, GameEvents, LevelController, PlayerController, the bosses (read only) | nothing (top of the stack) |
 | `DebugCheats` | Game, LevelController, PlayerController, Input System `Keyboard` | nothing |
 | `SkeletonBuilder` (Editor) | everything | Unity menu |
 
@@ -110,7 +110,8 @@ BeforeSceneLoad         Bootstrapper.Init()
                           └─ new "[Systems]" (DontDestroyOnLoad), AddComponent in this order:
                              InputReader → TimeController → SceneLoader → GameManager → ColorWorld → DialogueRunner
                              → InstructionRunner → AudioManager → PauseMenu → DialogueView
-                             → InstructionView → DebugHud → DebugCheats
+                             → InstructionView → SerenityView → TitleCardView → CinematicView → GameHud
+                             → DevOverlay → DebugCheats   (the last two: editor / development builds only)
                              (each Awake runs immediately inside AddComponent)
 Scene loads             Awake → OnEnable for every scene object
                         Start for everything (incl. [Systems]: ColorWorld.Start syncs colors, AudioManager.Start builds layers)
@@ -219,7 +220,7 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
 
 #### `GameManager.cs` — game flow and save owner
 - **Purpose:** Menu → Hub → Level → reclaim → Hub … → Ending. It is the only writer of `GameProgress`.
-- **API (commands):** `NewGame()`, `ContinueGame()`, `ReturnToMenu()`, `ReturnToHub()`, `EnterLevel(ColorId)`, `RestoreColor(ColorId)`.
+- **API (commands):** `NewGame()`, `ContinueGame()`, `ReturnToMenu()`, `ReturnToHub()`, `EnterLevel(ColorId)`, `RestartLevel()` (reload the level, as dying does), `RestoreColor(ColorId)`.
 - **API (queries):** `Progress`, `IsUnlocked(ColorId)` (linear: all previous colors in play order are restored), `AllColorsRestored`.
 - **Listens:** `LevelCompleted` → `ReclaimSequence`, `LevelFailed` → `RespawnSequence`.
 - **Raises:** `ColorRestored`, `AbilityUnlocked` (inside `RestoreColor`).
@@ -251,6 +252,7 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
 - **Purpose:** Reads the devices once per frame and publishes `Intent`.
 - **API:**
   - `Intent`
+  - `Navigate`: the move keys / stick as they are, for menus; never cleared by a block or scrambled by a curse
   - `BlockGameplay()` / `UnblockGameplay()`, which are ref-counted and must be paired
   - `GameplayEnabled`
   - `AddModifier`, `RemoveModifier`, `ClearModifiers`
@@ -559,23 +561,34 @@ Interactions to know about:
 #### `SceneMusic.cs`
 Calls `Game.Audio.PlayMusic(music)` on `Start`. Put one in each scene.
 
-#### Placeholder UI (IMGUI, all to be replaced)
+#### UI (IMGUI, one look: `UiKit`)
+
+Every screen is drawn with **`UI/UiKit.cs`** (built on `CardGui`'s primitives), so they share one look, the Tip card's:
+dark translucent panels with a thin border in the current color, L-notches on the corners, faint scanlines, header strips
+with letter-spaced titles, keycaps, segmented bars, gems and the seven-band heart. Layout is on a 1920×1080 virtual canvas:
+`UiKit.Fit()` (whole canvas, centered: cards, menus) or `UiKit.Fill()` (same scale, reaching the screen edges: HUD); text is
+rasterized at its on-screen size, so it stays crisp. Colors: `UiKit.Accent(color)` (the captions' hexes), `CurrentAccent`
+(the level's, or `Neutral`). Also there: `UiKit.GameTitle` (**"RECOLOR THE HEART"**, the one place the displayed name lives;
+ProjectSettings' product name is separate), `UiKit.HubTitle` / `HubSubtitle`, `GlitchClock` (comfortable random glitches:
+one flash each, at least ~1 s apart) and `MenuNav` (keyboard steps with repeat). Menus read `InputReader.Navigate` (raw
+move keys, never blocked or cursed) plus `Intent.confirmPressed` / `pausePressed`.
 
 | Script | Where it lives | Reads / listens | Calls |
 |---|---|---|---|
-| `DebugHud` | `[Systems]` | `PlayerHealthChanged`, `BossFightStarted/HealthChanged/Defeated`, `SceneLoaded`, `Game.Progress`, `PlayerController.Instance.Loadout` | — |
+| `GameHud` | `[Systems]` | reads `PlayerController.Instance` (HP, loadout, Serenity's state), `LevelController.Current.Boss`, `Game.Progress`; listens `BossFightStarted/HealthChanged/Defeated`, `AbilityStolen/Returned/Unlocked`, `ColorRestored`, `SerenityChanged/Denied`, `CinematicChanged`, `SceneLoaded` | Top left: HP pips, the seven gems, ability keycaps (dim = locked, red + struck = stolen), the Serenity meter. Top center while a boss fights: name, HP segments with phase ticks (damage trails), catch pips for Orange / Blue, Red's rage + OVERHEAT, what Green is holding. Fades out during cinematics |
+| `DevOverlay` | `[Systems]`, editor / dev builds only | everything above, read only | Hidden until **F12**: scene, boss state/HP/phase, player, Serenity, time scale, input, Violet checkpoint, cheat keys |
 | `DialogueView` | `[Systems]` | `DialogueLineShown`, `DialogueEnded` | — |
 | `InstructionView` (+ `CardGui`, `InstructionDemos`, `DemoBosses`) | `[Systems]` | `InstructionShown`, `InstructionClosed`, `Game.Instructions.CanOpen / LevelCard`, `Game.Config` | `Game.Instructions.Toggle/Close` on clicks; `Game.Input.AddPointerBlocker`. Tip button top-right; card on a 1920×1080 canvas, unscaled time |
-| `SerenityView` (+ `SerenityFilter` on the camera) | `[Systems]` | `SerenityChanged`, `SerenityDenied`, `SceneLoaded`, `PlayerController.Instance` (ripple origin) | Start: three indigo rings (#4B2BFF core, #7B6CFF edge, LineRenderers in the world, on top) race out past the screen edges + indigo flash + ripple. Active: indigo wash + vignette, everything but the player desaturated (`Resources/SerenityFilter.shader` keeps a soft ellipse around them), a pulsing indigo aura/outline on the player. End: the rings contract into the player, the look fades in ~0.3 s. Denied: a gray ring blip. Meter top-left (draining / recharging / READY, red shake when denied). Unscaled time |
-| `TitleCardView` | `[Systems]` | `TitleCardShown`, `SceneLoaded` | Big centered title + subtitle, fades in / out. Unscaled time |
-| `CinematicView` | `[Systems]` | `CinematicChanged`, `ScreenWipe`, `SceneLoaded` | Letterbox bars slide in / out; a slanted wipe covers the screen by its halfway point (with a flash) and uncovers. Over the HUD. Unscaled time |
-| `PauseMenu` | `[Systems]` | `Intent.pausePressed` (only inside a level) | `Game.Time.Pause/Resume`, `Game.Input.Block/Unblock`, `Game.Scenes.Reload`, `Game.Manager.ReturnToHub`; raises `PauseChanged` |
-| `MainMenuScreen` | MainMenu scene | `GameProgress.HasSave` | `Game.Manager.NewGame/ContinueGame` |
-| `HubScreen` | Hub scene | `Game.Config.colorOrder`, `Game.Progress`, `Game.Manager.IsUnlocked` | `Game.Manager.EnterLevel` |
-| `EndingScreen` | Ending scene | `endingDialogue` | `Game.Dialogue.Play`, `Game.Manager.ReturnToMenu` |
+| `SerenityView` (+ `SerenityFilter` on the camera) | `[Systems]` | `SerenityChanged`, `SerenityDenied`, `SceneLoaded`, `PlayerController.Instance` (ripple origin) | Start: three indigo rings (#4B2BFF core, #7B6CFF edge, LineRenderers in the world, on top) race out past the screen edges + indigo flash + ripple. Active: indigo wash + vignette, everything but the player desaturated (`Resources/SerenityFilter.shader` keeps a soft ellipse around them), a pulsing indigo aura/outline on the player. End: the rings contract into the player, the look fades in ~0.3 s. Denied: a gray ring blip. (Its meter is part of `GameHud`.) Unscaled time |
+| `TitleCardView` | `[Systems]` | `TitleCardShown`, `SceneLoaded` | A band in the level's color with a big letter-spaced title closing in + subtitle, fades in / out. Unscaled time |
+| `CinematicView` | `[Systems]` | `CinematicChanged`, `ScreenWipe`, `SceneLoaded` | Letterbox bars slide in / out (accent line and notches on their inner edge); a slanted wipe covers the screen by its halfway point (with a flash) and uncovers. Over the HUD. Unscaled time |
+| `PauseMenu` | `[Systems]` | `Intent.pausePressed` (only inside a level), `Navigate`, `confirmPressed` | `Game.Time.Pause/Resume`, `Game.Input.Block/Unblock`, `Game.Manager.RestartLevel` (the same reload as dying: Violet keeps its checkpoint, and the button says "Restart from checkpoint"), `Game.Manager.ReturnToHub`; raises `PauseChanged` |
+| `MainMenuScreen` | MainMenu scene | `GameProgress.HasSave`, `Game.Progress` | `Game.Manager.NewGame/ContinueGame` (New Game over a save asks first). The title glitches (`GlitchTitle`): colorless, color bleeding in for a split second; each restored color stays more, all seven = full color |
+| `HubScreen` | Hub scene | `Game.Config.colorOrder`, `Game.Progress`, `Game.Manager.IsUnlocked` | `Game.Manager.EnterLevel`, `ReturnToMenu`. The heart (seven bands, the next color flickering), a card per district (locked / available / restored; the selected one previews its boss via `DemoBosses.Portrait`), ambient dust and colors |
+| `EndingScreen` | Ending scene | `endingDialogue` | `Game.Dialogue.Play`, `Game.Manager.ReturnToMenu`. The heart and the title in full color |
 
-When you replace these with real UI (uGUI/TextMeshPro or UI Toolkit), keep the same contract: **listen and read, never drive gameplay.**
-Then remove the matching `AddComponent` lines in `Bootstrapper`.
+To restyle everything at once, change `UiKit`. If you replace these with uGUI / UI Toolkit later, keep the same contract:
+**listen and read, never drive gameplay**, and remove the matching `AddComponent` lines in `Bootstrapper`.
 
 #### `DebugCheats.cs` — Editor and development builds only
 
@@ -657,12 +670,12 @@ objects (hand edits included) and bakes the original layout again.
 | `AbilityReturned` | `AbilityId` | GreenBoss | **Player AbilityLoadout** | HUD icon restored |
 | `SerenityChanged` | `SerenityState, float` | SerenityAbility (every frame while active / recharging) | SerenityView | Music filter, SFX |
 | `SerenityDenied` | — | SerenityAbility (pressed while not ready) | SerenityView | "Not ready" SFX |
-| `PlayerHealthChanged` | `int current, int max` | PlayerController | DebugHud | Real HUD, hurt SFX, screen shake |
+| `PlayerHealthChanged` | `int current, int max` | PlayerController | — (GameHud reads the player's Health) | Hurt SFX, screen shake |
 | `PlayerDied` | — | PlayerController | **LevelController** | Death SFX/VFX |
-| `BossFightStarted` | `BossBase` | BossBase.StartFight | DebugHud | Boss bar, boss music |
-| `BossHealthChanged` | `BossBase` | BossBase | DebugHud | Boss bar, hit flash |
+| `BossFightStarted` | `BossBase` | BossBase.StartFight | GameHud, DevOverlay | Boss music |
+| `BossHealthChanged` | `BossBase` | BossBase | GameHud (hit flash, damage trail) | Hit SFX |
 | `BossPhaseChanged` | `BossBase` | BossBase | — | Phase transition VFX/music |
-| `BossDefeated` | `BossBase` | BossBase | DebugHud | Explosion, slow-mo |
+| `BossDefeated` | `BossBase` | BossBase | GameHud | Explosion, slow-mo |
 | `DialogueStarted` | `DialogueData` | DialogueRunner | — | Letterbox, music duck |
 | `DialogueLineShown` | `DialogueLine` | DialogueRunner | DialogueView | Real dialogue UI, voice blips |
 | `DialogueEnded` | — | DialogueRunner | DialogueView | — |
@@ -671,7 +684,7 @@ objects (hand edits included) and bakes the original layout again.
 | `TitleCardShown` | `string title, string subtitle` | VioletBoss (arrival name card, Twin Blades, Royal Decree) | TitleCardView | Stinger SFX |
 | `CinematicChanged` | `bool playing` | VioletApproach (arrival) | CinematicView (letterbox), SerenityAbility (ends) | Music duck |
 | `ScreenWipe` | `Color, float seconds` | VioletApproach (the cut to the arena) | CinematicView | Whoosh SFX |
-| `SceneLoaded` | `string` | SceneLoader | DebugHud | — |
+| `SceneLoaded` | `string` | SceneLoader | GameHud, DevOverlay, InstructionRunner, TitleCardView, CinematicView, SerenityView | — |
 | `PauseChanged` | `bool` | PauseMenu | — | Music low-pass |
 
 **Bold** marks listeners the game logic depends on. Don't remove those subscriptions.
@@ -754,6 +767,7 @@ Game.Dialogue.Play(data)
 ```
 Esc in a level → PauseMenu.SetPaused(true): Game.Time.Pause(this), BlockGameplay, PauseChanged(true)
 Resume → reverse (Serenity's slow motion, if on, comes back). Restart / Back to hub → unpause, then load (SceneLoader also resets Game.Time).
+Restart = GameManager.RestartLevel(), the same reload dying does: Violet resumes at its last checkpoint.
 ```
 
 ---
@@ -877,7 +891,7 @@ Implement `IInputModifier`. Call `Game.Input.AddModifier(m)` when the effect sta
 
 ### Replace the placeholder UI
 Build the new HUD to listen to the same events (see the [§4](#4-event-reference) table) and read `Game.Progress`.
-Remove `DebugHud`, `DialogueView` and `PauseMenu` from `Bootstrapper`, or keep `DebugHud` behind `#if UNITY_EDITOR`.
+Remove `GameHud`, `DialogueView` and `PauseMenu` from `Bootstrapper` (`DevOverlay` is already editor / dev-build only).
 For a scene-based UI, put it in a prefab and add it to `[Systems]` in `Bootstrapper` with
 `Object.Instantiate(Resources.Load<GameObject>("UI"), systems.transform)`.
 
@@ -973,14 +987,14 @@ Put a `SceneMusic` in each scene. Give each `ColorData` a `musicLayer` stem with
 
 Useful habits:
 - Test in **Sandbox** for pure mechanics, and in `Level_<Color>` for flow.
-- Leave the **DebugHud** on. It shows HP, restored colors, active abilities and the boss phase.
+- Press **F12** for the **DevOverlay**: boss state, HP and phase, the player's abilities, time scale, input blocks, Violet's checkpoint.
 - If a change involves an event, check the [§4](#4-event-reference) table first so you know who else reacts to it.
 
 ---
 
 ## 10. Known limitations / TODO
 
-- **UI** is placeholder IMGUI, including the scene fade. Replace it when the art style is set.
+- **UI** is IMGUI drawn with `UiKit` (the scene fade is still a plain black IMGUI fade in `SceneLoader`).
 - **Recolorable** only tints. Proper desaturation needs a shader once the art style is decided.
 - **Rendering:** the project settings reference URP, but the URP package isn't installed, so rendering falls back to the built-in renderer.
   Install URP if you want 2D lights or post-processing.

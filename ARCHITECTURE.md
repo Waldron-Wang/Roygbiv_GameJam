@@ -21,7 +21,7 @@ flowchart TB
         DR[DialogueRunner]
         IN[InstructionRunner<br/>Tip button → how-to card]
         AM[AudioManager]
-        UI[Placeholder UI<br/>HUD · Dialogue box · Tip button + card · Pause · Serenity meter]
+        UI[UI, IMGUI in the UiKit look<br/>HUD + boss bar · Dialogue box · Tip button + card · Pause · Title card · Letterbox]
     end
 
     subgraph Scene["Current scene (one at a time)"]
@@ -80,7 +80,7 @@ Assets/_Project/
     ├── Dialogue/    DialogueData, DialogueRunner
     ├── Instructions/ InstructionData, InstructionRunner   (optional how-to cards, opened from the Tip button)
     ├── Audio/       AudioManager, SceneMusic
-    ├── UI/          placeholder IMGUI screens (replace once the art style is picked)
+    ├── UI/          IMGUI screens, all drawn with UiKit (one look: panels, notches, scanlines, keycaps) on a 1920×1080 canvas
     ├── Debug/       DebugCheats
     └── Editor/      SkeletonBuilder  (menu: ROYGBIV > Build Skeleton)
 ```
@@ -130,7 +130,7 @@ flowchart LR
         E7(InstructionShown / InstructionClosed)
     end
     subgraph Listeners
-        HUD[DebugHud]
+        HUD[GameHud]
         LCl[LevelController]
         GMl[GameManager]
         CW[ColorWorld]

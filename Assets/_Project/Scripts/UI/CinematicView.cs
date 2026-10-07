@@ -3,8 +3,9 @@ using UnityEngine;
 namespace Roygbiv
 {
     /// <summary>
-    /// PLACEHOLDER cinematic framing (IMGUI). It only LISTENS:
-    ///   CinematicChanged(true / false)  black letterbox bars slide in / out at the top and bottom.
+    /// Cinematic framing (IMGUI, UiKit look). It only LISTENS:
+    ///   CinematicChanged(true / false)  black letterbox bars slide in / out at the top and bottom, a thin line in the
+    ///                                   level's color along their inner edges, notches at its ends.
     ///   ScreenWipe(color, seconds)      a slanted band in that color sweeps across: it covers the screen by the halfway
     ///                                   point (when the level cuts to the next shot, with a bright flash), then uncovers.
     /// Drawn over the HUD (under the scene fade). Unscaled time.
@@ -81,14 +82,31 @@ namespace Roygbiv
                 }
             }
 
-            if (bars > 0f)
-            {
-                float b = h * barHeight * Mathf.SmoothStep(0f, 1f, bars);
-                GUI.color = Color.black;
-                GUI.DrawTexture(new Rect(0f, 0f, w, b), Texture2D.whiteTexture);
-                GUI.DrawTexture(new Rect(0f, h - b, w, b), Texture2D.whiteTexture);
-            }
             GUI.color = Color.white;
+            if (bars > 0f) DrawBars(w, h);
+        }
+
+        /// <summary>The letterbox in the UiKit look: black bars, faint scanlines, a thin line in the level's color along
+        /// their inner edges with notches at the ends.</summary>
+        void DrawBars(float w, float h)
+        {
+            float b = h * barHeight * Mathf.SmoothStep(0f, 1f, bars);
+            var accent = UiKit.CurrentAccent;
+            float ui = UiKit.CanvasScale;
+            var top = new Rect(0f, 0f, w, b);
+            var bottom = new Rect(0f, h - b, w, b);
+            CardGui.Alpha = 1f;
+            foreach (var bar in new[] { top, bottom })
+            {
+                CardGui.Box(bar, Color.black);
+                UiKit.Scanlines(bar, new Color(1f, 1f, 1f, 0.025f), 4f * ui, Mathf.Max(1f, ui));
+            }
+            float line = Mathf.Max(1f, 2f * ui), inset = 60f * ui, notch = 34f * ui;
+            var edgeColor = UiKit.WithAlpha(accent, 0.75f * bars);
+            CardGui.Box(new Rect(inset, top.yMax - line, w - inset * 2f, line), edgeColor);
+            CardGui.Box(new Rect(inset, bottom.y, w - inset * 2f, line), edgeColor);
+            UiKit.Notches(new Rect(inset, top.yMax - line, w - inset * 2f, bottom.y - top.yMax + line * 2f),
+                          UiKit.WithAlpha(accent, 0.9f * bars), notch, Mathf.Max(2f, 4f * ui));
         }
     }
 }
