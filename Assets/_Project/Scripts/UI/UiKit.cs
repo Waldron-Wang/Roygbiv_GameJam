@@ -40,6 +40,16 @@ namespace Roygbiv
         public static readonly Color Gray = new(0.42f, 0.44f, 0.49f);
         public static readonly Color Danger = new(1f, 0.32f, 0.32f);
 
+        // ---------- Text ----------
+
+        /// <summary>
+        /// Text sizes on the 1080p canvas. Nothing smaller than TextMin (~15 px on a 720p screen); TextLabel for labels
+        /// people need to read at a glance, TextTitle for headings. Only text of 28+ is letter-spaced.
+        /// </summary>
+        public const int TextMin = 22, TextLabel = 24, TextTitle = 30;
+        /// <summary>The thin dark outline behind Label text, so it reads over anything.</summary>
+        public static readonly Color TextShadow = new(0f, 0f, 0f, 0.85f);
+
         // One accent per color, by ColorId (the same hexes the Tip cards' captions use).
         static readonly Color[] Accents =
         {
@@ -208,7 +218,7 @@ namespace Roygbiv
         /// A header strip along the top of panel `p`: an accent wash, a line under it, a small tab and the title in
         /// spaced capitals. Returns the strip (for things on its right: a close X, a counter).
         /// </summary>
-        public static Rect Header(Rect p, string title, Color accent, float height = 46f, int size = 24)
+        public static Rect Header(Rect p, string title, Color accent, float height = 46f, int size = 24, bool spaced = true, bool readable = false)
         {
             accent.a = 1f;
             var header = new Rect(p.x + 2f, p.y + 2f, p.width - 4f, height);
@@ -216,8 +226,9 @@ namespace Roygbiv
             CardGui.Box(new Rect(p.x, header.yMax, p.width, 2f), WithAlpha(accent, 0.6f));
             float tab = height * 0.435f;
             CardGui.Box(new Rect(p.x + 22f, header.y + (height - tab) * 0.5f, 8f, tab), accent);
-            CardGui.Text(new Rect(p.x + 44f, header.y, p.width - 88f, header.height), Spaced(title.ToUpperInvariant()), size, accent,
-                         TextAnchor.MiddleLeft, FontStyle.Bold);
+            var text = new Rect(p.x + 44f, header.y, p.width - 88f, header.height);
+            if (readable) Label(text, title.ToUpperInvariant(), size, Color.Lerp(accent, Color.white, 0.25f), TextAnchor.MiddleLeft, true, spaced);
+            else CardGui.Text(text, spaced ? Spaced(title.ToUpperInvariant()) : title.ToUpperInvariant(), size, accent, TextAnchor.MiddleLeft, FontStyle.Bold);
             return header;
         }
 
@@ -225,26 +236,56 @@ namespace Roygbiv
         public static string Spaced(string s) => string.IsNullOrEmpty(s) ? s : string.Join(" ", s.ToCharArray());
 
         /// <summary>
-        /// A menu row: a dark slab with a gray line, or, selected, lit in the accent with a tab, notches and a chevron.
+        /// Readable UI text: never under TextMin, crisp (rasterized at its screen size on whole pixels by CardGui.Text),
+        /// with a thin dark outline. spaced: letter-spaced, but only if it's big enough (28+) to take it.
+        /// </summary>
+        public static void Label(Rect r, string text, int size, Color color, TextAnchor align = TextAnchor.MiddleCenter, bool bold = true, bool spaced = false)
+        {
+            size = Mathf.Max(TextMin, size);
+            if (spaced && size >= 28) text = Spaced(text);
+            CardGui.Text(r, text, size, color, align, bold ? FontStyle.Bold : FontStyle.Normal, false, TextShadow);
+        }
+
+        /// <summary>Width of a Label (canvas units).</summary>
+        public static float LabelWidth(string text, int size, bool bold = true) =>
+            CardGui.Measure(text, Mathf.Max(TextMin, size), bold ? FontStyle.Bold : FontStyle.Normal).x;
+
+        /// <summary>`r` moved onto whole screen pixels under the current GUI.matrix (scale + offset), so its edges stay crisp.</summary>
+        public static Rect Snap(Rect r)
+        {
+            var m = GUI.matrix;
+            Vector3 a = m.MultiplyPoint3x4(r.min), b = m.MultiplyPoint3x4(r.max);
+            var inv = m.inverse;
+            Vector2 ca = inv.MultiplyPoint3x4(new Vector3(Mathf.Round(a.x), Mathf.Round(a.y), 0f));
+            Vector2 cb = inv.MultiplyPoint3x4(new Vector3(Mathf.Round(b.x), Mathf.Round(b.y), 0f));
+            return Rect.MinMaxRect(ca.x, ca.y, cb.x, cb.y);
+        }
+
+        /// <summary>
+        /// A button: a dark slab with a thin line and small notches, its label centered in readable capitals; lit
+        /// (hovered, or chosen from the keyboard) it fills with the accent and gets a tab and bigger notches.
         /// The caller hit-tests `r` against View.Mouse.
         /// </summary>
-        public static void Button(Rect r, string label, Color accent, bool selected, bool enabled = true, int size = 26, float time = 0f)
+        public static void Button(Rect r, string label, Color accent, bool lit, bool enabled = true, int size = TextLabel, float time = 0f)
         {
             accent.a = 1f;
             float a = CardGui.Alpha;
             if (!enabled) CardGui.Alpha *= 0.45f;
-            CardGui.Box(r, new Color(0f, 0f, 0f, 0.4f));
-            if (selected)
+            r = Snap(r);
+            CardGui.Box(r, new Color(0f, 0f, 0f, 0.55f));
+            if (lit)
             {
-                CardGui.Box(r, WithAlpha(accent, 0.16f + 0.04f * Mathf.Sin(time * 4f)));
+                CardGui.Box(r, WithAlpha(accent, 0.2f + 0.05f * Mathf.Sin(time * 4f)));
                 CardGui.Box(new Rect(r.x, r.y, 6f, r.height), accent);
-                CardGui.Outline(r, WithAlpha(accent, 0.7f), 1.5f);
-                Notches(r, accent, 12f, 3f);
-                Chevron(new Vector2(r.x + 30f, r.center.y), r.height * 0.16f, accent);
+                CardGui.Outline(r, accent, 2f);
+                Notches(r, accent, Mathf.Min(16f, r.height * 0.3f), 3f);
             }
-            else CardGui.Outline(r, WithAlpha(Gray, 0.7f), 1.5f);
-            CardGui.Text(new Rect(r.x + 56f, r.y, r.width - 70f, r.height), Spaced(label.ToUpperInvariant()), size,
-                         selected ? TextColor : TextDim, TextAnchor.MiddleLeft, FontStyle.Bold);
+            else
+            {
+                CardGui.Outline(r, WithAlpha(accent, 0.5f), 1.5f);
+                Notches(r, WithAlpha(accent, 0.6f), Mathf.Min(10f, r.height * 0.2f), 2f);
+            }
+            Label(r, label.ToUpperInvariant(), size, lit ? Color.white : TextColor, TextAnchor.MiddleCenter, true, size >= 28);
             CardGui.Alpha = a;
         }
 
@@ -315,19 +356,59 @@ namespace Roygbiv
         /// </summary>
         public static void Gem(Vector2 c, float size, Color color, bool lit, float pulse = 0f)
         {
-            float side = size / 1.41421f;
+            var r = Snap(new Rect(c.x - size * 0.5f, c.y - size * 0.5f, size, size));
             if (lit)
             {
-                CardGui.Glow(c, size * (0.9f + 0.6f * pulse), WithAlpha(color, 0.3f + 0.35f * pulse));
-                CardGui.Diamond(c, side + 4f, new Color(0f, 0f, 0f, 0.6f));
-                CardGui.Diamond(c, side, color);
-                CardGui.Diamond(c + new Vector2(-size * 0.12f, -size * 0.12f), side * 0.35f, WithAlpha(Color.white, 0.55f));
+                CardGui.Glow(r.center, size * (0.9f + 0.6f * pulse), WithAlpha(color, 0.3f + 0.35f * pulse));
+                GemShape(Expand(r, 3f), new Color(0f, 0f, 0f, 0.7f));
+                GemShape(r, color);
+                GemShape(new Rect(r.x + r.width * 0.22f, r.y + r.height * 0.18f, r.width * 0.3f, r.height * 0.3f), WithAlpha(Color.white, 0.55f));
             }
             else
             {
-                CardGui.Diamond(c, side, WithAlpha(Gray, 0.85f));
-                CardGui.Diamond(c, side - 4f, new Color(0.06f, 0.07f, 0.09f, 0.95f));
+                GemShape(r, new Color(0.55f, 0.57f, 0.62f, 0.95f));
+                GemShape(Expand(r, -3.5f), new Color(0.06f, 0.07f, 0.09f, 0.95f));
             }
+        }
+
+        static Texture2D gem;
+
+        /// <summary>A white diamond filling its square, anti-aliased (made once).</summary>
+        static Texture2D GemTexture
+        {
+            get
+            {
+                if (gem) return gem;
+                const int size = 64, sub = 4;
+                gem = new Texture2D(size, size, TextureFormat.RGBA32, false)
+                {
+                    wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear, hideFlags = HideFlags.DontSave, name = "UiGem",
+                };
+                var pixels = new Color32[size * size];
+                for (int py = 0; py < size; py++)
+                for (int px = 0; px < size; px++)
+                {
+                    int inside = 0;
+                    for (int sy = 0; sy < sub; sy++)
+                    for (int sx = 0; sx < sub; sx++)
+                    {
+                        float x = (px + (sx + 0.5f) / sub) / size - 0.5f, y = (py + (sy + 0.5f) / sub) / size - 0.5f;
+                        if (Mathf.Abs(x) + Mathf.Abs(y) <= 0.5f) inside++;
+                    }
+                    pixels[py * size + px] = new Color32(255, 255, 255, (byte)(255 * inside / (sub * sub)));
+                }
+                gem.SetPixels32(pixels);
+                gem.Apply();
+                return gem;
+            }
+        }
+
+        static void GemShape(Rect r, Color c)
+        {
+            var prev = GUI.color;
+            GUI.color = new Color(c.r, c.g, c.b, c.a * CardGui.Alpha);
+            GUI.DrawTexture(r, GemTexture, ScaleMode.StretchToFill, true);
+            GUI.color = prev;
         }
 
         // ---------- The heart ----------
@@ -336,7 +417,11 @@ namespace Roygbiv
         static float heartBottom, heartTop; // the shape's rows in the texture (0 = bottom)
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetStatics() => heart = null;
+        static void ResetStatics()
+        {
+            heart = null;
+            gem = null;
+        }
 
         /// <summary>A white heart on a transparent square, anti-aliased (made once).</summary>
         static Texture2D HeartTexture
@@ -497,22 +582,47 @@ namespace Roygbiv
             _ => new AbilityInfo(new string[0], "", "", null),
         };
 
-        /// <summary>Keycaps side by side with a "+" between (Down + Shift), left edge at x; returns the width.</summary>
-        public static float Keys(IReadOnlyList<string> keys, float x, float centerY, float height, float press, Color accent, bool draw = true)
+        /// <summary>
+        /// Keycaps side by side with a "+" between (Down + Shift), left edge at x; returns the width. fontSize &gt; 0: the
+        /// caps' labels (and the "+", and `tag` after them: "HOLD", "x2") at that size at least, for the HUD.
+        /// </summary>
+        public static float Keys(IReadOnlyList<string> keys, float x, float centerY, float height, float press, Color accent, bool draw = true,
+                                 int fontSize = 0, string tag = null)
         {
             float gap = height * 0.45f, at = x;
             for (int i = 0; i < keys.Count; i++)
             {
                 if (i > 0)
                 {
-                    if (draw) CardGui.Text(new Rect(at, centerY - height * 0.5f, gap, height), "+", Mathf.RoundToInt(height * 0.5f), TextDim, TextAnchor.MiddleCenter, FontStyle.Bold);
+                    if (draw)
+                    {
+                        if (fontSize > 0) Label(new Rect(at, centerY - height * 0.5f, gap, height), "+", fontSize, TextColor);
+                        else CardGui.Text(new Rect(at, centerY - height * 0.5f, gap, height), "+", Mathf.RoundToInt(height * 0.5f), TextDim, TextAnchor.MiddleCenter, FontStyle.Bold);
+                    }
                     at += gap;
                 }
-                float w = CardGui.KeyWidth(keys[i], height);
-                if (draw) CardGui.Key(new Rect(at, centerY - height * 0.5f, w, height), keys[i], press, accent);
+                float scale = fontSize > 0 ? KeyLabelScale(keys[i], height, fontSize) : 1f;
+                float w = CardGui.KeyWidth(keys[i], height, scale);
+                if (draw) CardGui.Key(Snap(new Rect(at, centerY - height * 0.5f, w, height)), keys[i], press, accent, scale);
                 at += w;
             }
+            if (!string.IsNullOrEmpty(tag))
+            {
+                at += 8f;
+                float tw = LabelWidth(tag, fontSize > 0 ? fontSize : TextMin);
+                if (draw) Label(new Rect(at, centerY - height * 0.5f, tw + 2f, height), tag, fontSize > 0 ? fontSize : TextMin,
+                                Color.Lerp(accent, Color.white, 0.5f), TextAnchor.MiddleLeft);
+                at += tw;
+            }
             return at - x;
+        }
+
+        /// <summary>The labelScale that puts a keycap's label at `fontSize` (single glyphs a little bigger).</summary>
+        static float KeyLabelScale(string key, float height, int fontSize)
+        {
+            var label = CardGui.KeyLabel(key);
+            float natural = height * (label.Length <= 1 ? 0.5f : 0.36f);
+            return Mathf.Max(1f, (label.Length <= 1 ? fontSize * 1.15f : fontSize) / natural);
         }
 
         // ---------- Helpers ----------

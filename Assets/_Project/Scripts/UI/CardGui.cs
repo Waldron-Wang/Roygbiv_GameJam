@@ -237,29 +237,60 @@ namespace Roygbiv
         }
 
         /// <param name="wrap">Break lines to fit r's width (dialogue); otherwise one line that may overflow.</param>
+        /// <param name="shadow">A 1-pixel outline in this color behind the text (UiKit.Label's high-contrast look). Null = none.</param>
         public static void Text(Rect r, string text, int size, Color c, TextAnchor align = TextAnchor.MiddleCenter, FontStyle fontStyle = FontStyle.Normal,
-                                bool wrap = false)
+                                bool wrap = false, Color? shadow = null)
         {
+            if (string.IsNullOrEmpty(text)) return;
             var canvas = GUI.matrix;
             float s = CanvasScale;
             Vector2 min = canvas.MultiplyPoint3x4(r.min), max = canvas.MultiplyPoint3x4(r.max);
             var st = Style(ScreenFontSize(size, s), fontStyle, align, wrap);
-            // Same color in every state: GUI.Label draws the hover state under the mouse, and the skin's hover
-            // color (near white) would otherwise make text change, or vanish on a light fill, when hovered.
-            st.normal.textColor = st.hover.textColor = st.active.textColor = st.focused.textColor = c;
+            var screen = Rect.MinMaxRect(Mathf.Round(min.x), Mathf.Round(min.y), Mathf.Round(max.x), Mathf.Round(max.y));
+
+            // One line: place it on whole screen pixels ourselves. Aligned inside the rect by GUI.Label, a centered line
+            // can land on a half pixel, and the glyphs come out soft.
+            if (!wrap && text.IndexOf('\n') < 0)
+            {
+                var content = st.CalcSize(new GUIContent(text));
+                int h = (int)align % 3, v = (int)align / 3; // TextAnchor: Upper/Middle/Lower x Left/Center/Right
+                float x = h == 0 ? screen.x : h == 1 ? screen.center.x - content.x * 0.5f : screen.xMax - content.x;
+                float y = v == 0 ? screen.y : v == 1 ? screen.center.y - content.y * 0.5f : screen.yMax - content.y;
+                screen = new Rect(Mathf.Round(x), Mathf.Round(y), Mathf.Ceil(content.x) + 1f, Mathf.Ceil(content.y) + 1f);
+                st.alignment = TextAnchor.UpperLeft;
+            }
+
             var prevColor = GUI.color;
-            GUI.color = new Color(1f, 1f, 1f, Alpha); // also fades <color=...> runs, which ignore textColor
             GUI.matrix = Matrix4x4.identity;
-            GUI.Label(Rect.MinMaxRect(Mathf.Round(min.x), Mathf.Round(min.y), Mathf.Round(max.x), Mathf.Round(max.y)), text, st);
+            if (shadow is { } sc)
+            {
+                string plain = text.IndexOf('<') >= 0 ? RichTag.Replace(text, "") : text;
+                SetColor(st, sc);
+                GUI.color = new Color(1f, 1f, 1f, Alpha * Alpha);
+                float d = Mathf.Max(1f, Mathf.Round(s * 1.25f)); // 1 px at 1080p
+                foreach (var o in new[] { new Vector2(-d, 0f), new Vector2(d, 0f), new Vector2(0f, -d), new Vector2(0f, d), new Vector2(d, d) })
+                    GUI.Label(new Rect(screen.x + o.x, screen.y + o.y, screen.width, screen.height), plain, st);
+            }
+            SetColor(st, c);
+            GUI.color = new Color(1f, 1f, 1f, Alpha); // also fades <color=...> runs, which ignore textColor
+            GUI.Label(screen, text, st);
             GUI.matrix = canvas;
             GUI.color = prevColor;
         }
+
+        static readonly Regex RichTag = new(@"<[^>]+>");
+
+        // Same color in every state: GUI.Label draws the hover state under the mouse, and the skin's hover
+        // color (near white) would otherwise make text change, or vanish on a light fill, when hovered.
+        static void SetColor(GUIStyle st, Color c) =>
+            st.normal.textColor = st.hover.textColor = st.active.textColor = st.focused.textColor = c;
 
         // ---------- Keys ----------
 
         static bool IsMouse(string key) => key is "LMB" or "RMB";
 
-        static string KeyLabel(string key) => key switch
+        /// <summary>What a key's cap says: arrows for Left / Right / Up / Down, the name otherwise.</summary>
+        public static string KeyLabel(string key) => key switch
         {
             "Left" => "←", "Right" => "→", "Up" => "↑", "Down" => "↓",
             _ => key,

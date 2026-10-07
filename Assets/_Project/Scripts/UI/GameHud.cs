@@ -6,12 +6,14 @@ namespace Roygbiv
     /// <summary>
     /// The in-level HUD, in the UiKit look. It only LISTENS to GameEvents and READS state; it never drives gameplay.
     ///   Top left, a panel in the level's color:
-    ///     HP          slanted pips; a lost one flashes, the last one blinks red.
-    ///     Colors      the seven gems in play order: restored ones lit (a new one pops), this level's marked.
-    ///     Abilities   one keycap per ability with its keys (as InputReader binds them): dim while locked; when Green
-    ///                 steals one it flashes red and stays struck through until it's returned (then it pops).
+    ///     HP          pips; a lost one flashes, the last one blinks red.
+    ///     Colors      a little heart and the seven gems in play order: restored ones lit (a new one pops), this level's marked.
+    ///     Abilities   a slot per ability you HAVE, three to a row, appearing one by one as they're unlocked (with a glow);
+    ///                 a big keycap with its keys (as InputReader binds them) and its name under it. When Green steals one
+    ///                 it flashes red and stays struck through until it's returned (then it pops). The panel grows to fit.
     ///     Serenity    once unlocked: a segmented meter, ACTIVE (draining) / RECHARGING (filling) / READY [Q];
     ///                 a press that's refused shakes it red.
+    ///   Its text is UiKit.Label (22+ px on the 1080p canvas, outlined, on whole pixels); shapes are snapped to pixels.
     ///   Top center, while a boss is fighting: its name in its color, HP segments with a tick at every phase threshold
     ///   (damage trails behind), or catch pips for the bosses you catch (Orange, Blue). Red adds its rage meter (blinking
     ///   OVERHEAT), Green shows what it's holding. Violet's appears for the duel (its run isn't a BossBase fight).
@@ -99,6 +101,7 @@ namespace Roygbiv
             boss = null;
             bossSeen = 0f;
             hpMax = 0;
+            panelHeight = -1f;
             stolen.Clear();
             stolenAt.Clear();
             returnedAt.Clear();
@@ -186,118 +189,128 @@ namespace Roygbiv
 
         // ---------- Player ----------
 
+        const float PanelWidth = 472f, SlotWidth = 144f, SlotHeight = 92f, KeyHeight = 40f, GridTop = 116f;
+        float panelHeight = -1f;
+
         void DrawPlayerPanel(Vector2 at, Color accent)
         {
             var pc = PlayerController.Instance;
-            var abilities = AbilityList();
+            // Only what the player has (stolen counts: it's still theirs), in the order the colors grant them.
+            var have = new List<AbilityId>();
+            foreach (var id in AbilityList())
+                if (stolen.Contains(id) || (pc && pc.Loadout != null && pc.Loadout.Has(id))) have.Add(id);
             bool hasSerenity = serenity != SerenityState.Unavailable;
+            int rows = (have.Count + 2) / 3;
 
-            // Ability slots size themselves to their keys and labels.
-            const float keyH = 30f;
-            float slotsWidth = 0f;
-            var widths = new float[abilities.Count];
-            for (int i = 0; i < abilities.Count; i++)
-            {
-                var info = UiKit.Ability(abilities[i]);
-                widths[i] = Mathf.Max(UiKit.Keys(info.Keys, 0f, 0f, keyH, 0f, accent, false), CardGui.Measure(info.Short, 11, FontStyle.Bold).x) + 16f;
-                slotsWidth += widths[i];
-            }
-
-            float width = Mathf.Max(400f, slotsWidth + 40f);
-            float height = 168f + (hasSerenity ? 40f : 0f);
-            var panel = new Rect(at.x, at.y, width, height);
-            UiKit.Panel(panel, accent, -1f, 16f, 0.8f);
+            // The panel grows (smoothly) when a new row of abilities appears.
+            float target = GridTop + rows * SlotHeight + (hasSerenity ? 50f : 0f) + 8f;
+            panelHeight = panelHeight < 0f ? target : Mathf.MoveTowards(panelHeight, target, Time.unscaledDeltaTime * 500f);
+            var panel = UiKit.Snap(new Rect(at.x, at.y, PanelWidth, panelHeight));
+            UiKit.Panel(panel, accent, -1f, 16f, 0.82f);
             float x = panel.x + 20f;
 
             // HP.
-            float rowY = panel.y + 26f;
-            Label(new Rect(x, rowY - 12f, 40f, 24f), "HP");
+            float rowY = panel.y + 36f;
+            UiKit.Label(new Rect(x, rowY - 18f, 52f, 36f), "HP", UiKit.TextLabel, UiKit.TextColor, TextAnchor.MiddleLeft);
             if (hpMax > 0)
             {
                 float since = Now - hpHitAt;
-                var shake = since < 0.3f ? new Vector2(Mathf.Sin(since * 90f), 0f) * 4f * (1f - since / 0.3f) : Vector2.zero;
+                float shake = since < 0.3f ? Mathf.Sin(since * 90f) * 4f * (1f - since / 0.3f) : 0f;
                 bool critical = hp <= 1 && hp > 0;
                 for (int i = 0; i < hpMax; i++)
                 {
-                    var pip = new Rect(x + 48f + i * 34f, rowY - 9f, 26f, 18f);
-                    pip.position += shake;
-                    UiKit.Slanted(UiKit.Expand(pip, 2f), new Color(0f, 0f, 0f, 0.6f));
+                    var pip = UiKit.Snap(new Rect(x + 58f + i * 36f + shake, rowY - 10f, 28f, 20f));
+                    CardGui.Box(UiKit.Snap(UiKit.Expand(pip, 2f)), new Color(0f, 0f, 0f, 0.75f));
                     bool full = i < hp;
                     bool justLost = !full && i < lastHp && since < 0.45f;
                     Color c;
                     if (justLost) c = Color.Lerp(Color.white, UiKit.Danger, since / 0.45f);
-                    else if (!full) c = new Color(0.16f, 0.17f, 0.2f, 0.9f);
+                    else if (!full) c = new Color(0.2f, 0.21f, 0.25f, 0.95f);
                     else if (critical) c = Color.Lerp(UiKit.Danger, Color.white, Blink(2.5f) * 0.6f);
-                    else c = Color.Lerp(UiKit.TextColor, accent, 0.25f);
-                    UiKit.Slanted(pip, c);
+                    else c = Color.Lerp(UiKit.TextColor, accent, 0.2f);
+                    CardGui.Box(pip, c);
+                    if (full && !justLost) CardGui.Box(new Rect(pip.x, pip.y, pip.width, 3f), UiKit.WithAlpha(Color.white, 0.45f));
                 }
             }
 
-            // The seven colors, in play order.
-            rowY = panel.y + 66f;
-            var bands = new Color[UiKit.Spectrum.Length]; // a little heart, filled with what's been restored
+            // The seven colors, in play order, after a little heart filled with what's been restored.
+            rowY = panel.y + 82f;
+            var bands = new Color[UiKit.Spectrum.Length];
             for (int i = 0; i < bands.Length; i++) bands[i] = UiKit.Restored(UiKit.Spectrum[i]) ? UiKit.Accent(UiKit.Spectrum[i]) : UiKit.Gray;
-            UiKit.Heart(new Rect(x + 2f, rowY - 13f, 28f, 26f), bands, UiKit.WithAlpha(accent, 0.6f), 1f);
+            UiKit.Heart(UiKit.Snap(new Rect(x + 2f, rowY - 15f, 32f, 30f)), bands, UiKit.WithAlpha(accent, 0.6f), 1f);
             var order = Game.Config ? Game.Config.colorOrder : null;
             for (int i = 0; order != null && i < order.Count; i++)
             {
                 var data = order[i];
                 if (!data) continue;
-                var c = new Vector2(x + 58f + i * 30f, rowY);
+                var c = new Vector2(x + 64f + i * 34f, rowY);
                 bool lit = UiKit.Restored(data.id);
                 float pop = restoredAt.TryGetValue(data.id, out var t) ? Mathf.Clamp01(1f - (Now - t) / 1.5f) : 0f;
                 bool here = LevelController.Current && LevelController.Current.Color == data.id;
-                UiKit.Gem(c, 22f, UiKit.Accent(data.id), lit, pop + (here && lit ? 0.3f : 0f));
-                if (here) CardGui.Box(new Rect(c.x - 7f, c.y + 15f, 14f, 3f), UiKit.Accent(data.id));
+                UiKit.Gem(c, 26f, UiKit.Accent(data.id), lit, pop + (here && lit ? 0.3f : 0f));
+                if (here) CardGui.Box(UiKit.Snap(new Rect(c.x - 8f, c.y + 17f, 16f, 3f)), UiKit.Accent(data.id));
             }
 
-            // Abilities: keycaps with their keys, in the order the colors grant them.
-            rowY = panel.y + 116f;
-            float sx = x;
-            for (int i = 0; i < abilities.Count; i++)
+            // Abilities: three to a row, each appearing when it's unlocked.
+            float gridTop = panel.y + GridTop;
+            for (int i = 0; i < have.Count; i++)
             {
-                var id = abilities[i];
-                var info = UiKit.Ability(id);
-                bool isStolen = stolen.Contains(id);
-                bool owned = pc && pc.Loadout != null && pc.Loadout.Has(id);
-                float slot = widths[i];
-                float keysW = UiKit.Keys(info.Keys, 0f, 0f, keyH, 0f, accent, false);
-                float kx = sx + (slot - keysW) * 0.5f;
-                var center = new Vector2(sx + slot * 0.5f, rowY);
-
-                float a = CardGui.Alpha;
-                if (!owned && !isStolen) CardGui.Alpha *= 0.28f;
-                float stolenFlash = isStolen && stolenAt.TryGetValue(id, out var st) ? Mathf.Clamp01(1f - (Now - st) / 0.6f) : 0f;
-                if (isStolen) CardGui.Glow(center, 34f, UiKit.WithAlpha(UiKit.Danger, 0.25f + 0.5f * stolenFlash));
-                UiKit.Keys(info.Keys, kx, rowY, keyH, 0f, isStolen ? UiKit.Danger : accent);
-                if (isStolen)
-                {
-                    CardGui.Box(new Rect(kx - 2f, rowY - keyH * 0.5f, keysW + 4f, keyH), UiKit.WithAlpha(UiKit.Danger, 0.35f));
-                    CardGui.Line(new Vector2(kx - 4f, rowY + keyH * 0.5f + 2f), new Vector2(kx + keysW + 4f, rowY - keyH * 0.5f - 2f), 3f, UiKit.Danger);
-                }
-                if (!string.IsNullOrEmpty(info.Tag) && owned)
-                    CardGui.Text(new Rect(kx + keysW - 6f, rowY - keyH * 0.5f - 12f, 40f, 14f), info.Tag, 10, accent, TextAnchor.MiddleLeft, FontStyle.Bold);
-                string label = isStolen ? "STOLEN" : info.Short;
-                var labelColor = isStolen ? Color.Lerp(UiKit.Danger, Color.white, Blink(2f) * 0.4f) : UiKit.TextDim;
-                CardGui.Text(new Rect(sx, rowY + keyH * 0.5f + 2f, slot, 16f), label, 11, labelColor, TextAnchor.MiddleCenter, FontStyle.Bold);
-                CardGui.Alpha = a;
-
-                float back = returnedAt.TryGetValue(id, out var rt) ? (Now - rt) / 0.5f : 2f;
-                float fresh = unlockedAt.TryGetValue(id, out var ut) ? (Now - ut) / 0.8f : 2f;
-                float pop = Mathf.Min(back, fresh);
-                if (pop >= 0f && pop < 1f) CardGui.Ring(center, 18f + 30f * pop, 3f * (1f - pop) + 1f, UiKit.WithAlpha(accent, 1f - pop));
-                sx += slot;
+                var slot = new Rect(x + (i % 3) * SlotWidth, gridTop + (i / 3) * SlotHeight, SlotWidth, SlotHeight);
+                if (slot.yMax > panel.yMax + 4f) continue; // its row is still opening
+                DrawSlot(have[i], slot, accent);
             }
 
-            if (hasSerenity) DrawSerenity(new Rect(x, panel.y + 160f, width - 40f, 30f));
+            if (hasSerenity)
+            {
+                var row = new Rect(x, gridTop + rows * SlotHeight + 4f, PanelWidth - 40f, 40f);
+                if (row.yMax <= panel.yMax + 4f) DrawSerenity(row);
+            }
+        }
+
+        /// <summary>One ability: its keycap(s) (+ HOLD / x2) and its name under them, or STOLEN in red.</summary>
+        void DrawSlot(AbilityId id, Rect slot, Color accent)
+        {
+            var info = UiKit.Ability(id);
+            bool isStolen = stolen.Contains(id);
+            var keyColor = isStolen ? UiKit.Danger : accent;
+
+            // As big as fits the slot.
+            float h = KeyHeight, width = UiKit.Keys(info.Keys, 0f, 0f, h, 0f, keyColor, false, UiKit.TextMin, info.Tag);
+            for (int k = 0; k < 3 && width > slot.width - 8f; k++)
+            {
+                h = Mathf.Max(30f, h * (slot.width - 8f) / width);
+                width = UiKit.Keys(info.Keys, 0f, 0f, h, 0f, keyColor, false, UiKit.TextMin, info.Tag);
+            }
+            float keyY = slot.y + 28f;
+            float kx = slot.center.x - width * 0.5f;
+            var center = new Vector2(slot.center.x, keyY);
+
+            // A newly unlocked one fades in; the glow ring below marks it.
+            float a = CardGui.Alpha;
+            if (unlockedAt.TryGetValue(id, out var ut)) CardGui.Alpha *= Mathf.Clamp01((Now - ut) / 0.35f);
+            float stolenFlash = isStolen && stolenAt.TryGetValue(id, out var st) ? Mathf.Clamp01(1f - (Now - st) / 0.6f) : 0f;
+            if (isStolen) CardGui.Glow(center, 40f, UiKit.WithAlpha(UiKit.Danger, 0.25f + 0.5f * stolenFlash));
+            UiKit.Keys(info.Keys, kx, keyY, h, 0f, keyColor, true, UiKit.TextMin, info.Tag);
+            if (isStolen)
+            {
+                float keysOnly = UiKit.Keys(info.Keys, 0f, 0f, h, 0f, keyColor, false, UiKit.TextMin);
+                CardGui.Line(new Vector2(kx - 4f, keyY + h * 0.5f + 2f), new Vector2(kx + keysOnly + 4f, keyY - h * 0.5f - 2f), 3f, UiKit.Danger);
+            }
+            var nameColor = isStolen ? Color.Lerp(UiKit.Danger, Color.white, Blink(2f) * 0.35f) : UiKit.TextColor;
+            UiKit.Label(new Rect(slot.x, slot.y + 52f, slot.width, 32f), isStolen ? "STOLEN" : info.Short, UiKit.TextMin, nameColor);
+            CardGui.Alpha = a;
+
+            float back = returnedAt.TryGetValue(id, out var rt) ? (Now - rt) / 0.5f : 2f;
+            float fresh = unlockedAt.TryGetValue(id, out var ut2) ? (Now - ut2) / 0.8f : 2f;
+            float pop = Mathf.Min(back, fresh);
+            if (pop >= 0f && pop < 1f) CardGui.Ring(center, 22f + 36f * pop, 3f * (1f - pop) + 1f, UiKit.WithAlpha(accent, 1f - pop));
         }
 
         void DrawSerenity(Rect row)
         {
             var core = new Color(0.48f, 0.42f, 1f);
             float denied = Mathf.Clamp01(1f - (Now - deniedAt) / 0.35f);
-            float shake = denied * Mathf.Sin(Now * 70f) * 5f;
-            row.x += shake;
+            row.x += denied * Mathf.Sin(Now * 70f) * 5f;
 
             Color fill;
             string state;
@@ -309,7 +322,7 @@ namespace Roygbiv
                     state = "ACTIVE";
                     break;
                 case SerenityState.Recharging:
-                    fill = new Color(0.34f, 0.32f, 0.5f);
+                    fill = new Color(0.4f, 0.38f, 0.58f);
                     state = "RECHARGING";
                     break;
                 default:
@@ -320,18 +333,14 @@ namespace Roygbiv
             }
             fill = Color.Lerp(fill, UiKit.Danger, denied);
 
-            Label(new Rect(row.x, row.y, 120f, row.height), "SERENITY", 13);
-            var bar = new Rect(row.x + 112f, row.center.y - 6f, 150f, 12f);
-            if (serenity == SerenityState.Ready) CardGui.Glow(bar.center, 100f, UiKit.WithAlpha(core, 0.15f + 0.1f * pulse));
-            UiKit.SegmentBar(bar, serenityFraction, 12, fill, new Color(0.12f, 0.12f, 0.18f, 0.9f), 3f);
-            float textX = bar.xMax + 12f;
-            CardGui.Text(new Rect(textX, row.y, 120f, row.height), state, 13, serenity == SerenityState.Recharging ? UiKit.TextDim : fill,
-                         TextAnchor.MiddleLeft, FontStyle.Bold);
+            var bar = UiKit.Snap(new Rect(row.x, row.center.y - 7f, 220f, 14f));
+            if (serenity == SerenityState.Ready) CardGui.Glow(bar.center, 120f, UiKit.WithAlpha(core, 0.15f + 0.1f * pulse));
+            UiKit.SegmentBar(bar, serenityFraction, 12, fill, new Color(0.14f, 0.14f, 0.2f, 0.95f), 3f);
+            float textX = bar.xMax + 14f;
+            var textColor = serenity == SerenityState.Recharging ? UiKit.TextColor : Color.Lerp(fill, Color.white, 0.4f);
+            UiKit.Label(new Rect(textX, row.y, 170f, row.height), state, UiKit.TextMin, textColor, TextAnchor.MiddleLeft);
             if (serenity == SerenityState.Ready)
-            {
-                float w = CardGui.Measure(state, 13, FontStyle.Bold).x;
-                CardGui.Key(new Rect(textX + w + 10f, row.center.y - 12f, CardGui.KeyWidth("Q", 24f), 24f), "Q", 0f, core);
-            }
+                UiKit.Keys(new[] { "Q" }, textX + UiKit.LabelWidth(state, UiKit.TextMin) + 12f, row.center.y, 34f, 0f, core, true, UiKit.TextMin);
         }
 
         /// <summary>The abilities the colors grant, in play order (Violet grants none).</summary>
@@ -434,9 +443,6 @@ namespace Roygbiv
         }
 
         // ---------- Helpers ----------
-
-        static void Label(Rect r, string text, int size = 14) =>
-            CardGui.Text(r, UiKit.Spaced(text), size, UiKit.TextDim, TextAnchor.MiddleLeft, FontStyle.Bold);
 
         /// <summary>0..1..0 at `hz` blinks a second (kept under ~3 for comfort).</summary>
         static float Blink(float hz) => 0.5f + 0.5f * Mathf.Sin(Now * hz * Mathf.PI * 2f);

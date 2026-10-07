@@ -5,32 +5,39 @@ namespace Roygbiv
 {
     /// <summary>
     /// The hub, where you choose the next district (IMGUI, UiKit look). Lives in the Hub scene; it only reads the save
-    /// and calls Game.Manager.EnterLevel / ReturnToMenu.
+    /// and calls Game.Manager (EnterLevel, ReturnToMenu, NewGame to reset).
     ///   The heart, in the middle: seven bands (red at the top to violet at the tip), gray until that color is restored.
     ///   It beats slowly; the next color to reclaim flickers in its band (GlitchClock); the selected district's band
-    ///   lights up and is named beside it. Under it: "3 / 7 COLORS RESTORED".
-    ///   The districts, a row of cards in play order, each framed in its color: locked = gray and static-y (and why),
-    ///   available = its color around a gray boss (the color isn't back yet), restored = full color, gem lit.
-    ///   The selected card grows into a preview: the boss (DemoBosses.Portrait), its emotion, the reward's keys and
-    ///   what to do. A "NEXT" tag marks the color to reclaim.
+    ///   lights up and is named beside it. Under it: "N / 7" COLORS RESTORED.
+    ///   The districts, a row of cards in play order, each framed in its color, showing only its name and number, its
+    ///   boss and its state: locked = gray and static-y (and why), available = its color around a gray boss (the color
+    ///   isn't back yet), restored = full color, gem lit. The selected card grows. A "NEXT" tag marks the color to reclaim.
     ///   Ambience: a night backdrop that picks up the restored colors, slow dust, faint scanlines, frame corners.
-    ///   Input: Left / Right (or hovering) selects with a little glitch slide; Z / Enter (or a click) enters; Esc or the
-    ///   button goes back to the main menu. Unscaled time.
+    ///   Corners: "Main menu" (bottom left) and a quiet "Reset progress" (bottom right) that asks before erasing the save.
+    /// Made for the mouse: hover selects (with a little glitch slide), a click enters. The keyboard works too, silently
+    /// (Left / Right, Z / Enter, Esc). Every label is UiKit.Label: big enough, outlined, crisp. HubTitle isn't drawn.
     /// </summary>
     public class HubScreen : MonoBehaviour
     {
-        const float CardW = 196f, CardH = 300f, FocusW = 344f, FocusH = 446f, Gap = 16f, CardsBottom = 1000f;
+        const float CardW = 196f, CardH = 300f, FocusW = 344f, FocusH = 420f, Gap = 16f, CardsBottom = 996f;
         static readonly Color LockedColor = new(0.34f, 0.35f, 0.39f);
+        static readonly Color LockedText = new(0.78f, 0.8f, 0.84f);
         static readonly Color GrayBand = new(0.2f, 0.21f, 0.25f);
+        static readonly Rect MenuButton = new(56f, 1010f, 250f, 52f);
+        static readonly Rect ResetButton = new(1920f - 56f - 250f, 1010f, 250f, 52f);
+        static readonly Rect Dialog = new(960f - 420f, 540f - 170f, 840f, 340f);
+        static readonly Rect EraseButton = new(Dialog.x + 50f, Dialog.yMax - 116f, 430f, 76f);
+        static readonly Rect CancelButton = new(Dialog.xMax - 50f - 270f, Dialog.yMax - 116f, 270f, 76f);
 
         readonly MenuNav nav = new();
         readonly GlitchClock heartGlitch = new() { MinGap = 1.5f, MaxGap = 3.4f };
         readonly GlitchClock cardGlitch = new() { MinGap = 0f, MaxGap = 0f }; // kicked by hand, on each new selection
         int selected = -1;
         float[] focus = new float[0];
-        float openedAt = -1f, lockedAt = -10f, enterAt = -10f;
+        float openedAt = -1f, lockedAt = -10f, enterAt = -10f, dialogAt = -10f;
         Vector2 lastMouse;
-        bool entering;
+        bool entering, confirming;
+        int choice = 1; // in the dialog: 0 = erase, 1 = cancel (the safe one)
 
         static float Now => Time.unscaledTime;
         static List<ColorData> Order => Game.Config ? Game.Config.colorOrder : null;
@@ -52,9 +59,16 @@ namespace Roygbiv
             for (int i = 0; i < focus.Length; i++) focus[i] = Mathf.MoveTowards(focus[i], i == selected ? 1f : 0f, dt / 0.2f);
 
             if (!Game.Input || entering || Game.Scenes.IsLoading) return;
-            int step = nav.Step(Game.Input.Navigate.x);
-            if (step != 0) Select(Mathf.Clamp(selected + step, 0, order.Count - 1));
             var intent = Game.Input.Intent;
+            int step = nav.Step(Game.Input.Navigate.x);
+            if (confirming)
+            {
+                if (step != 0) choice = Mathf.Clamp(choice + step, 0, 1);
+                if (intent.confirmPressed && Now - dialogAt > 0.3f) Answer(choice == 0);
+                else if (intent.pausePressed) Answer(false);
+                return;
+            }
+            if (step != 0) Select(Mathf.Clamp(selected + step, 0, order.Count - 1));
             if (intent.confirmPressed && Now - openedAt > 0.3f) Enter(selected);
             else if (intent.pausePressed) Game.Manager.ReturnToMenu();
         }
@@ -93,6 +107,22 @@ namespace Roygbiv
             Game.Manager.EnterLevel(data.id);
         }
 
+        void OpenDialog()
+        {
+            confirming = true;
+            choice = 1;
+            dialogAt = Now;
+        }
+
+        void Answer(bool erase)
+        {
+            confirming = false;
+            if (!erase) return;
+            entering = true; // ignore input while the hub reloads
+            enterAt = -10f;  // (no "entering" flash on a card)
+            Game.Manager.NewGame(); // wipes the save and comes back to a fresh hub
+        }
+
         // ---------- Drawing ----------
 
         void OnGUI()
@@ -103,36 +133,54 @@ namespace Roygbiv
             var full = UiKit.Fill();
             var view = UiKit.Fit();
             var cards = CardRects(order.Count);
-            var menuButton = new Rect(56f, 1014f, 240f, 44f);
+            var mouse = view.Mouse;
 
             if (e.type == EventType.MouseDown && e.button == 0 && !entering)
             {
+                if (confirming)
+                {
+                    if (EraseButton.Contains(mouse)) Answer(true);
+                    else if (CancelButton.Contains(mouse)) Answer(false);
+                    e.Use();
+                    return;
+                }
                 for (int i = 0; i < cards.Length; i++)
-                    if (cards[i].Contains(view.Mouse)) { Select(i); Enter(i); e.Use(); return; }
-                if (menuButton.Contains(view.Mouse)) { Game.Manager.ReturnToMenu(); e.Use(); return; }
+                    if (cards[i].Contains(mouse)) { Select(i); Enter(i); e.Use(); return; }
+                if (MenuButton.Contains(mouse)) { Game.Manager.ReturnToMenu(); e.Use(); return; }
+                if (ResetButton.Contains(mouse)) { OpenDialog(); e.Use(); return; }
             }
             if (e.type != EventType.Repaint) return;
-            bool moved = (view.Mouse - lastMouse).sqrMagnitude > 1f;
-            lastMouse = view.Mouse;
+            bool moved = (mouse - lastMouse).sqrMagnitude > 1f;
+            lastMouse = mouse;
             if (moved && !entering)
-                for (int i = 0; i < cards.Length; i++)
-                    if (cards[i].Contains(view.Mouse)) Select(i);
+            {
+                if (confirming)
+                {
+                    if (EraseButton.Contains(mouse)) choice = 0;
+                    else if (CancelButton.Contains(mouse)) choice = 1;
+                }
+                else
+                    for (int i = 0; i < cards.Length; i++)
+                        if (cards[i].Contains(mouse)) Select(i);
+            }
 
             full.Begin();
             DrawBackdrop(full.Rect);
 
             view.Begin();
             CardGui.Alpha = UiKit.Smooth((Now - openedAt) / 0.6f);
-            UiKit.Notches(new Rect(36f, 30f, 1848f, 1020f), UiKit.WithAlpha(UiKit.Neutral, 0.3f), 44f, 3f);
-            DrawTitle();
+            UiKit.Notches(new Rect(24f, 18f, 1872f, 1050f), UiKit.WithAlpha(UiKit.Neutral, 0.3f), 44f, 3f);
             int next = NextIndex(order);
             DrawHeart(order, next);
             for (int i = 0; i < order.Count; i++)
                 if (i != selected) DrawCard(order, i, cards[i], next);
             DrawCard(order, selected, cards[selected], next); // the selected one in front
 
-            UiKit.Button(menuButton, "Main menu", UiKit.Neutral, menuButton.Contains(view.Mouse), true, 16, Now);
-            UiKit.Hint(new Vector2(1080f, 1036f), "[Left] [Right] Select   [Z] Enter   [Esc] Main menu", UiKit.Neutral, 20, 0.85f);
+            bool free = !confirming && !entering;
+            UiKit.Button(MenuButton, "Main menu", UiKit.Neutral, free && MenuButton.Contains(mouse), true, UiKit.TextMin, Now);
+            UiKit.Button(ResetButton, "Reset progress", UiKit.Gray, free && ResetButton.Contains(mouse), true, UiKit.TextMin, Now);
+
+            if (confirming) DrawDialog(full);
             UiKit.End();
         }
 
@@ -180,20 +228,11 @@ namespace Roygbiv
             UiKit.Vignette(r, new Color(0f, 0f, 0f, 0.75f));
         }
 
-        static void DrawTitle()
-        {
-            CardGui.Text(new Rect(84f, 52f, 900f, 22f), UiKit.Spaced(UiKit.GameTitle), 15, UiKit.TextDim, TextAnchor.MiddleLeft, FontStyle.Bold);
-            CardGui.Box(new Rect(84f, 86f, 8f, 40f), UiKit.Neutral);
-            CardGui.Text(new Rect(104f, 80f, 1100f, 52f), UiKit.Spaced(UiKit.HubTitle), 40, UiKit.TextColor, TextAnchor.MiddleLeft, FontStyle.Bold);
-            CardGui.Text(new Rect(106f, 132f, 900f, 28f), UiKit.HubSubtitle, 20, UiKit.TextDim, TextAnchor.MiddleLeft);
-            CardGui.Box(new Rect(84f, 170f, 420f, 2f), UiKit.WithAlpha(UiKit.Neutral, 0.35f));
-        }
-
         void DrawHeart(List<ColorData> order, int next)
         {
             float beat = UiKit.Heartbeat(Now);
             var size = new Vector2(300f, 280f) * (1f + 0.025f * beat);
-            var r = new Rect(960f - size.x * 0.5f, 296f - size.y * 0.5f, size.x, size.y);
+            var r = new Rect(960f - size.x * 0.5f, 286f - size.y * 0.5f, size.x, size.y);
             var palette = UiKit.RestoredColors();
             var tint = UiKit.Average(palette, UiKit.Gray);
             var selId = order[selected] ? order[selected].id : ColorId.Red;
@@ -239,13 +278,13 @@ namespace Roygbiv
                 var accent = UiKit.Accent(selId);
                 CardGui.Line(from, to, 2f, UiKit.WithAlpha(accent, 0.8f));
                 CardGui.Diamond(from, 9f, accent);
-                CardGui.Text(new Rect(to.x + 10f, at.y - 14f, 300f, 28f), UiKit.Spaced(order[selected].displayName.ToUpperInvariant()), 17, accent,
-                             TextAnchor.MiddleLeft, FontStyle.Bold);
+                UiKit.Label(new Rect(to.x + 12f, at.y - 18f, 320f, 36f), order[selected].displayName.ToUpperInvariant(), 26,
+                            Color.Lerp(accent, Color.white, 0.3f), TextAnchor.MiddleLeft);
             }
 
             int restored = UiKit.RestoredCount;
-            CardGui.Text(new Rect(760f, 456f, 400f, 44f), $"{restored} / {UiKit.Spectrum.Length}", 36, UiKit.TextColor, TextAnchor.MiddleCenter, FontStyle.Bold);
-            CardGui.Text(new Rect(660f, 496f, 600f, 24f), UiKit.Spaced("COLORS RESTORED"), 15, UiKit.TextDim, TextAnchor.MiddleCenter, FontStyle.Bold);
+            UiKit.Label(new Rect(660f, 438f, 600f, 52f), $"{restored} / {UiKit.Spectrum.Length}", 44, UiKit.TextColor);
+            UiKit.Label(new Rect(660f, 486f, 600f, 34f), "COLORS RESTORED", 26, UiKit.TextColor);
         }
 
         void DrawCard(List<ColorData> order, int i, Rect r, int next)
@@ -257,6 +296,7 @@ namespace Roygbiv
             float f = UiKit.Smooth(focus[i]);
             var accent = UiKit.Accent(id);
             var frame = locked ? LockedColor : accent;
+            var bright = Color.Lerp(accent, Color.white, 0.3f);
 
             // A new selection slides in with a little glitch; a locked one shakes its head when you try it.
             float g = sel ? cardGlitch.Amount(Now) : 0f;
@@ -269,16 +309,18 @@ namespace Roygbiv
                 CardGui.Outline(new Rect(r.x + 6f * g, r.y, r.width, r.height), new Color(0.2f, 0.9f, 1f, 0.5f * g), 2f);
             }
 
+            // The frame and the boss dim on cards you're not looking at; the words never do.
             float a = CardGui.Alpha;
-            if (!sel) CardGui.Alpha *= locked ? 0.72f : 0.94f;
+            if (!sel) CardGui.Alpha *= locked ? 0.75f : 0.92f;
             if (sel) CardGui.Glow(r.center, r.width, UiKit.WithAlpha(frame, 0.12f));
             UiKit.Panel(r, frame, sel ? Now : -1f, Mathf.Lerp(14f, 24f, f), 0.9f);
-            var header = UiKit.Header(r, data.displayName, frame, Mathf.Lerp(36f, 44f, f), Mathf.RoundToInt(Mathf.Lerp(15f, 20f, f)));
-            CardGui.Text(new Rect(header.xMax - 64f, header.y, 52f, header.height), (i + 1).ToString("00"), 14, UiKit.WithAlpha(frame, 0.8f),
-                         TextAnchor.MiddleRight, FontStyle.Bold);
+            float headerH = Mathf.Lerp(40f, 48f, f);
+            var header = new Rect(r.x + 2f, r.y + 2f, r.width - 4f, headerH);
+            CardGui.Box(header, UiKit.WithAlpha(frame, 0.16f));
+            CardGui.Box(new Rect(r.x, header.yMax, r.width, 2f), UiKit.WithAlpha(frame, 0.6f));
+            CardGui.Box(new Rect(r.x + 14f, header.y + headerH * 0.28f, 6f, headerH * 0.44f), frame);
 
-            // The boss, on a dark inset screen.
-            var screen = new Rect(r.x + 14f, header.yMax + 12f, r.width - 28f, Mathf.Lerp(150f, 200f, f));
+            var screen = new Rect(r.x + 14f, header.yMax + 12f, r.width - 28f, Mathf.Lerp(150f, 250f, f));
             CardGui.Box(screen, new Color(0f, 0f, 0f, 0.38f));
             for (float gx = screen.x + 20f; gx < screen.xMax; gx += 20f) CardGui.Box(new Rect(gx, screen.y, 1f, screen.height), new Color(1f, 1f, 1f, 0.03f));
             for (float gy = screen.y + 20f; gy < screen.yMax; gy += 20f) CardGui.Box(new Rect(screen.x, gy, screen.width, 1f), new Color(1f, 1f, 1f, 0.03f));
@@ -298,76 +340,73 @@ namespace Roygbiv
                 }
             }
             CardGui.Outline(screen, UiKit.WithAlpha(frame, 0.35f), 1.5f);
+            if (restored) UiKit.Gem(new Vector2(screen.xMax - 18f, screen.y + 18f), 22f, accent, true, 0.2f);
+            CardGui.Alpha = a;
 
-            // Compact (unselected): a gem and one word.
-            float compact = 1f - f;
-            if (compact > 0.01f)
+            // Name and number.
+            int nameSize = Mathf.RoundToInt(Mathf.Lerp(UiKit.TextMin, 28f, f));
+            UiKit.Label(new Rect(header.x + 28f, header.y, header.width - 80f, header.height), data.displayName.ToUpperInvariant(), nameSize,
+                        locked ? LockedText : bright, TextAnchor.MiddleLeft);
+            UiKit.Label(new Rect(header.xMax - 54f, header.y, 46f, header.height), (i + 1).ToString("00"), UiKit.TextMin,
+                        locked ? LockedText : UiKit.TextColor, TextAnchor.MiddleRight);
+
+            // The state: one word on a small card; a word and a line on the selected one.
+            string word = restored ? "RESTORED" : locked ? "LOCKED" : "AVAILABLE";
+            var wordColor = restored ? bright : locked ? LockedText : UiKit.TextColor;
+            float below = screen.yMax + 10f;
+            if (f < 0.5f)
             {
-                float ca = CardGui.Alpha;
-                CardGui.Alpha *= compact;
-                float y = screen.yMax + 30f;
-                UiKit.Gem(new Vector2(r.center.x, y), 24f, accent, restored, restored ? 0.2f : 0f);
-                string word = restored ? "RESTORED" : locked ? "LOCKED" : "AVAILABLE";
-                CardGui.Text(new Rect(r.x, y + 18f, r.width, 24f), UiKit.Spaced(word), 12, restored ? accent : locked ? UiKit.Gray : UiKit.TextDim,
-                             TextAnchor.MiddleCenter, FontStyle.Bold);
-                CardGui.Alpha = ca;
+                UiKit.Gem(new Vector2(r.center.x, below + 16f), 24f, accent, restored, restored ? 0.2f : 0f);
+                UiKit.Label(new Rect(r.x, below + 32f, r.width, 34f), word, UiKit.TextMin, wordColor);
             }
-
-            // Selected: the preview.
-            if (f > 0.01f)
+            else
             {
-                float fa = CardGui.Alpha;
-                CardGui.Alpha *= f;
-                float y = screen.yMax + 12f;
-                CardGui.Text(new Rect(r.x + 16f, y, r.width - 32f, 26f), data.emotion, 17, UiKit.TextDim, TextAnchor.MiddleCenter, FontStyle.Italic);
-                y += 36f;
-
-                CardGui.Box(new Rect(r.x + 20f, y, r.width - 40f, 1.5f), UiKit.WithAlpha(frame, 0.35f));
-                y += 12f;
-                if (data.grantedAbility != AbilityId.None)
-                {
-                    var info = UiKit.Ability(data.grantedAbility);
-                    CardGui.Text(new Rect(r.x + 20f, y, 90f, 34f), UiKit.Spaced("REWARD"), 12, UiKit.TextDim, TextAnchor.MiddleLeft, FontStyle.Bold);
-                    float kx = r.x + 104f;
-                    kx += UiKit.Keys(info.Keys, kx, y + 17f, 30f, 0f, locked ? UiKit.Gray : accent) + 10f;
-                    CardGui.Text(new Rect(kx, y, r.xMax - kx - 12f, 34f), info.Name, 15, locked ? UiKit.Gray : UiKit.TextColor, TextAnchor.MiddleLeft, FontStyle.Bold);
-                }
-                else CardGui.Text(new Rect(r.x, y, r.width, 34f), UiKit.Spaced("THE FINAL COLOR"), 14, locked ? UiKit.Gray : accent, TextAnchor.MiddleCenter, FontStyle.Bold);
-                y += 46f;
-
-                var state = new Rect(r.x + 16f, r.yMax - 52f, r.width - 32f, 38f);
-                if (locked)
-                {
-                    CardGui.Text(new Rect(state.x, state.y - 18f, state.width, 24f), UiKit.Spaced("LOCKED"), 15, UiKit.Gray, TextAnchor.MiddleCenter, FontStyle.Bold);
-                    CardGui.Text(new Rect(state.x, state.y + 8f, state.width, 24f), Reason(order, i), 15, UiKit.TextDim, TextAnchor.MiddleCenter);
-                }
-                else
-                {
-                    float pulse = 0.75f + 0.25f * Mathf.Sin(Now * 3f);
-                    string line = restored ? "RESTORED   [Z] Replay" : "[Z] Enter";
-                    UiKit.Hint(new Vector2(state.center.x, state.center.y), line, accent, 20, restored ? 1f : pulse);
-                    if (restored) UiKit.Gem(new Vector2(r.xMax - 34f, header.yMax + 34f), 22f, accent, true, 0.3f);
-                }
-                CardGui.Alpha = fa;
+                UiKit.Label(new Rect(r.x, below + 4f, r.width, 40f), word, 30, wordColor);
+                string line = locked ? Reason(order, i) : restored ? "Click to replay" : "Click to enter";
+                float pulse = locked ? 1f : 0.8f + 0.2f * Mathf.Sin(Now * 3f);
+                float la = CardGui.Alpha;
+                CardGui.Alpha *= pulse;
+                UiKit.Label(new Rect(r.x, below + 44f, r.width, 34f), line, UiKit.TextLabel, locked ? LockedText : UiKit.TextColor, TextAnchor.MiddleCenter, false);
+                CardGui.Alpha = la;
             }
 
             // The color to reclaim next.
             if (i == next && !locked)
             {
                 float bounce = Mathf.Sin(Now * 3f) * 3f;
-                CardGui.Text(new Rect(r.center.x - 60f, r.y - 40f + bounce, 120f, 20f), UiKit.Spaced("NEXT"), 13, accent, TextAnchor.MiddleCenter, FontStyle.Bold);
+                UiKit.Label(new Rect(r.center.x - 70f, r.y - 48f + bounce, 140f, 30f), "NEXT", UiKit.TextMin, bright);
                 var tip = new Vector2(r.center.x, r.y - 12f + bounce);
-                CardGui.Line(tip + new Vector2(-8f, -8f), tip, 2.5f, accent);
-                CardGui.Line(tip + new Vector2(8f, -8f), tip, 2.5f, accent);
+                CardGui.Line(tip + new Vector2(-9f, -9f), tip, 3f, bright);
+                CardGui.Line(tip + new Vector2(9f, -9f), tip, 3f, bright);
             }
 
             // Entering: a flash and a ring as the scene starts to fade.
-            if (entering && sel)
+            if (entering && sel && !confirming)
             {
                 float k = Mathf.Clamp01((Now - enterAt) / 0.4f);
                 CardGui.Box(r, UiKit.WithAlpha(Color.white, 0.45f * (1f - k)));
                 CardGui.Ring(r.center, 40f + 300f * k, 4f * (1f - k) + 1f, UiKit.WithAlpha(accent, 1f - k));
             }
+        }
+
+        /// <summary>"Start over?": erase the save (GameManager.NewGame) or cancel. Over a dimmed hub.</summary>
+        void DrawDialog(UiKit.View full)
+        {
+            float t = Now - dialogAt;
+            float a = CardGui.Alpha;
+            var screen = GUI.matrix;
+            full.Begin();
+            CardGui.Alpha = UiKit.Smooth(t / 0.15f);
+            CardGui.Box(full.Rect, new Color(0f, 0f, 0f, 0.65f));
+            GUI.matrix = screen;
+
+            var danger = UiKit.Danger;
+            UiKit.Panel(Dialog, danger, Now, 26f, 0.95f);
+            UiKit.Header(Dialog, "Start over?", danger, 56f, UiKit.TextTitle, true, true);
+            UiKit.Label(new Rect(Dialog.x + 40f, Dialog.y + 100f, Dialog.width - 80f, 60f), "Your restored colors will be lost.", UiKit.TextTitle,
+                        Color.white, TextAnchor.MiddleCenter, false);
+            UiKit.Button(EraseButton, "Erase and start over", danger, choice == 0, true, 26, Now);
+            UiKit.Button(CancelButton, "Cancel", UiKit.Neutral, choice == 1, true, 26, Now);
             CardGui.Alpha = a;
         }
 

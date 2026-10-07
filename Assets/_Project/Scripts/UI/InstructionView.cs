@@ -8,8 +8,8 @@ namespace Roygbiv
     /// when the button may show (CanOpen), owns open / close and the frozen time, and raises InstructionShown /
     /// InstructionClosed, which this listens to.
     ///
-    /// Tip button: a small, quiet gray "? TIP" slab with notched corners (the UiKit look, without color) in the top-right
-    /// corner, half see-through until hovered. Clicking it toggles the card. Its rect (and the card's X) is registered with
+    /// Tip button: a small, quiet gray "? Tip" pill in the top-right corner,
+    /// half see-through until hovered. Clicking it toggles the card. Its rect (and the card's X) is registered with
     /// InputReader as a pointer blocker, so the click never reaches gameplay as an attack or a shot.
     ///
     /// Card: the UiKit panel and header in the accent around a light "screen" playing the demo (InstructionDemos),
@@ -123,24 +123,25 @@ namespace Roygbiv
         // ---------- Tip button ----------
 
         /// <summary>
-        /// Neutral and quiet, so it doesn't draw the eye: the UiKit slab (dark fill, thin border, notched corners) all in
-        /// gray, about half see-through while idle; on hover or while the card is open, fully opaque and a little
-        /// brighter. No color, no glow, nothing moving. The "?" sits on a small gray tab that brightens with the rest.
+        /// Neutral and quiet, so it doesn't draw the eye: all gray, about half see-through while idle; on hover or
+        /// while the card is open, fully opaque and a little brighter. No color, no glow, nothing moving.
+        /// The whole pill is one hover target with one look: the "?" disc only brightens a touch with the rest,
+        /// and its glyph stays dark, so it reads the same in both states.
         /// </summary>
         static void DrawTipButton(Rect r, bool active, float ui)
         {
+            float radius = r.height * 0.5f;
             CardGui.Alpha = active ? 1f : 0.55f;
-            var line = active ? new Color(0.82f, 0.82f, 0.82f) : new Color(0.52f, 0.52f, 0.52f);
-            CardGui.Box(r, active ? new Color(0.2f, 0.2f, 0.21f, 0.92f) : new Color(0.12f, 0.12f, 0.13f, 0.88f));
-            UiKit.Scanlines(r, new Color(1f, 1f, 1f, 0.03f), 4f * ui, Mathf.Max(1f, ui));
-            CardGui.Outline(r, line, Mathf.Max(1f, 1.5f * ui));
-            UiKit.Notches(r, line, 9f * ui, Mathf.Max(2f, 2.5f * ui));
+            CardGui.Round(r, active ? new Color(0.22f, 0.22f, 0.23f, 0.92f) : new Color(0.14f, 0.14f, 0.15f, 0.88f), radius);
+            CardGui.Outline(r, active ? new Color(0.82f, 0.82f, 0.82f) : new Color(0.52f, 0.52f, 0.52f), Mathf.Max(1f, 1.5f * ui), radius);
 
-            var tab = new Rect(r.x + 7f * ui, r.y + 7f * ui, r.height - 14f * ui, r.height - 14f * ui);
-            CardGui.Box(tab, active ? new Color(0.66f, 0.66f, 0.66f) : new Color(0.56f, 0.56f, 0.56f));
-            CardGui.Text(tab, "?", Mathf.RoundToInt(r.height * 0.44f), new Color(0.12f, 0.12f, 0.13f), TextAnchor.MiddleCenter, FontStyle.Bold);
-            CardGui.Text(new Rect(tab.xMax, r.y, r.xMax - tab.xMax, r.height), "T I P", Mathf.RoundToInt(r.height * 0.36f),
-                         active ? new Color(0.95f, 0.95f, 0.95f) : new Color(0.68f, 0.68f, 0.68f), TextAnchor.MiddleCenter, FontStyle.Bold);
+            var icon = new Vector2(r.x + radius, r.center.y);
+            CardGui.Disc(icon, r.height * 0.3f, active ? new Color(0.66f, 0.66f, 0.66f) : new Color(0.58f, 0.58f, 0.58f));
+            CardGui.Text(new Rect(icon.x - radius, r.y, radius * 2f, r.height), "?", Mathf.RoundToInt(r.height * 0.44f),
+                         new Color(0.13f, 0.13f, 0.14f), TextAnchor.MiddleCenter, FontStyle.Bold);
+            CardGui.Text(new Rect(icon.x + radius * 0.6f, r.y, r.xMax - icon.x - radius * 0.6f - radius * 0.4f, r.height), "Tip",
+                         Mathf.RoundToInt(r.height * 0.42f), active ? new Color(0.95f, 0.95f, 0.95f) : new Color(0.68f, 0.68f, 0.68f),
+                         TextAnchor.MiddleCenter, FontStyle.Bold);
             CardGui.Alpha = 1f;
         }
 

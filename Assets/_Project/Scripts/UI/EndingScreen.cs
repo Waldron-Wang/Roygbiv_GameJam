@@ -6,7 +6,7 @@ namespace Roygbiv
     /// <summary>
     /// The ending (IMGUI, UiKit look). Plays the ending dialogue over a beating heart, then shows the game's title,
     /// in color now (GlitchTitle: with every color restored it barely glitches), "the world is in color again" and a way
-    /// back to the main menu (Z / Enter or a click).
+    /// back to the main menu (click it; Z / Enter work too, without a hint).
     /// </summary>
     public class EndingScreen : MonoBehaviour
     {
@@ -32,7 +32,7 @@ namespace Roygbiv
             if (done && Now - doneAt > 0.6f && Game.Input && Game.Input.Intent.confirmPressed) Game.Manager.ReturnToMenu();
         }
 
-        Rect Button => new(960f - 200f, 860f, 400f, 64f);
+        Rect Button => new(960f - 220f, 850f, 440f, 80f);
 
         void OnGUI()
         {
@@ -76,13 +76,12 @@ namespace Roygbiv
                 CardGui.Alpha = rise;
                 title.Draw(view, new Vector2(960f, 520f), 88, Now, UiKit.Night);
                 CardGui.Alpha = rise;
-                CardGui.Text(new Rect(0f, 600f, 1920f, 40f), UiKit.Spaced("THE WORLD IS IN COLOR AGAIN"), 24, UiKit.TextDim, TextAnchor.MiddleCenter, FontStyle.Bold);
+                UiKit.Label(new Rect(0f, 596f, 1920f, 48f), "THE WORLD IS IN COLOR AGAIN", UiKit.TextTitle, UiKit.TextColor, TextAnchor.MiddleCenter, true, true);
                 for (int i = 0; i < UiKit.Spectrum.Length; i++)
                     UiKit.Gem(new Vector2(960f + (i - 3) * 46f, 700f), 28f, UiKit.Accent(UiKit.Spectrum[i]), true, 0.3f * beat);
 
                 CardGui.Alpha = UiKit.Smooth((Now - doneAt - 0.8f) / 0.4f);
-                UiKit.Button(Button, "Main menu", UiKit.Neutral, true, true, 22, Now);
-                UiKit.Hint(new Vector2(960f, 960f), "[Z] / [Enter] Main menu", UiKit.Neutral, 20, 0.85f);
+                UiKit.Button(Button, "Main menu", UiKit.Neutral, true, true, 28, Now);
             }
             UiKit.End();
         }

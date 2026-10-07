@@ -82,11 +82,11 @@ namespace Roygbiv
             var view = UiKit.Fill();
             view.Begin();
             string body = text.ToString();
-            float height = CardGui.WrappedHeight(body, 15, 560f) + 64f;
-            var panel = new Rect(28f, view.Rect.height - height - 28f, 600f, height);
-            UiKit.Panel(panel, UiKit.Neutral, -1f, 14f, 0.92f);
-            UiKit.Header(panel, "Dev", UiKit.Neutral, 30f, 15);
-            CardGui.Text(new Rect(panel.x + 20f, panel.y + 42f, 560f, height - 52f), body, 15, UiKit.TextColor, TextAnchor.UpperLeft, FontStyle.Normal, true);
+            float height = CardGui.WrappedHeight(body, 20, 700f) + 72f;
+            var panel = new Rect(28f, view.Rect.height - height - 28f, 740f, height);
+            UiKit.Panel(panel, UiKit.Neutral, -1f, 14f, 0.94f);
+            UiKit.Header(panel, "Dev", UiKit.Neutral, 36f, 20);
+            CardGui.Text(new Rect(panel.x + 20f, panel.y + 48f, 700f, height - 56f), body, 20, UiKit.TextColor, TextAnchor.UpperLeft, FontStyle.Normal, true);
             UiKit.End();
         }
 

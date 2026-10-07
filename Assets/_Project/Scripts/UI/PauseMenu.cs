@@ -7,7 +7,7 @@ namespace Roygbiv
     /// The pause menu (IMGUI, UiKit look). Esc / Start toggles it while in a level. It holds a pause on Game.Time and
     /// blocks gameplay input while open, and raises PauseChanged.
     ///   A dimmed screen, the game's title, a panel in the level's color: Resume / Restart / Back to hub, with the
-    ///   controls you have so far underneath. Up / Down + Z / Enter, or the mouse; Esc resumes.
+    ///   controls you have so far underneath. Click a button; Up / Down + Z / Enter and Esc work too (no hints shown).
     ///   Restart reloads the level exactly like dying does (GameManager.RestartLevel): in Violet you go back to the
     ///   last checkpoint you reached, so the button says so.
     /// Menu keys come from InputReader.Navigate (gameplay input is blocked while paused).
@@ -90,9 +90,12 @@ namespace Roygbiv
             var full = UiKit.Fill();
             var view = UiKit.Fit();
             var accent = UiKit.CurrentAccent;
-            var panel = new Rect(960f - 330f, 300f, 660f, 476f);
+            var unlocked = UnlockedAbilities();
+            int abilityLines = (unlocked.Count + 1) / 2; // two to a line
+            float height = 84f + Items.Length * 84f + 66f + abilityLines * 44f + 24f;
+            var panel = new Rect(960f - 360f, 540f - height * 0.5f + 30f, 720f, height);
             var rows = new Rect[Items.Length];
-            for (int i = 0; i < rows.Length; i++) rows[i] = new Rect(panel.x + 40f, panel.y + 84f + i * 80f, panel.width - 80f, 64f);
+            for (int i = 0; i < rows.Length; i++) rows[i] = new Rect(panel.x + 50f, panel.y + 84f + i * 84f, panel.width - 100f, 68f);
 
             if (e.type == EventType.MouseDown && e.button == 0)
             {
@@ -113,38 +116,39 @@ namespace Roygbiv
             UiKit.Vignette(full.Rect, new Color(0f, 0f, 0f, 0.6f));
 
             view.Begin();
-            CardGui.Text(new Rect(0f, 228f, 1920f, 30f), UiKit.Spaced(UiKit.GameTitle), 18, UiKit.TextDim, TextAnchor.MiddleCenter, FontStyle.Bold);
+            UiKit.Label(new Rect(0f, panel.y - 70f, 1920f, 44f), UiKit.GameTitle, UiKit.TextTitle, UiKit.TextColor, TextAnchor.MiddleCenter, true, true);
             float open = UiKit.Smooth(t / 0.2f);
             var frame = panel;
             frame.height = Mathf.Max(4f, panel.height * open);
             frame.y += (panel.height - frame.height) * 0.5f;
             UiKit.Panel(frame, accent, Now);
             CardGui.Alpha *= UiKit.Smooth((t - 0.12f) / 0.15f);
-            var header = UiKit.Header(panel, "Paused", accent);
+            var header = UiKit.Header(panel, "Paused", accent, 56f, 28, true, true);
             if (LevelController.Current)
             {
                 var level = Game.Config.Get(LevelController.Current.Color);
                 if (level)
                 {
-                    CardGui.Text(new Rect(header.xMax - 260f, header.y, 220f, header.height), UiKit.Spaced(level.displayName.ToUpperInvariant()), 16,
-                                 UiKit.TextDim, TextAnchor.MiddleRight, FontStyle.Bold);
-                    UiKit.Gem(new Vector2(header.xMax - 24f, header.center.y), 18f, accent, UiKit.Restored(level.id));
+                    UiKit.Label(new Rect(header.xMax - 300f, header.y, 250f, header.height), level.displayName.ToUpperInvariant(), UiKit.TextLabel,
+                                UiKit.TextColor, TextAnchor.MiddleRight);
+                    UiKit.Gem(new Vector2(header.xMax - 28f, header.center.y), 22f, accent, UiKit.Restored(level.id));
                 }
             }
-            for (int i = 0; i < rows.Length; i++) UiKit.Button(rows[i], Label(Items[i]), accent, i == selected, true, 24, Now);
+            for (int i = 0; i < rows.Length; i++) UiKit.Button(rows[i], Label(Items[i]), accent, i == selected, true, 26, Now);
 
             // The controls you have so far.
-            float y = rows[rows.Length - 1].yMax + 26f;
-            CardGui.Box(new Rect(panel.x + 40f, y - 10f, panel.width - 80f, 1.5f), UiKit.WithAlpha(accent, 0.3f));
-            UiKit.Hint(new Vector2(panel.center.x, y + 18f), "[Left] [Right] Move   [Space] Jump   [LMB] Attack", accent, 18);
-            var unlocked = UnlockedAbilities();
-            for (int line = 0; line * 3 < unlocked.Count; line++) // three to a line
-                UiKit.Hint(new Vector2(panel.center.x, y + 52f + line * 34f),
-                           string.Join("   ", unlocked.GetRange(line * 3, Mathf.Min(3, unlocked.Count - line * 3))), accent, 17);
-
-            UiKit.Hint(new Vector2(960f, 830f), "[Up] [Down] Select   [Z] Confirm   [Esc] Resume", UiKit.Neutral, 20, 0.85f);
+            float y = rows[rows.Length - 1].yMax + 24f;
+            CardGui.Box(new Rect(panel.x + 50f, y, panel.width - 100f, 2f), UiKit.WithAlpha(accent, 0.35f));
+            Controls(new Vector2(panel.center.x, y + 34f), "[Left] [Right] Move   [Space] Jump   [LMB] Attack", accent);
+            for (int line = 0; line < abilityLines; line++)
+                Controls(new Vector2(panel.center.x, y + 34f + (line + 1) * 44f),
+                         string.Join("     ", unlocked.GetRange(line * 2, Mathf.Min(2, unlocked.Count - line * 2))), accent);
             UiKit.End();
         }
+
+        /// <summary>A line of controls with keycaps, readable: 22 px near-white text.</summary>
+        static void Controls(Vector2 center, string line, Color accent) =>
+            CardGui.Inline(line, center, UiKit.TextMin, UiKit.TextColor, accent, null, true, 1.6f, 1.75f); // key labels at ~22 too
 
         /// <summary>"[RMB] Light shot", "[Shift] Dash", ... for the abilities the player has right now.</summary>
         static List<string> UnlockedAbilities()
