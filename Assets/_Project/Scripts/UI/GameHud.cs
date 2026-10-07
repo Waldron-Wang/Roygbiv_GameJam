@@ -5,7 +5,7 @@ namespace Roygbiv
 {
     /// <summary>
     /// The in-level HUD, in the UiKit look. It only LISTENS to GameEvents and READS state; it never drives gameplay.
-    ///   Top left, a panel in the level's color:
+    ///   Top left, a neutral dark panel:
     ///     HP          pips; a lost one flashes, the last one blinks red.
     ///     Colors      a little heart and the seven gems in play order: restored ones lit (a new one pops), this level's marked.
     ///     Abilities   a slot per ability you HAVE, three to a row, appearing one by one as they're unlocked (with a glow);
@@ -206,7 +206,7 @@ namespace Roygbiv
             float target = GridTop + rows * SlotHeight + (hasSerenity ? 50f : 0f) + 8f;
             panelHeight = panelHeight < 0f ? target : Mathf.MoveTowards(panelHeight, target, Time.unscaledDeltaTime * 500f);
             var panel = UiKit.Snap(new Rect(at.x, at.y, PanelWidth, panelHeight));
-            UiKit.Panel(panel, accent, -1f, 16f, 0.82f);
+            UiKit.Panel(panel, Color.black, -1f, 16f, 0.82f);
             float x = panel.x + 20f;
 
             // HP.
@@ -272,7 +272,7 @@ namespace Roygbiv
         {
             var info = UiKit.Ability(id);
             bool isStolen = stolen.Contains(id);
-            var keyColor = isStolen ? UiKit.Danger : accent;
+            var keyColor = isStolen ? UiKit.Danger : AbilityAccent(id);
 
             // As big as fits the slot.
             float h = KeyHeight, width = UiKit.Keys(info.Keys, 0f, 0f, h, 0f, keyColor, false, UiKit.TextMin, info.Tag);
@@ -340,8 +340,19 @@ namespace Roygbiv
             var textColor = serenity == SerenityState.Recharging ? UiKit.TextColor : Color.Lerp(fill, Color.white, 0.4f);
             UiKit.Label(new Rect(textX, row.y, 170f, row.height), state, UiKit.TextMin, textColor, TextAnchor.MiddleLeft);
             if (serenity == SerenityState.Ready)
-                UiKit.Keys(new[] { "Q" }, textX + UiKit.LabelWidth(state, UiKit.TextMin) + 12f, row.center.y, 34f, 0f, core, true, UiKit.TextMin);
+                UiKit.Keys(new[] { "Q" }, textX + UiKit.LabelWidth(state, UiKit.TextMin) + 12f, row.center.y, 34f, 0f, AbilityAccent(AbilityId.Serenity), true, UiKit.TextMin);
         }
+
+        static Color AbilityAccent(AbilityId id) => id switch
+        {
+            AbilityId.LightShot => UiKit.Accent(ColorId.Yellow),
+            AbilityId.Dash => UiKit.Accent(ColorId.Orange),
+            AbilityId.BlazeStrike => UiKit.Accent(ColorId.Red),
+            AbilityId.DoubleJump => UiKit.Accent(ColorId.Green),
+            AbilityId.DownDash => UiKit.Accent(ColorId.Blue),
+            AbilityId.Serenity => UiKit.Accent(ColorId.Indigo),
+            _ => UiKit.Neutral,
+        };
 
         /// <summary>The abilities the colors grant, in play order (Violet grants none).</summary>
         static List<AbilityId> AbilityList()
