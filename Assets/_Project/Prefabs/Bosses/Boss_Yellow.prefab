@@ -107,6 +107,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.Recolorable
   color: 2
   grayBrightness: 0.45
+  desaturate: 0
 --- !u!1 &4841198728005860265
 GameObject:
   m_ObjectHideFlags: 0
@@ -262,8 +263,8 @@ MonoBehaviour:
   arcGravityScale: 1
   arcStagger: 0.3
   mixedSpeedsPerPhase: 00000001y
-  slowSpeedScale: 0.5
-  fastSpeedScale: 2.4
+  slowSpeedScale: 2.4
+  fastSpeedScale: 3.6
   slowOrbTint: {r: 1, g: 0.6, b: 0.2, a: 1}
   slowOrbSize: 1.3
   fastOrbSize: 0.75
