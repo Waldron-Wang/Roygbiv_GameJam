@@ -256,7 +256,7 @@ Helpers available to subclasses: `Player`, `AimDirection`, `Fire(...)`, `Wait(..
   No `instruction` on the ColorData = no Tip button (Violet for now).
 - Genre-shifting is handled per level. Examples:
   - Orange has a `ChaseDirector` that drives `PlayerMotor.autoRunSpeed` and `CameraFollow.autoScrollSpeed`, and a `ChaseCourse` that builds an endless track.
-  - Blue is a vertical layout.
+  - Blue is a vertical climb, a tilemap baked from the ASCII map in `BlueBaker.cs` (**ROYGBIV > Bake Blue Level Into Scene**).
   - Indigo casts a curse each phase: input modifiers + a `ScreenWarp` look (any boss can use `ScreenWarp.Main`).
   - **Violet** (the final exam) is a run + a duel, and a normal **hand-editable** level. The terrain is painted in a
     `Grid > Tilemap` with the Violet palette (set up like Level_Yellow's). Every gameplay piece is a scene object under
