@@ -8,8 +8,9 @@ namespace Roygbiv
     /// card's light "stage" at time `time` (seconds since the card opened, unscaled) and fills Press with how
     /// far each key is held this frame, so the demo's keycaps and the caption's press together.
     /// Placeholders for the mechanic, not to scale: timings live at the top of each demo.
+    /// This file: Yellow, Orange, Red and the shared pieces. InstructionDemosLate.cs: Green, Blue, Indigo, Violet.
     /// </summary>
-    static class InstructionDemos
+    static partial class InstructionDemos
     {
         /// <summary>Key name -> 0..1, how far it's pressed this frame. Rebuilt every Draw.</summary>
         public static readonly Dictionary<string, float> Press = new();
@@ -38,6 +39,7 @@ namespace Roygbiv
                 case InstructionDemo.Steal: Steal(d, stage, ground, time); break;
                 case InstructionDemo.Climb: Climb(d, stage, time); break;
                 case InstructionDemo.FlipControls: FlipControls(d, stage, ground, time); break;
+                case InstructionDemo.Gauntlet: Gauntlet(d, stage, ground, time); break;
                 default: Mystery(d, stage, time); break;
             }
         }
@@ -244,178 +246,6 @@ namespace Roygbiv
             foreach (var p in damagePresses) press = Mathf.Max(press, Tap(t, p));
             SetPress(d.keys, press);
             CardGui.KeyRow(d.keys, new Vector2(feet.x - 20f, feet.y - 210f), KeySize, d.accent, Press);
-        }
-
-        // ---------- Green: it takes your abilities ----------
-
-        static void Steal(InstructionData d, Rect stage, float ground, float time)
-        {
-            const float period = 3.6f, firstGrab = 0.5f, between = 0.45f, flight = 0.45f, fadeAt = 3.1f;
-            float t = time % period;
-            var feet = new Vector2(stage.x + stage.width * 0.24f, ground);
-            var bossAt = new Vector2(stage.x + stage.width * 0.72f, stage.y + 180f);
-            int n = d.keys?.Length ?? 0;
-            float fade = 1f - Seg(t, fadeAt, period);
-
-            Floor(stage, ground);
-            float lastGrab = -1f;
-            for (int i = 0; i < n; i++) if (t >= firstGrab + i * between) lastGrab = firstGrab + i * between;
-
-            Blob(bossAt, d.accent, time, Shake(t - lastGrab - flight, 0.25f, 5f));
-            Player(d, feet, t, lastGrab, Color.Lerp(Color.white, new Color(1f, 1f, 1f, 0.55f), Seg(t, firstGrab, firstGrab + n * between)));
-
-            // Keys start in a row over the player; a vine snatches each one in turn over to the boss.
-            float gap = 16f;
-            for (int i = 0; i < n; i++)
-            {
-                var home = RowSlot(d.keys, i, new Vector2(feet.x, feet.y - 200f), gap);
-                var taken = RowSlot(d.keys, i, bossAt + Vector2.up * -120f, gap);
-                float grab = firstGrab + i * between;
-                float k = Smooth(Seg(t, grab, grab + flight));
-                var control = (home + taken) * 0.5f + Vector2.up * -90f;
-                var pos = Bezier(home, control, taken, k);
-
-                if (t >= grab - 0.15f && t < grab + flight) // vine lash
-                {
-                    float reach = Smooth(Seg(t, grab - 0.15f, grab));
-                    var tip = t < grab ? Vector2.Lerp(bossAt, home, reach) : pos;
-                    CardGui.Line(bossAt, tip, 6f, Color.Lerp(d.accent, Ink, 0.45f));
-                    CardGui.Disc(tip, 7f, Color.Lerp(d.accent, Ink, 0.45f));
-                }
-
-                float w = CardGui.KeyWidth(d.keys[i], KeySize);
-                float alpha = CardGui.Alpha;
-                CardGui.Alpha *= t >= grab ? fade : 1f;
-                CardGui.Key(new Rect(pos.x - w * 0.5f, pos.y - KeySize * 0.5f, w, KeySize), d.keys[i], t >= grab + flight ? 0f : Tap(t, grab, flight), d.accent);
-                CardGui.Alpha = alpha;
-                if (t < grab) Press[d.keys[i]] = 0f;
-                else Press[d.keys[i]] = Mathf.Max(Press.TryGetValue(d.keys[i], out var p) ? p : 0f, Tap(t, grab, flight));
-            }
-        }
-
-        static Vector2 RowSlot(string[] keys, int index, Vector2 center, float gap)
-        {
-            float width = gap * (keys.Length - 1), x = 0f;
-            for (int i = 0; i < keys.Length; i++) width += CardGui.KeyWidth(keys[i], KeySize);
-            for (int i = 0; i < index; i++) x += CardGui.KeyWidth(keys[i], KeySize) + gap;
-            return new Vector2(center.x - width * 0.5f + x + CardGui.KeyWidth(keys[index], KeySize) * 0.5f, center.y);
-        }
-
-        // ---------- Blue: climb, the gloom rises behind you ----------
-
-        static void Climb(InstructionData d, Rect stage, float time)
-        {
-            const float jumpEvery = 0.8f, airborne = 0.5f, step = 95f, arc = 55f;
-            float[] pattern = { -170f, 110f, -40f, 180f, -130f, 60f, -200f, 140f };
-
-            float cam = time / jumpEvery * step; // climbs at the player's average pace
-            float ScreenY(float worldY) => stage.yMax - 70f - (worldY - cam);
-            float PlatformX(int i) => stage.center.x + pattern[((i % pattern.Length) + pattern.Length) % pattern.Length];
-
-            // Height lines drifting down sell the climb.
-            for (float y = Mathf.Ceil((cam - 80f) / 45f) * 45f; ScreenY(y) > stage.y; y += 45f)
-                if (ScreenY(y) < stage.yMax) CardGui.Box(new Rect(stage.x, ScreenY(y), stage.width, 1f), new Color(0f, 0f, 0f, 0.05f));
-
-            int jump = (int)(time / jumpEvery);
-            float u = time / jumpEvery - jump;
-            for (int i = jump - 3; i <= jump + 5; i++)
-            {
-                float y = ScreenY(i * step);
-                if (y < stage.y + 10f || y > stage.yMax - 8f) continue;
-                CardGui.Round(new Rect(PlatformX(i) - 65f, y, 130f, 14f), Ink, 4f);
-            }
-
-            float v = Mathf.Clamp01(u / airborne);
-            var from = new Vector2(PlatformX(jump), jump * step);
-            var to = new Vector2(PlatformX(jump + 1), (jump + 1) * step);
-            float x = Mathf.Lerp(from.x, to.x, v);
-            float worldY = Mathf.Lerp(from.y, to.y, v) + arc * 4f * v * (1f - v);
-            float jumpStart = jump * jumpEvery;
-            Player(d, new Vector2(x, ScreenY(worldY)), time, u < airborne ? jumpStart : -1f, null, to.x < from.x);
-
-            // The gloom: a dark, wavy band rising at the bottom.
-            float gloom = 58f + 10f * Mathf.Sin(time * 1.7f);
-            var dark = new Color(0.05f, 0.08f, 0.2f, 0.93f);
-            for (float cx = stage.x; cx < stage.xMax; cx += 8f)
-            {
-                float h = gloom + 9f * Mathf.Sin(cx * 0.035f + time * 3f);
-                CardGui.Box(new Rect(cx, stage.yMax - h, Mathf.Min(8f, stage.xMax - cx), h), dark);
-                CardGui.Box(new Rect(cx, stage.yMax - h - 3f, Mathf.Min(8f, stage.xMax - cx), 3f), WithAlpha(d.accent, 0.8f));
-            }
-
-            SetPress(d.keys, Tap(u, 0f, 0.14f));
-            CardGui.KeyRow(d.keys, new Vector2(stage.x + 140f, stage.y + 70f), KeySize, d.accent, Press);
-        }
-
-        // ---------- Indigo: the controls swap places ----------
-
-        static void FlipControls(InstructionData d, Rect stage, float ground, float time)
-        {
-            const float period = 4.6f, swapAt = 1.0f, swapBackAt = 3.5f, swapTime = 0.6f;
-            const float normalPress = 0.25f, flippedPress = 2.1f, hold = 0.5f;
-            float t = time % period;
-            var keys = d.keys ?? new string[0];
-            string Key(int i) => i < keys.Length ? keys[i] : null;
-
-            float swap = Smooth(Seg(t, swapAt, swapAt + swapTime)) * (1f - Smooth(Seg(t, swapBackAt, swapBackAt + swapTime)));
-            bool flipped = swap > 0.5f;
-
-            // Press "right" (keys[1]) twice: before the swap the player steps right, after it steps left.
-            float press = Mathf.Max(Tap(t, normalPress, hold), Tap(t, flippedPress, hold));
-            if (Key(1) != null) Press[Key(1)] = press;
-            float step = 80f * (Bump(t, normalPress, hold) - Bump(t, flippedPress, hold));
-
-            Floor(stage, ground);
-            var feet = new Vector2(stage.center.x + step, ground);
-            float dizzy = Smooth(Seg(t, swapAt, swapAt + swapTime)) * (1f - Smooth(Seg(t, swapBackAt, swapBackAt + 0.3f)));
-            Player(d, feet, t, -1f, null, flipped, Mathf.Sin(time * 3f) * 7f * dizzy);
-            for (int i = 0; i < 3 && dizzy > 0f; i++) // stars circling its head
-            {
-                float a = time * 4f + i * Mathf.PI * 2f / 3f;
-                CardGui.Disc(feet + new Vector2(Mathf.Cos(a) * 34f, -150f + Mathf.Sin(a) * 9f), 6f, WithAlpha(d.accent, dizzy));
-            }
-            if (Mathf.Abs(step) > 1f) // which way it's going
-            {
-                float dir = Mathf.Sign(step);
-                var a0 = feet + new Vector2(-dir * 60f, 22f);
-                var a1 = feet + new Vector2(dir * 60f, 22f);
-                CardGui.Line(a0, a1, 4f, d.accent);
-                CardGui.Line(a1, a1 + new Vector2(-dir * 14f, -10f), 4f, d.accent);
-                CardGui.Line(a1, a1 + new Vector2(-dir * 14f, 10f), 4f, d.accent);
-            }
-
-            SwapPair(d, Key(0), Key(1), "left", "right", new Vector2(stage.x + stage.width * 0.2f, stage.y + 110f), swap, t, swapAt, swapBackAt, swapTime);
-            SwapPair(d, Key(2), Key(3), "jump", "attack", new Vector2(stage.x + stage.width * 0.8f, stage.y + 110f), swap, t, swapAt, swapBackAt, swapTime);
-        }
-
-        /// <summary>Two action slots with fixed labels; the keys in them trade places as `swap` goes 0 -> 1.</summary>
-        static void SwapPair(InstructionData d, string a, string b, string labelA, string labelB, Vector2 center, float swap,
-                             float t, float swapAt, float swapBackAt, float swapTime)
-        {
-            if (a == null || b == null) return;
-            const float spread = 62f;
-            var slotA = center + Vector2.left * spread;
-            var slotB = center + Vector2.right * spread;
-
-            foreach (var at in new[] { swapAt, swapBackAt }) // a ripple each time they swap
-            {
-                float k = Seg(t, at, at + swapTime + 0.2f);
-                if (k > 0f && k < 1f) CardGui.Ring(center, 70f + 50f * k, 3f, WithAlpha(d.accent, 1f - k));
-            }
-
-            CardGui.Text(new Rect(slotA.x - 60f, center.y + 34f, 120f, 30f), labelA, 20, Ink, TextAnchor.MiddleCenter, FontStyle.Bold);
-            CardGui.Text(new Rect(slotB.x - 60f, center.y + 34f, 120f, 30f), labelB, 20, Ink, TextAnchor.MiddleCenter, FontStyle.Bold);
-
-            var lift = Vector2.up * -Mathf.Sin(swap * Mathf.PI) * 50f;
-            var jitter = swap > 0.99f ? new Vector2(Mathf.Sin(t * 41f), Mathf.Cos(t * 37f)) * 1.5f : Vector2.zero;
-            DrawKey(b, Vector2.Lerp(slotB, slotA, swap) - lift + jitter);
-            DrawKey(a, Vector2.Lerp(slotA, slotB, swap) + lift + jitter);
-
-            void DrawKey(string key, Vector2 c)
-            {
-                float w = CardGui.KeyWidth(key, KeySize);
-                CardGui.Key(new Rect(c.x - w * 0.5f, c.y - KeySize * 0.5f, w, KeySize), key, Press.TryGetValue(key, out var p) ? p : 0f, d.accent);
-            }
         }
 
         // ---------- Violet / None: no mechanic yet ----------

@@ -253,7 +253,7 @@ Helpers available to subclasses: `Player`, `AimDirection`, `Fire(...)`, `Wait(..
   up front: during the level a small **Tip button** (top-right) opens the color's **how-to card** (`ColorData.instruction`),
   a short animated demo, as often as the player likes. `Game.Instructions` owns it: while the card is open, time is frozen
   and gameplay input blocked. Mouse only (no hotkey); it closes with its X, the Tip button, Z / Enter or Esc.
-  No `instruction` on the ColorData = no Tip button (Violet for now).
+  No `instruction` on the ColorData = no Tip button. Every color has one, Violet included (the run's gauntlet of abilities).
 - Genre-shifting is handled per level. Examples:
   - Orange has a `ChaseDirector` that drives `PlayerMotor.autoRunSpeed` and `CameraFollow.autoScrollSpeed`, and a `ChaseCourse` that builds an endless track.
   - Blue is a vertical climb, a tilemap baked from the ASCII map in `BlueBaker.cs` (**ROYGBIV > Bake Blue Level Into Scene**).

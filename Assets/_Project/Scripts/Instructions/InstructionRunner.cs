@@ -21,7 +21,7 @@ namespace Roygbiv
 
         ColorId levelColor;
         Scene levelScene;
-        bool inLevel, paused;
+        bool inLevel, paused, cinematic;
         float openedAt;
         int closedFrame = -1;
 
@@ -38,8 +38,13 @@ namespace Roygbiv
             }
         }
 
-        /// <summary>The Tip button shows (and works) only when this is true, or while the card is open.</summary>
-        public bool CanOpen => !IsOpen && LevelCard && !paused && !Game.Dialogue.IsPlaying && !Game.Scenes.IsLoading;
+        /// <summary>
+        /// The Tip button shows (and works) only when this is true, or while the card is open. Never while something
+        /// else holds the controls: dialogue, the pause menu, a cinematic (letterbox), or any other input block
+        /// (Violet's intro camera pull, its arrival, the beat before a checkpoint duel).
+        /// </summary>
+        public bool CanOpen => !IsOpen && LevelCard && !paused && !cinematic && Game.Input.GameplayEnabled
+                               && !Game.Dialogue.IsPlaying && !Game.Scenes.IsLoading;
 
         /// <summary>True while open, and on the frame it closed: the Esc that closed it must not open the pause menu.</summary>
         public bool BlocksPause => IsOpen || closedFrame == Time.frameCount;
@@ -77,6 +82,8 @@ namespace Roygbiv
             GameEvents.LevelCompleted += OnLevelEnded;
             GameEvents.LevelFailed += OnLevelEnded;
             GameEvents.PauseChanged += OnPauseChanged;
+            GameEvents.CinematicChanged += OnCinematicChanged;
+            GameEvents.SceneLoaded += OnSceneLoaded;
         }
 
         void OnDisable()
@@ -85,6 +92,8 @@ namespace Roygbiv
             GameEvents.LevelCompleted -= OnLevelEnded;
             GameEvents.LevelFailed -= OnLevelEnded;
             GameEvents.PauseChanged -= OnPauseChanged;
+            GameEvents.CinematicChanged -= OnCinematicChanged;
+            GameEvents.SceneLoaded -= OnSceneLoaded;
         }
 
         void OnLevelStarted(ColorId color)
@@ -93,6 +102,9 @@ namespace Roygbiv
             levelScene = SceneManager.GetActiveScene(); // a reload or another scene is a different one
             inLevel = true;
         }
+
+        void OnCinematicChanged(bool playing) => cinematic = playing;
+        void OnSceneLoaded(string _) => cinematic = false;
 
         // Won or lost (F9 too): no more tips, and get out of the way of the reclaim / respawn flow.
         void OnLevelEnded(ColorId _)

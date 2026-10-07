@@ -9,9 +9,10 @@ namespace Roygbiv.EditorTools
     /// Menu: ROYGBIV > Build Instructions.
     /// Creates Data/Instructions/Instruction_&lt;Color&gt;.asset for the seven colors (caption, keys, demo, accent,
     /// and the demo's sprites from Art/Player, Art/Boss and Art/Placeholder), then points each ColorData's
-    /// `instruction` at its card if that field is empty: that's what gives the level its Tip button. Violet's card
-    /// is made but not linked (its boss isn't designed yet). Cards that already exist are left alone, so Inspector
-    /// tweaks survive a re-run; ROYGBIV > Reset Instructions to Defaults rewrites them (it asks first).
+    /// `instruction` at its card if that field is empty: that's what gives the level its Tip button. Cards that
+    /// already exist are left alone, so Inspector tweaks survive a re-run; ROYGBIV > Reset Instructions to Defaults
+    /// rewrites them (it asks first). Green, Blue, Indigo and Violet draw their bosses in code (DemoBosses), so their
+    /// cards carry only the player's frames.
     /// </summary>
     public static class InstructionBuilder
     {
@@ -29,12 +30,14 @@ namespace Roygbiv.EditorTools
             public string[] keys;
             public string loop, action;     // Art/Player subfolders
             public float loopFps, actionFps;
+            public string run, jump, hurt;  // more Art/Player subfolders (the later demos)
             public string boss, bossHurt;   // Art/Boss file names
             public string[] bossMove;
-            public bool dontLink;           // make the asset, but no Tip button for this color yet
+            public bool dontLink;           // make the asset, but no Tip button for this color
         }
 
-        // Keys match InputReader: attack / reflect = Left Click, Light Shot = Right Click or C, jump = Space, dash = Left Shift.
+        // Keys match InputReader: attack = Left Click (hold + release = Blaze Strike), Light Shot = Right Click or C,
+        // jump = Space, dash = Left Shift (+ Down = Down Dash), Serenity = Q.
         static readonly Card[] Cards =
         {
             new()
@@ -63,31 +66,39 @@ namespace Roygbiv.EditorTools
             },
             new()
             {
+                // Steal: it takes the ability you used last (keys[0]) into a pod; break it up close (keys[1]).
                 color = ColorId.Green, accent = "#4CD964", demo = InstructionDemo.Steal,
-                caption = "It <color=#4CD964>steals</color> your abilities, so defeat it to take them back",
-                keys = new[] { "C", "Shift", "LMB" },
-                loop = "idle", loopFps = 8f, action = "Hurt", actionFps = 5f,
+                caption = "Break the <color=#4CD964>pods</color> up close to take your abilities back",
+                keys = new[] { "Shift", "LMB" },
+                loop = "idle", loopFps = 8f, action = "attack", actionFps = 20f,
+                run = "run", jump = "jump", hurt = "Hurt",
             },
             new()
             {
+                // Climb: hop up the ledges, a tear knocks you down, the water rises; catch it at the summit.
                 color = ColorId.Blue, accent = "#3D8BFF", demo = InstructionDemo.Climb,
-                caption = "Climb after it, then catch it at the top",
+                caption = "Climb before the <color=#3D8BFF>tears</color> flood the shaft, then catch it at the top",
                 keys = new[] { "Space" },
-                loop = "idle", loopFps = 8f, action = "jump", actionFps = 15f,
+                loop = "idle", loopFps = 8f, action = "attack", actionFps = 20f,
+                run = "run", jump = "jump", hurt = "Hurt",
             },
             new()
             {
+                // FlipControls: the slots are left, right, jump, attack, shoot, dash; each curse trades their keys.
                 color = ColorId.Indigo, accent = "#7B6CFF", demo = InstructionDemo.FlipControls,
-                caption = "Each spell <color=#7B6CFF>scrambles</color> your controls. Read the sigil",
-                keys = new[] { "Left", "Right", "Space", "LMB" },
-                loop = "idle", loopFps = 8f,
+                caption = "Each curse <color=#7B6CFF>scrambles</color> your controls. Read the sigil",
+                keys = new[] { "Left", "Right", "Space", "LMB", "RMB", "Shift" },
+                loop = "idle", loopFps = 8f, action = "attack", actionFps = 20f,
+                run = "run", jump = "jump", hurt = "Hurt",
             },
             new()
             {
-                color = ColorId.Violet, accent = "#C266FF", demo = InstructionDemo.None,
-                caption = "The final <color=#C266FF>color</color>",
-                keys = new string[0],
-                dontLink = true, // boss not designed yet
+                // Gauntlet: dash, double jump, Down + dash (surf), shoot, hold attack (Blaze Strike), Serenity.
+                color = ColorId.Violet, accent = "#C266FF", demo = InstructionDemo.Gauntlet,
+                caption = "Use <color=#C266FF>every ability</color> to reach the king",
+                keys = new[] { "Shift", "Space", "Down", "RMB", "LMB", "Q" },
+                loop = "idle", loopFps = 8f, action = "attack", actionFps = 20f,
+                run = "run", jump = "jump", hurt = "Hurt",
             },
         };
 
@@ -158,6 +169,11 @@ namespace Roygbiv.EditorTools
             d.playerLoopFps = c.loopFps > 0f ? c.loopFps : 8f;
             d.playerAction = Frames(c.action);
             d.playerActionFps = c.actionFps > 0f ? c.actionFps : 20f;
+            d.playerRun = Frames(c.run);
+            d.playerRunFps = 12f;
+            d.playerJump = Frames(c.jump);
+            d.playerJumpFps = 15f;
+            d.playerHurt = Frames(c.hurt).FirstOrDefault();
             d.boss = BossSprite(c.boss);
             d.bossHurt = BossSprite(c.bossHurt);
             d.bossMove = (c.bossMove ?? new string[0]).Select(BossSprite).Where(s => s).ToArray();

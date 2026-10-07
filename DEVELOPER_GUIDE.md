@@ -290,14 +290,21 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
   nothing pops up on its own. `InstructionData` (*Create > ROYGBIV > Instruction*, one per color in `Data/Instructions`,
   referenced by `ColorData.instruction`) holds a one-line `caption` (+ optional `subCaption`, unused by the current cards),
   the `keys` the demo presses, which `demo` to play (`InstructionDemo`: Reflect, ShootLatch, Overheat, Steal, Climb,
-  FlipControls, None), an `accent` color and the demo's sprites. `[LMB]` `[RMB]` `[Left]` `[Space]`… in a caption draw as keycaps.
+  FlipControls, Gauntlet, None), an `accent` color and the demo's sprites (idle / action frames, plus run / jump / hurt frames
+  for the later demos). `[LMB]` `[RMB]` `[Left]` `[Space]`… in a caption draw as keycaps.
+  The demos live in `UI/InstructionDemos.cs` (Yellow, Orange, Red) and `UI/InstructionDemosLate.cs` (Green: the pod steal;
+  Blue: the flooded climb and the catch; Indigo: the four curses trading keys; Violet: one ability per hazard up to the king).
+  The later bosses are drawn by `UI/DemoBosses.cs` from the same parts as the real ones (Green's bramble block, heart and pods;
+  Blue's weeping figure, tears and water; Indigo's diamond, halo, eye and sigil; Violet's king from `VioletShapes`):
+  **if a boss's look changes, update its drawing there.**
 - **API:** `Game.Instructions.LevelCard`, `CanOpen` (the button shows when true), `IsOpen`, `Open()`, `Close()`, `Toggle()`, `BlocksPause`.
 - **Flow:** `LevelStarted` makes the level's card available; `InstructionView` draws the Tip button while `CanOpen` and calls
   `Toggle()` on a click. `Open()` blocks gameplay input and holds a pause on `Game.Time` (so the Orange chase doesn't scroll);
   `Close()` lifts both, so any slow motion (Serenity) comes back exactly as it was. Open it as often as you like.
 - **Closes on:** the card's X or the Tip button (view → `Close` / `Toggle`), confirm (Z / Enter) or Esc (read in `Update`),
   the level completing / failing (F9 too), or the scene changing.
-- **Button hidden when:** the ColorData has no `instruction` (Violet for now), dialogue is playing, the pause menu is open
+- **Button hidden when:** the ColorData has no `instruction`, dialogue is playing, a cinematic is on (`CinematicChanged`),
+  gameplay input is blocked for any reason (Violet's intro camera pull, its arrival, the beat before a checkpoint duel), the pause menu is open
   (`PauseChanged`), the level is won or lost, or a scene is loading.
 - **Raises:** `InstructionShown(color, data)`, `InstructionClosed`. It draws nothing; `InstructionView` does.
 - **Gotchas:**
@@ -306,7 +313,7 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
     `InputReader.AddPointerBlocker`, because IMGUI only sees the click after gameplay's `Update` has read the input.
   - `PauseMenu` checks `BlocksPause` (open, or closed this frame), so the Esc that closes the card doesn't also pause.
   - Confirm / Esc are ignored for `minShowTime` after opening.
-  - Rebuild the default cards with **ROYGBIV > Build Instructions** (keeps existing ones, links empty ColorData except Violet)
+  - Rebuild the default cards with **ROYGBIV > Build Instructions** (keeps existing ones, links every empty ColorData)
     or **Reset Instructions to Defaults**.
 
 #### `AudioManager.cs` (`Scripts/Audio`)
@@ -558,7 +565,7 @@ Calls `Game.Audio.PlayMusic(music)` on `Start`. Put one in each scene.
 |---|---|---|---|
 | `DebugHud` | `[Systems]` | `PlayerHealthChanged`, `BossFightStarted/HealthChanged/Defeated`, `SceneLoaded`, `Game.Progress`, `PlayerController.Instance.Loadout` | — |
 | `DialogueView` | `[Systems]` | `DialogueLineShown`, `DialogueEnded` | — |
-| `InstructionView` (+ `CardGui`, `InstructionDemos`) | `[Systems]` | `InstructionShown`, `InstructionClosed`, `Game.Instructions.CanOpen / LevelCard`, `Game.Config` | `Game.Instructions.Toggle/Close` on clicks; `Game.Input.AddPointerBlocker`. Tip button top-right; card on a 1920×1080 canvas, unscaled time |
+| `InstructionView` (+ `CardGui`, `InstructionDemos`, `DemoBosses`) | `[Systems]` | `InstructionShown`, `InstructionClosed`, `Game.Instructions.CanOpen / LevelCard`, `Game.Config` | `Game.Instructions.Toggle/Close` on clicks; `Game.Input.AddPointerBlocker`. Tip button top-right; card on a 1920×1080 canvas, unscaled time |
 | `SerenityView` (+ `SerenityFilter` on the camera) | `[Systems]` | `SerenityChanged`, `SerenityDenied`, `SceneLoaded`, `PlayerController.Instance` (ripple origin) | Start: three indigo rings (#4B2BFF core, #7B6CFF edge, LineRenderers in the world, on top) race out past the screen edges + indigo flash + ripple. Active: indigo wash + vignette, everything but the player desaturated (`Resources/SerenityFilter.shader` keeps a soft ellipse around them), a pulsing indigo aura/outline on the player. End: the rings contract into the player, the look fades in ~0.3 s. Denied: a gray ring blip. Meter top-left (draining / recharging / READY, red shake when denied). Unscaled time |
 | `TitleCardView` | `[Systems]` | `TitleCardShown`, `SceneLoaded` | Big centered title + subtitle, fades in / out. Unscaled time |
 | `CinematicView` | `[Systems]` | `CinematicChanged`, `ScreenWipe`, `SceneLoaded` | Letterbox bars slide in / out; a slanted wipe covers the screen by its halfway point (with a flash) and uncovers. Over the HUD. Unscaled time |

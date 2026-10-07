@@ -55,6 +55,32 @@ namespace Roygbiv
             GUI.DrawTexture(new Rect(center.x - radius, center.y - radius, radius * 2f, radius * 2f), GlowTexture,
                 ScaleMode.StretchToFill, true, 0f, Fade(c), 0f, 0f);
 
+        /// <summary>The same soft glow stretched over `r` (an elliptical pool of light).</summary>
+        public static void GlowRect(Rect r, Color c) =>
+            GUI.DrawTexture(r, GlowTexture, ScaleMode.StretchToFill, true, 0f, Fade(c), 0f, 0f);
+
+        /// <summary>A solid ellipse `width` x `height` (IndigoShapes' disc, stretched): eyes, lids, pools.</summary>
+        public static void Ellipse(Vector2 center, float width, float height, Color c) =>
+            Sprite(IndigoShapes.Disc, center, new Vector2(width, height), c, false, 0f);
+
+        /// <summary>A square turned on its corner: `size` is its side, `degrees` turns it further.</summary>
+        public static void Diamond(Vector2 center, float size, Color c, float degrees = 0f)
+        {
+            var prev = Rotate(center, 45f + degrees);
+            Box(new Rect(center.x - size * 0.5f, center.y - size * 0.5f, size, size), c);
+            GUI.matrix = prev;
+        }
+
+        /// <summary>A diamond stretched to `width` x `height` (a gem, a lozenge): drawn as a squashed, turned square.</summary>
+        public static void Lozenge(Vector2 center, float width, float height, Color c)
+        {
+            var prev = GUI.matrix;
+            GUI.matrix = prev * Matrix4x4.TRS(center, Quaternion.identity, new Vector3(width / 1.41421f, height / 1.41421f, 1f))
+                              * Matrix4x4.TRS(Vector3.zero, Quaternion.Euler(0f, 0f, 45f), Vector3.one);
+            Box(new Rect(-0.5f, -0.5f, 1f, 1f), c);
+            GUI.matrix = prev;
+        }
+
         public static void Line(Vector2 a, Vector2 b, float width, Color c)
         {
             var d = b - a;
@@ -114,6 +140,24 @@ namespace Roygbiv
 
             var prev = degrees != 0f ? Rotate(anchor, degrees) : GUI.matrix;
             DrawCanvas(s, canvas, tint, flipX);
+            GUI.matrix = prev;
+        }
+
+        /// <summary>
+        /// A sprite with its pivot at `anchor`, scaled separately along its own x and y (`unitPx` = GUI pixels per world
+        /// unit on each axis) and turned by `degrees`. For runtime-built parts (Violet's king) that a SpriteRenderer
+        /// would scale unevenly; the art itself never needs it.
+        /// </summary>
+        public static void Sprite(Sprite s, Vector2 anchor, Vector2 unitPx, Color tint, bool flipX, float degrees)
+        {
+            if (!s) return;
+            var prev = GUI.matrix;
+            GUI.matrix = prev * Matrix4x4.TRS(anchor, Quaternion.Euler(0f, 0f, degrees),
+                new Vector3(unitPx.x / s.pixelsPerUnit, unitPx.y / s.pixelsPerUnit, 1f));
+            var size = s.rect.size;
+            var pivot = s.pivot;
+            float left = flipX ? -(size.x - pivot.x) : -pivot.x;
+            DrawCanvas(s, new Rect(left, -(size.y - pivot.y), size.x, size.y), tint, flipX);
             GUI.matrix = prev;
         }
 

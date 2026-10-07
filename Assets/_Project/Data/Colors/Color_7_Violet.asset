@@ -17,7 +17,7 @@ MonoBehaviour:
   tint: {r: 0.6, g: 0.3, b: 0.85, a: 1}
   emotion: Royalty, wisdom, creativity
   sceneName: Level_Violet
-  instruction: {fileID: 0}
+  instruction: {fileID: 11400000, guid: 3c556f0b818605d429f0b36bc6709260, type: 2}
   grantedAbility: 0
   storyFragment: {fileID: 11400000, guid: e5e3e998fbe0f42ea84b1fe522666f9c, type: 2}
   musicLayer: {fileID: 0}
