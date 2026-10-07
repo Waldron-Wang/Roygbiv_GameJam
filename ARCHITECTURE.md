@@ -261,8 +261,8 @@ Helpers available to subclasses: `Player`, `AimDirection`, `Fire(...)`, `Wait(..
   - **Violet** (the final exam) is a run + a duel, and a normal **hand-editable** level. The terrain is painted in a
     `Grid > Tilemap` with the Violet palette (set up like Level_Yellow's). Every gameplay piece is a scene object under
     `Violet`: checkpoint banners, one `VioletZone` per long-range attack, the Royal Rain halls, the Crystal Gate, the needle
-    curtains, the arrival at the foot of the king's hill, the far king's anchor and the arena. `VioletApproach` reads them
-    at Start and runs the intro camera pull; the run (camera look-ahead, the king always on screen as a big distant figure,
+    curtains, the arrival at the foot of the king's hill (painted terrain), his spot on top of it and the arena. `VioletApproach` reads them
+    at Start and runs the intro camera pull; the run (camera look-ahead, the king standing on his hill at the end of the course,
     each zone's attack starting with his gesture); the arrival cinematic (letterbox, wipe cut to the arena, he draws his
     planted greatsword, name card); then `StartBoss`. Only projectiles and attack visuals are spawned at runtime.
     `VioletCheckpoint` remembers the last checkpoint across death reloads. The old code-built layout was migrated once with

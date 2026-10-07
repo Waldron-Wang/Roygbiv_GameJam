@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace Roygbiv
 {
@@ -13,6 +14,8 @@ namespace Roygbiv
     /// and this eases toward them, adding breathing, cape sway and hit flashes on top. Angles: 0 = arm hanging
     /// straight down, + = swung forward and up, 180 = straight up, 200 = raised back over the head.
     /// Faces right at facing = +1; the whole Pose mirrors for -1. Runs on scaled time (Serenity slows it).
+    /// He's drawn in front of the tilemap, but nothing of his shows below his GROUND (SetGround: a sprite mask whose
+    /// bottom edge is the surface he stands on), so a blade resting in or stuck into the ground ends at the surface.
     /// Art can replace it: VioletBoss.CurrentState says what the king is doing.
     /// </summary>
     public class VioletFigure : MonoBehaviour
@@ -27,13 +30,13 @@ namespace Roygbiv
         [HideInInspector] public float armResponse = 10f;
         /// <summary>0..1: how solid the second greatsword in the left hand is.</summary>
         [HideInInspector] public float secondSword;
-        /// <summary>Overall size, about the feet (the distant king of the approach is drawn bigger than life, far away).</summary>
-        [HideInInspector] public float scale = 1f;
-        /// <summary>0..1: faded toward hazeColor, so he reads as far away.</summary>
-        [HideInInspector] public float haze;
-        [HideInInspector] public Color hazeColor = new(0.22f, 0.16f, 0.34f);
 
         const float HipHeight = 1.35f;
+        /// <summary>The greatsword's blade (its glowing edge is one above) and hilt, above sortingBase: the blade under his
+        /// sword arm, the hilt over his hand. The planted greatsword of the arrival uses them too.</summary>
+        public const int BladeOrder = 12, HiltOrder = 15;
+        // The ground clip: wide enough for a cape fallen at the other end of the arena, tall enough for any leap.
+        const float ClipWidth = 120f, ClipHeight = 60f;
 
         Transform pose, hips, torso, head, armFront, armBack, sword, offSword, crown, capeRoot, legFront, legBack;
         SpriteRenderer blade, bladeEdge, offBlade, offBladeEdge, offHilt, handGlowSr, handRing, visor, auraRing, glint;
@@ -46,7 +49,9 @@ namespace Roygbiv
         float animTime, flash, jolt, spinPhase, glintAt = 2f;
         Vector2 lastPos, smoothVel;
         bool hasCape = true, swordsShattered, crownFallen;
-        int baseOrder, builtOrder;
+        int baseOrder;
+        SpriteMask groundClip;
+        float groundY;
 
         public Transform Pose => pose;
         public bool HasCape => hasCape;
@@ -54,7 +59,7 @@ namespace Roygbiv
         /// <summary>Builds the rig under `parent` with the feet at local `feet`. sortingBase = the lowest order it uses.</summary>
         public void Build(Transform parent, Vector2 feet, int sortingBase)
         {
-            baseOrder = builtOrder = sortingBase;
+            baseOrder = sortingBase;
             pose = new GameObject("Pose").transform;
             pose.SetParent(parent, false);
             pose.localPosition = feet;
@@ -101,12 +106,25 @@ namespace Roygbiv
             armFront = Part("ArmFront", VioletShapes.Arm, torso, new Vector2(0.5f, 0.93f), VioletShapes.Mid, 14).transform;
             var hand = Node("Hand", armFront, new Vector2(0f, -1f));
             sword = Node("Sword", hand, Vector2.zero);
-            blade = Part("Blade", VioletShapes.Blade, sword, Vector2.zero, VioletShapes.Steel, 12);
-            bladeEdge = Part("BladeEdge", VioletShapes.BladeEdge, sword, Vector2.zero, VioletShapes.Glow, 13); // over the blade, under the arm
-            Part("Hilt", VioletShapes.Hilt, sword, Vector2.zero, VioletShapes.Bright, 15);
+            blade = Part("Blade", VioletShapes.Blade, sword, Vector2.zero, VioletShapes.Steel, BladeOrder);
+            bladeEdge = Part("BladeEdge", VioletShapes.BladeEdge, sword, Vector2.zero, VioletShapes.Glow, BladeOrder + 1); // over the blade, under the arm
+            Part("Hilt", VioletShapes.Hilt, sword, Vector2.zero, VioletShapes.Bright, HiltOrder);
 
             auraRing = IndigoShapes.Create("Aura", IndigoShapes.ThinRing, pose, new Vector2(0f, 1.7f), 4.4f, Color.clear, baseOrder + 20);
             lastPos = transform.position;
+
+            // His ground starts under his feet; the boss moves it wherever he stands (SetGround).
+            groundClip = new GameObject("Violet King Ground Clip").AddComponent<SpriteMask>();
+            SceneManager.MoveGameObjectToScene(groundClip.gameObject, gameObject.scene); // lives and dies with his scene, wherever it's built
+            groundClip.sprite = FlatSprite.Square;
+            groundClip.transform.localScale = new Vector3(ClipWidth, ClipHeight, 1f);
+            foreach (var sr in pose.GetComponentsInChildren<SpriteRenderer>(true)) ClipToGround(sr);
+            SetGround(pose.position.y);
+        }
+
+        void OnDestroy()
+        {
+            if (groundClip) Destroy(groundClip.gameObject);
         }
 
         Transform Node(string name, Transform parent, Vector2 local)
@@ -134,17 +152,30 @@ namespace Roygbiv
             jolt = 1f;
         }
 
-        /// <summary>Moves every part to a new lowest sorting order (behind the level for the distant king, back in front for the duel).</summary>
-        public void SetSortingBase(int order)
+        /// <summary>The lowest sorting order of his parts (the sortingBase it was built with).</summary>
+        public int SortingBase => baseOrder;
+
+        /// <summary>
+        /// The surface he stands on (the top of his hill in the run, the arena floor in the duel): nothing of his shows
+        /// below it, so his blade resting in the ground or stuck into the floor ends at the surface.
+        /// </summary>
+        public void SetGround(float y)
         {
-            if (!pose || order == baseOrder) return;
-            int delta = order - baseOrder;
-            foreach (var sr in pose.GetComponentsInChildren<SpriteRenderer>(true)) sr.sortingOrder += delta;
-            baseOrder = order;
+            groundY = y;
+            PlaceGroundClip();
         }
 
-        /// <summary>The sortingBase it was built with.</summary>
-        public int BuiltSortingBase => builtOrder;
+        /// <summary>Hides the part of `sr` below his ground too (the planted greatsword).</summary>
+        public void ClipToGround(SpriteRenderer sr)
+        {
+            if (sr) sr.maskInteraction = SpriteMaskInteraction.VisibleInsideMask;
+        }
+
+        // The mask's bottom edge is the ground line; it follows him sideways, never up or down (leaps stay visible).
+        void PlaceGroundClip()
+        {
+            if (groundClip) groundClip.transform.position = new Vector3(transform.position.x, groundY + ClipHeight * 0.5f, 0f);
+        }
 
         /// <summary>Shows or hides the greatsword in his right hand (it's planted in the ground for the arrival).</summary>
         public void ShowHandSword(bool show)
@@ -255,6 +286,7 @@ namespace Roygbiv
         void LateUpdate()
         {
             if (!pose) return;
+            PlaceGroundClip();
             float dt = Time.deltaTime;
             if (dt <= 0f) return;
             animTime += dt;
@@ -291,7 +323,7 @@ namespace Roygbiv
             else spinPhase = 0f;
 
             float breath = Mathf.Sin(animTime * 1.9f);
-            pose.localScale = new Vector3(facingScale * scale, (1f + breath * 0.012f - curCrouch * 0.05f) * scale, 1f);
+            pose.localScale = new Vector3(facingScale, 1f + breath * 0.012f - curCrouch * 0.05f, 1f);
 
             float hipY = HipHeight - curCrouch * 0.38f - curKneel * 0.6f;
             hips.localPosition = new Vector3(Random.Range(-1f, 1f) * jolt * 0.06f, hipY + breath * 0.02f, 0f);
@@ -367,15 +399,9 @@ namespace Roygbiv
             {
                 var sr = parts[i];
                 if (!sr || sr == bladeEdge || sr == offBladeEdge || sr == offBlade || sr == offHilt || sr == visor) continue;
-                var c = Color.Lerp(Color.Lerp(partColors[i], hazeColor, haze), Color.white, flash * 0.85f);
+                var c = Color.Lerp(partColors[i], Color.white, flash * 0.85f);
                 c.a = partColors[i].a;
                 sr.color = c;
-            }
-            if (haze > 0f)
-            {
-                // Glows dim with distance too.
-                if (visor) visor.color = Color.Lerp(visor.color, hazeColor, haze * 0.6f);
-                if (bladeEdge) bladeEdge.color = new Color(bladeEdge.color.r, bladeEdge.color.g, bladeEdge.color.b, bladeEdge.color.a * (1f - haze * 0.5f));
             }
         }
     }

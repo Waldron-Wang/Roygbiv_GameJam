@@ -3,32 +3,27 @@ using UnityEngine;
 namespace Roygbiv
 {
     /// <summary>
-    /// The far king's anchor, placed in the scene near the end of the run. During the run the king is a big distant
-    /// figure pinned near the right of the view on a far hill (VioletApproach places him every frame with these
-    /// numbers). This object's position is where the intro camera starts: framed on him, close up, before the pull back
-    /// to the player.
+    /// Where the king stands during the run: on top of his hill at the far end of the course (the hill is painted in the
+    /// tilemap). When the level starts his feet go on the tile ground right under this object, so it only has to be
+    /// somewhere over the hill top. He's a real figure there, off screen until the player nears the end. The intro camera
+    /// starts framed on him (`introCamera`, from his feet), then pulls back along the course to the player.
     /// </summary>
     public class VioletFarKing : MonoBehaviour
     {
-        [Tooltip("Size of the distant king at the start and at the end of the run (1 = life size).")]
-        public Vector2 scale = new(1.25f, 2.1f);
-        [Tooltip("How hazy (faded toward the distance) he is at the start and at the end of the run.")]
-        public Vector2 haze = new(0.6f, 0.12f);
-        [Tooltip("How far in from the right screen edge he stands, in his own (scaled) units.")]
-        public float inset = 2.4f;
-        [Tooltip("Height of his feet (the far hill's top) relative to the camera center.")]
-        public float hillLine = -1.9f;
-        [Tooltip("The far hill under his feet.")]
-        public Color hillColor = new(0.15f, 0.1f, 0.22f);
+        [Tooltip("Where the intro camera centers, relative to his feet: left of and above him, so he stands to the right " +
+                 "with the end of the course in front of him.")]
+        public Vector2 introCamera = new(-6f, 2f);
 
-        /// <summary>Where the intro camera starts.</summary>
-        public Vector2 IntroView => transform.position;
+        public Vector2 Spot => transform.position;
 
         void OnDrawGizmos()
         {
+            var feet = transform.position;
+            Gizmos.color = new Color(0.8f, 0.4f, 1f);
+            Gizmos.DrawWireCube(feet + new Vector3(0f, 1.65f), new Vector3(1.6f, 3.3f, 0f)); // him
             // The intro's first frame, at 16:9 and the level camera's size.
             Gizmos.color = new Color(0.9f, 0.7f, 1f, 0.8f);
-            Gizmos.DrawWireCube(transform.position, new Vector3(24.9f, 14f, 0f));
+            Gizmos.DrawWireCube(feet + (Vector3)introCamera, new Vector3(24.9f, 14f, 0f));
         }
     }
 }

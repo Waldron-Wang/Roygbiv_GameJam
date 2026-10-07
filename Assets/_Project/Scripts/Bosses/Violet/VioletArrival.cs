@@ -4,8 +4,8 @@ namespace Roygbiv
 {
     /// <summary>
     /// The foot of the king's hill, placed in the scene: when the player's x reaches this object's x, VioletApproach plays
-    /// the arrival cinematic (letterbox, wipe, cut to the arena). It's also where the run ends for the distant king's
-    /// growth. Its "Stop" child is a solid wall a little further on, so nobody walks past it.
+    /// the arrival cinematic (letterbox, wipe, cut to the arena). Its "Stop" child is a solid wall at the hill's first
+    /// step, so nobody climbs to the king.
     /// </summary>
     public class VioletArrival : MonoBehaviour
     {
