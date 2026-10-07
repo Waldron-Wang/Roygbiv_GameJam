@@ -559,6 +559,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.Recolorable
   color: 1
   grayBrightness: 0.45
+  desaturate: 0
 --- !u!212 &1614328367
 SpriteRenderer:
   serializedVersion: 3
@@ -792,6 +793,7 @@ MonoBehaviour:
   startSpeed: 6
   maxSpeed: 30
   rampPerSecond: 0.1
+  stopTime: 1.5
   catchUpGain: 1.5
   maxCatchUp: 2.5
   maxEaseBack: 1

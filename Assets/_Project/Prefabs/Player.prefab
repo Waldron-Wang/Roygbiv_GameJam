@@ -132,7 +132,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 2, y: 2, z: 2}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 4844670260202673705}
@@ -583,6 +583,7 @@ GameObject:
   - component: {fileID: 5966126726609063849}
   - component: {fileID: 2317942521753739142}
   - component: {fileID: 5162251791705574909}
+  - component: {fileID: 4702237519960945860}
   m_Layer: 0
   m_Name: Abilities
   m_TagString: Untagged
@@ -671,6 +672,22 @@ MonoBehaviour:
   landingHitbox: {fileID: 8929924832250561500}
   slamSpeed: 25
   maxFallTime: 1.5
+--- !u!114 &4702237519960945860
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6240794470357401257}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a584c3b2b88c1e948b4deebe44fe16db, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.DoubleJumpAbility
+  cooldown: 0.5
+  jumpVelocity: 12
+  extraJumps: 1
+  groundNormalY: 0.7
 --- !u!1 &7609943759226421400
 GameObject:
   m_ObjectHideFlags: 0

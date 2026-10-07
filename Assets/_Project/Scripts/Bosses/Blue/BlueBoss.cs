@@ -8,13 +8,18 @@ namespace Roygbiv
     /// <summary>
     /// BLUE — loneliness, sadness. A weeping figure the player climbs after and finally reaches.
     ///
-    /// CLIMB (the fight starts with the level, but it can't be hurt yet). It floats a few units over the player,
-    /// always just out of reach, a little behind when they move, and its grief falls down the shaft:
-    ///   Tears  a tear swells under it and the spot it will land on glows, then it drops. Ledges shelter you.
-    ///          Tears never hurt: one knocks the player down and away. Any hit pops it (BlueTear).
+    /// CLIMB (the fight starts with the level, but it can't be hurt yet). It hangs in the top-left corner of the screen,
+    /// always out of reach, and throws its grief down at the player:
+    ///   Tears  they form in a fan on the side facing the player, a dotted arc and a landing glow following the aim;
+    ///          the aim locks (a white flash), and each is thrown in a parabola at where the player was, the boss
+    ///          leaning into the throw. Ledges shelter you. Tears never hurt: one knocks the player down and away.
+    ///          Any hit pops it (BlueTear).
     ///   Sighs  it breathes in (faint streaks drift across the screen), then a gust pushes the player sideways
     ///          for a moment (PlayerMotor.Wind). Hold against it.
     /// It cries harder the higher the player gets (more tears a volley, shorter rests); sighs start a little way up.
+    /// Its tears also flood the shaft from below (BlueWater): water that's there from the start and rises once the fight
+    /// begins, faster when it's far behind and slower right under the player's feet. Falling in is death. It stops just
+    /// under the summit floor.
     ///
     /// SUMMIT. A one-way floor spans the shaft at the top and catches every fall, so nothing up there can be lost.
     /// It turns away and hops between small perches above the floor while tears fall around the player.
@@ -30,12 +35,12 @@ namespace Roygbiv
         public enum State { Drifting, Weeping, Sighing, Hopping, Perched, Settled }
 
         [Header("Summit")]
-        [Tooltip("World point on top of the summit floor, in the middle of the shaft.")]
-        [SerializeField] Vector2 summit = new(0f, 35.5f);
+        [Tooltip("World point on top of the summit floor, in the middle of the shaft. Set by ROYGBIV > Bake Blue Level Into Scene.")]
+        [SerializeField] Vector2 summit = new(0f, 100f);
         [Tooltip("Half the floor's width: out to the walls' inner faces.")]
-        [SerializeField] float summitHalfWidth = 11.5f;
+        [SerializeField] float summitHalfWidth = 12f;
         [Tooltip("Top middle of each perch, from `summit`. Perches (and the floor) are one-way platforms.")]
-        [SerializeField] Vector2[] perches = { new(-7.5f, 2.4f), new(-2.5f, 4.6f), new(3.5f, 2.4f), new(8.5f, 4.6f), new(0.5f, 7f) };
+        [SerializeField] Vector2[] perches = { new(-7.5f, 1.8f), new(-2.5f, 3.2f), new(3.5f, 1.8f), new(8.5f, 3.2f), new(0.5f, 4.4f) };
         [Tooltip("Catches to win. Each catch starts the next phase.")]
         [SerializeField] int catchesToWin = 3;
         [Tooltip("Perch width per phase: they shrink as it cries harder.")]
@@ -52,13 +57,15 @@ namespace Roygbiv
         [SerializeField] float hopArc = 1.6f;
 
         [Header("Climb")]
-        [Tooltip("How far over the player it floats.")]
-        [SerializeField] float hoverAbove = 6f;
-        [Tooltip("Seconds it takes to catch up sideways: tears land where the player was a moment ago.")]
-        [SerializeField] float driftTime = 0.8f;
-        [Tooltip("Seconds it takes to catch up upward: it keeps its distance when the player jumps.")]
-        [SerializeField] float riseTime = 0.35f;
-        [SerializeField] float maxDriftSpeed = 14f;
+        [Tooltip("While the player climbs it hangs in the top-left corner of the screen, this far in from the edges (x from the left, y from the top).")]
+        [SerializeField] Vector2 cornerInset = new(0.4f, 0.3f);
+        [Tooltip("Seconds it takes to keep up with the corner as the camera moves.")]
+        [SerializeField] float driftTime = 0.2f;
+        [SerializeField] float maxDriftSpeed = 30f;
+        [Tooltip("How far out from its middle a tear forms, on the side facing the player.")]
+        [SerializeField] float tearReach = 1.1f;
+        [Tooltip("Degrees between the tears of a volley as they form around it.")]
+        [SerializeField] float volleySpread = 35f;
         [Tooltip("Tears a volley, by how far up the player is (bottom, middle, top).")]
         [SerializeField] int[] climbVolley = { 1, 2, 3 };
         [Tooltip("Seconds of rest between volleys at the bottom (x) and near the top (y).")]
@@ -72,6 +79,11 @@ namespace Roygbiv
 
         [Header("Tears")]
         [SerializeField] BlueTear.Settings tear = new();
+
+        [Header("Rising water")]
+        [Tooltip("Its tears flood the shaft from below while the player climbs (BlueWater).")]
+        [SerializeField] bool risingWater = true;
+        [SerializeField] BlueWater.Settings water = new();
 
         [Header("Sighs")]
         [Tooltip("Seconds it breathes in: the warning.")]
@@ -92,13 +104,13 @@ namespace Roygbiv
             public float speed;
         }
 
-        static readonly List<RaycastHit2D> RayHits = new();
 
         readonly List<BlueTear> tears = new();
         readonly List<Streak> streaks = new();
         readonly List<Transform> perchBodies = new();
 
         Transform arena, visual;
+        BlueWater flood;
         Vector3 visualScale;
         Collider2D bodyCollider;
         Vector2 bodySize = new(1.4f, 1.8f);
@@ -107,7 +119,7 @@ namespace Roygbiv
         State state;
         bool atSummit, summitStarted, caught;
         int perchIndex = -1, cycle, sits;
-        float climbBaseY, gust, inhale, jolt, trickle, streakDebt, lastX;
+        float climbBaseY, gust, inhale, jolt, lean, trickle, streakDebt, lastX;
         int gustDir = 1, facing = -1;
         Vector2 driftVelocity;
 
@@ -164,12 +176,25 @@ namespace Roygbiv
             ClearTears();
             ClearStreaks();
             if (arena) Destroy(arena.gameObject);
+            if (flood) Destroy(flood.gameObject);
+        }
+
+        // The water is there from the start, before the fight (and any intro) begins.
+        void Start() => MakeWater();
+
+        void MakeWater()
+        {
+            // It stops just under the summit floor: the summit can't be flooded.
+            if (risingWater && !flood && Player)
+                flood = BlueWater.Create(water, summit.x, summitHalfWidth, Player.position.y, summit.y - water.stopBelowSummit);
         }
 
         protected override void OnFightStarted()
         {
             Health.Invulnerable = true; // nothing to catch until the summit
             climbBaseY = Player ? Player.position.y : transform.position.y;
+            MakeWater();
+            if (flood) flood.Begin();
 
             // The player passes through it; reaching it is checked in Update.
             if (Player && bodyCollider)
@@ -216,16 +241,22 @@ namespace Roygbiv
 
         void FixedUpdate()
         {
-            // While the player climbs it hangs over them, a little behind, never lower than it needs to be.
+            // While the player climbs it hangs in the top-left corner of the screen, throwing its tears down at them.
             if (!IsFighting || summitStarted || !Player) return;
             Vector2 pos = Body ? Body.position : (Vector2)transform.position;
-            float half = bodySize.x * 0.5f;
-            float tx = Mathf.Clamp(Player.position.x, -summitHalfWidth + half, summitHalfWidth - half);
-            float ty = Mathf.Min(Player.position.y + hoverAbove, Seat(0).y + bodySize.y * 0.5f);
-            float dt = Time.fixedDeltaTime;
-            pos.x = Mathf.SmoothDamp(pos.x, tx, ref driftVelocity.x, driftTime, maxDriftSpeed, dt);
-            pos.y = Mathf.SmoothDamp(pos.y, ty, ref driftVelocity.y, riseTime, maxDriftSpeed, dt);
+            pos = Vector2.SmoothDamp(pos, CornerSpot(), ref driftVelocity, driftTime, maxDriftSpeed, Time.fixedDeltaTime);
             MoveTo(pos);
+        }
+
+        /// <summary>The top-left corner of the camera's view, kept over the shaft (never out past the left wall).</summary>
+        Vector2 CornerSpot()
+        {
+            var cam = Camera.main;
+            Vector2 center = cam ? (Vector2)cam.transform.position : (Vector2)Player.position + Vector2.up * 1.5f;
+            float halfH = cam ? cam.orthographicSize : 3.5f, halfW = cam ? halfH * cam.aspect : 6.2f;
+            float x = center.x - halfW + bodySize.x * 0.5f + cornerInset.x;
+            float y = center.y + halfH - bodySize.y * 0.5f - cornerInset.y;
+            return new Vector2(Mathf.Max(x, summit.x - summitHalfWidth + bodySize.x * 0.5f), y);
         }
 
         // ---------- Climb ----------
@@ -239,10 +270,11 @@ namespace Roygbiv
             {
                 state = State.Weeping;
                 int count = climbVolley[Mathf.Clamp((int)(k * climbVolley.Length), 0, climbVolley.Length - 1)];
+                // The tears of a volley form in a fan on the side facing the player, then fly one after another.
                 for (int i = 0; i < count && !Interrupted; i++)
                 {
-                    HoldAttackPose(0.4f);
-                    DropTear(transform.position + Vector3.down * bodySize.y * 0.5f, false);
+                    HoldAttackPose(tear.warnTime + tear.lockTime);
+                    ThrowTear(i - (count - 1) * 0.5f);
                     yield return Pause(volleyGap);
                 }
             }
@@ -314,7 +346,7 @@ namespace Roygbiv
                     next += gap;
                     var from = new Vector2(Player.position.x + Random.Range(-1.5f, 1.5f), summit.y + summitTearHeight);
                     from.x = Mathf.Clamp(from.x, -summitHalfWidth + 0.5f, summitHalfWidth - 0.5f);
-                    DropTear(from, true);
+                    DropTear(from);
                 }
                 yield return null;
             }
@@ -359,29 +391,29 @@ namespace Roygbiv
 
         // ---------- Tears ----------
 
-        /// <param name="summitStage">Up top tears land on the summit floor and perches; on the climb they fall through.</param>
-        void DropTear(Vector2 from, bool summitStage)
+        /// <summary>
+        /// A tear forms beside it (`slot` turns it around the side facing the player: 0 = straight at them) and is
+        /// thrown at the player in an arc. While the player climbs it flies through the summit's platforms.
+        /// </summary>
+        void ThrowTear(float slot)
         {
             tears.RemoveAll(t => !t);
-            tears.Add(BlueTear.Spawn(from, LandingY(from, summitStage), tear));
+            Vector2 Origin()
+            {
+                Vector2 me = transform.position;
+                var toPlayer = Player ? ((Vector2)Player.position - me).normalized : Vector2.right;
+                return me + (Vector2)(Quaternion.Euler(0f, 0f, slot * volleySpread) * toPlayer) * tearReach;
+            }
+            var thrown = BlueTear.Throw(Origin, () => Player ? (Vector2)Player.position : Origin(), tear, flood, summitStarted ? null : arena);
+            thrown.Launched = () => { lean = 1f; jolt = Mathf.Max(jolt, 0.3f); };
+            tears.Add(thrown);
         }
 
-        /// <summary>The first solid surface under `from` (ledges shelter the player).</summary>
-        float LandingY(Vector2 from, bool summitStage)
+        /// <summary>A tear dropped straight down from `from` (the summit's tears, falling from the sky).</summary>
+        void DropTear(Vector2 from)
         {
-            const float range = 60f;
-            float best = range;
-            Physics2D.Raycast(from, Vector2.down, ContactFilter2D.noFilter, RayHits, range);
-            foreach (var h in RayHits)
-            {
-                var c = h.collider;
-                if (!c || c.isTrigger || c.transform.IsChildOf(transform)) continue;
-                if (h.distance < 0.05f) continue; // formed inside a ledge: it falls out of it
-                if (!summitStage && arena && c.transform.IsChildOf(arena)) continue;
-                if (c.GetComponentInParent<PlayerController>() || c.GetComponentInParent<IDamageable>() != null) continue;
-                best = Mathf.Min(best, h.distance);
-            }
-            return from.y - best;
+            tears.RemoveAll(t => !t);
+            tears.Add(BlueTear.Throw(() => from, null, tear, flood, null));
         }
 
         void ClearTears()
@@ -542,10 +574,13 @@ namespace Roygbiv
             float sob = crying ? Mathf.Sin(t * 9f) * 0.04f : Mathf.Sin(t * 2f) * 0.02f;
             float swell = 1f + inhale * 0.18f;
             jolt = Mathf.MoveTowards(jolt, 0f, Time.deltaTime * 3f);
+            lean = Mathf.MoveTowards(lean, 0f, Time.deltaTime * 4f);
             if (visual)
             {
                 visual.localScale = new Vector3(visualScale.x * swell * (1f + sob), visualScale.y * swell * (1f - sob), 1f);
                 visual.localPosition = jolt > 0f ? (Vector3)(Random.insideUnitCircle * jolt * 0.15f) : Vector3.zero;
+                // It leans into each throw, toward the player, and straightens up again.
+                visual.localRotation = Quaternion.Euler(0f, 0f, -facing * 18f * Mathf.Sin(lean * Mathf.PI * 0.5f));
             }
 
             // Eyes on the side it faces, cast down; shut (calm) once it has settled.
