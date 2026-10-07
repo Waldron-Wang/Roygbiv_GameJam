@@ -46,6 +46,7 @@ namespace Roygbiv
         [SerializeField] Vector2 approachViewSize = new(22f, 13f);
         [Tooltip("Seconds the camera takes to ease between approach and arena framing.")]
         [SerializeField] float cameraZoomTime = 0.4f;
+        [SerializeField] float duelViewSize = 7f;
         [Tooltip("While the needle curtain is running, he raises his hand again every this many seconds.")]
         [SerializeField] float curtainGestureEvery = 1.6f;
 
@@ -286,10 +287,11 @@ namespace Roygbiv
             if (!viewCamera || stage == Stage.Setup || Time.deltaTime <= 0f) return;
             bool inArena = arena && (stage == Stage.Arrival || stage == Stage.Duel);
             var frame = inArena ? ArenaView.size : approachViewSize;
-            float target = Mathf.Max(frame.y * 0.5f, frame.x * 0.5f / Mathf.Max(0.01f, viewCamera.aspect));
+            float target = stage == Stage.Duel ? duelViewSize
+                : Mathf.Max(frame.y * 0.5f, frame.x * 0.5f / Mathf.Max(0.01f, viewCamera.aspect));
             var warp = viewCamera.GetComponent<ScreenWarp>();
             // Reserve enough space that the warp's breathing zoom cannot crop the fitted frame.
-            if (warp && warp.enabled) target /= Mathf.Max(0.01f, 1f - Mathf.Abs(warp.Current.zoomPulse));
+            if (stage != Stage.Duel && warp && warp.enabled) target /= Mathf.Max(0.01f, 1f - Mathf.Abs(warp.Current.zoomPulse));
             viewSize = Mathf.SmoothDamp(viewSize, target, ref zoomVelocity, cameraZoomTime);
             if (warp) warp.SetBaseSize(viewSize);
             else viewCamera.orthographicSize = viewSize;
@@ -661,7 +663,11 @@ namespace Roygbiv
         {
             stage = Stage.Duel;
             VioletCheckpoint.Reach(VioletCheckpoint.ArenaIndex);
-            if (cam) cam.Hold(ArenaView.center);
+            if (cam)
+            {
+                cam.Lead = Vector2.zero;
+                cam.Release();
+            }
             if (boss) boss.PrepareFloorStart(arena.BossX, false);
             LevelController.Current?.StartBoss();
         }
