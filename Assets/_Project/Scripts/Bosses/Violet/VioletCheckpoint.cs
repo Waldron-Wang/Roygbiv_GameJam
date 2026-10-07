@@ -8,7 +8,6 @@ namespace Roygbiv
     /// punishing, so this remembers the furthest checkpoint reached across reloads of the level:
     ///   0..SegmentCount-1   the start of each approach segment
     ///   ArenaIndex          the arena entrance (the duel, boss at full health)
-    ///   TwinBladesIndex     the start of Twin Blades (boss at its threshold, cape gone)
     /// plus whether the intro has played (it never replays on a respawn).
     /// Cleared when any other scene loads (new game, F10, the hub, the menu, the ending) and when the level is won.
     /// Static on purpose (it outlives the scene), so it's reset at the start of every play session: domain reload is off.
@@ -27,20 +26,21 @@ namespace Roygbiv
         /// <summary>Approach checkpoints in the course (set when the course is built).</summary>
         public static int SegmentCount { get; set; }
         public static int ArenaIndex => SegmentCount;
-        public static int TwinBladesIndex => SegmentCount + 1;
 
         /// <summary>The memory belongs to this scene: loading any other one wipes it.</summary>
         public static void Bind(string scene) => sceneName = scene;
 
         public static void Reach(int index)
         {
+            index = Mathf.Clamp(index, Start, ArenaIndex);
+            Index = Mathf.Min(Index, ArenaIndex);
             if (index > Index) Index = index;
         }
 
         /// <summary>Debug: go straight to a checkpoint (the caller reloads the scene).</summary>
         public static void JumpTo(int index)
         {
-            Index = Mathf.Clamp(index, Start, TwinBladesIndex);
+            Index = Mathf.Clamp(index, Start, ArenaIndex);
             IntroSeen = true;
         }
 

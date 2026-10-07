@@ -18,7 +18,7 @@ namespace Roygbiv
     ///            draws his planted greatsword, swings it overhead and points it at the player, the name card appears,
     ///            the letterbox slides out and the duel starts (HP bar). Skippable with confirm once it's been seen.
     ///            Respawning at the arena plays a short version; at Twin Blades the fight resumes straight away.
-    /// Checkpoints: one per segment, the arena, and Twin Blades (phaseThreeCheckpoint), in VioletCheckpoint.
+    /// Checkpoints: one per approach segment and the arena entrance. Duel retries always start at full boss health.
     /// Runs late, so the distant king sticks to the view after the camera has moved.
     /// </summary>
     [DefaultExecutionOrder(500)]
@@ -59,10 +59,6 @@ namespace Roygbiv
         [SerializeField] float wipeTime = 0.8f;
         [Tooltip("Seconds the letterbox bars take to slide in / out.")]
         [SerializeField] float letterboxTime = 0.35f;
-
-        [Header("Checkpoints")]
-        [Tooltip("Remember the start of Twin Blades (respawn there at the threshold, cape already gone).")]
-        [SerializeField] bool phaseThreeCheckpoint = true;
 
         [Header("Testing")]
         [Tooltip("EDITOR ONLY: playing Level_Violet directly, grant every ability the player doesn't have yet (no F1-F6 needed). The save isn't touched.")]
@@ -163,7 +159,7 @@ namespace Roygbiv
                 CutToArena(false);
                 yield return null; // every loadout has synced with the save by now
                 GrantAbilitiesForTesting();
-                yield return ArriveFromCheckpoint(cp >= VioletCheckpoint.TwinBladesIndex);
+                yield return ArriveFromCheckpoint();
                 yield break;
             }
 
@@ -307,8 +303,6 @@ namespace Roygbiv
         void LateUpdate()
         {
             if (stage is Stage.Setup or Stage.Intro or Stage.Run) PlaceFarKing();
-            if (stage == Stage.Duel && phaseThreeCheckpoint && boss && boss.TwinBlades && !boss.Health.IsDead)
-                VioletCheckpoint.Reach(VioletCheckpoint.TwinBladesIndex);
         }
 
         /// <summary>Pins him near the right of the view on his far hill, bigger and clearer the closer the player is to the end.</summary>
@@ -455,10 +449,7 @@ namespace Roygbiv
             Live(VioletTelegraph.Top(z.fromX, z.toX, z.telegraph, attackColor));
             yield return new WaitForSeconds(z.telegraph);
 
-            // Spawn below this hall's hanging slab/anchor, but above the eventual landed roof.
-            // Other Violet attacks continue using rainHeight.
-            float spawnY = z.slab ? Mathf.Min(rainHeight, z.slab.RainSpawnY) : rainHeight;
-            float fall = (spawnY - 1f) / rainSpeed;
+            float fall = (rainHeight - 1f) / rainSpeed;
             float next = 0f;
             for (float t = 0f; t < z.duration; t += Time.deltaTime)
             {
@@ -467,7 +458,7 @@ namespace Roygbiv
                     next += 1f / Mathf.Max(1f, rainRate);
                     float x = Random.Range(z.fromX, z.toX);
                     VioletTelegraph.Spot(new Vector2(x, 0.06f), new Vector2(0.45f, 0.1f), fall, attackColor);
-                    VioletShots.Sword(new Vector2(x, spawnY), rainSpeed, new Color(0.85f, 0.75f, 1f, 0.85f));
+                    VioletShots.Sword(new Vector2(x, rainHeight), rainSpeed, new Color(0.85f, 0.75f, 1f, 0.85f), shelterRain: true);
                 }
                 yield return null;
             }
@@ -553,7 +544,7 @@ namespace Roygbiv
             GameEvents.RaiseCinematicChanged(false); // letterbox out
             yield return new WaitForSeconds(letterboxTime * 0.5f);
             BlockInput(false);
-            StartDuel(false);
+            StartDuel();
         }
 
         IEnumerator Beat(bool full, System.Action finished)
@@ -587,12 +578,12 @@ namespace Roygbiv
             if (plantedSword) boss.PlantSword();
         }
 
-        /// <summary>Respawned at the arena: a short beat (he raises the sword, points it), or straight in at Twin Blades.</summary>
-        IEnumerator ArriveFromCheckpoint(bool twinBlades)
+        /// <summary>Respawned at the arena: a short beat, then the whole duel from the beginning.</summary>
+        IEnumerator ArriveFromCheckpoint()
         {
-            if (twinBlades || !boss)
+            if (!boss)
             {
-                StartDuel(twinBlades);
+                StartDuel();
                 yield break;
             }
             BlockInput(true);
@@ -600,15 +591,15 @@ namespace Roygbiv
             boss.StartCoroutine(Beat(false, () => done = true));
             for (float t = 0f; !done && t < 2f; t += Time.deltaTime) yield return null;
             BlockInput(false);
-            StartDuel(false);
+            StartDuel();
         }
 
-        void StartDuel(bool twinBlades)
+        void StartDuel()
         {
             stage = Stage.Duel;
             VioletCheckpoint.Reach(VioletCheckpoint.ArenaIndex);
             if (cam) cam.Hold(course.ArenaCamera);
-            if (boss) boss.PrepareFloorStart(course.ArenaKingX, twinBlades);
+            if (boss) boss.PrepareFloorStart(course.ArenaKingX, false);
             LevelController.Current?.StartBoss();
         }
     }

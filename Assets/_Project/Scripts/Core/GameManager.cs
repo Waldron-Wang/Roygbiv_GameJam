@@ -14,6 +14,12 @@ namespace Roygbiv
 
         void Awake()
         {
+            EnsureProgress();
+        }
+
+        internal void EnsureProgress()
+        {
+            if (Progress != null) return;
             Progress = GameProgress.Load();
             GrantCurrentRewards();
         }

@@ -8,6 +8,31 @@ namespace Roygbiv
     /// </summary>
     static class Bootstrapper
     {
+#if UNITY_EDITOR
+        // BeforeSceneLoad does not run when scripts are recompiled during Play mode.
+        [UnityEditor.Callbacks.DidReloadScripts]
+        static void RebindAfterScriptReload()
+        {
+            if (!Application.isPlaying) return;
+            var manager = Object.FindAnyObjectByType<GameManager>();
+            if (!manager) return;
+            var systems = manager.gameObject;
+            Game.Config = Resources.Load<GameConfig>(GameConfig.ResourcePath);
+            if (!Game.Config) Game.Config = ScriptableObject.CreateInstance<GameConfig>();
+            Game.Input = systems.GetComponent<InputReader>();
+            Game.Time = systems.GetComponent<TimeController>();
+            Game.Scenes = systems.GetComponent<SceneLoader>();
+            Game.Manager = manager;
+            Game.Colors = systems.GetComponent<ColorWorld>();
+            Game.Dialogue = systems.GetComponent<DialogueRunner>();
+            Game.Instructions = systems.GetComponent<InstructionRunner>();
+            Game.Audio = systems.GetComponent<AudioManager>();
+            manager.EnsureProgress();
+            var view = systems.GetComponent<InstructionView>();
+            if (view) view.RebindPointerBlocker();
+        }
+#endif
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Init()
         {

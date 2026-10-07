@@ -120,6 +120,8 @@ namespace Roygbiv
         [SerializeField] float shelterWidth = 4.2f;
         [Tooltip("Royal Rain: bottom of the hanging slab, and the anchor's height (out of reach: a double jump + swing tops out ~6.5).")]
         [SerializeField] Vector2 slabHangAndAnchor = new(6.4f, 8.5f);
+        [Tooltip("Royal Rain: yellow anchor's horizontal distance to the right of the slab center. Keeps an upper-right shot from inside clear of the slab.")]
+        [SerializeField, Min(0f)] float shelterAnchorOffset = 6f;
         [Tooltip("Seal height (taller than any jump).")]
         [SerializeField] float sealHeight = 14f;
         [Tooltip("Crystal gate height (taller than any jump; lobbed orbs come over it).")]
@@ -438,23 +440,35 @@ namespace Roygbiv
         {
             float half = shelterWidth * 0.5f;
             Block("ShelterPillar", Rect.MinMaxRect(cx - half - 0.6f, 0f, cx - half, shelterHeight));
-            var exitSupport = Block("ShelterPillar (breaks on impact)", Rect.MinMaxRect(cx + half, 0f, cx + half + 0.6f, shelterHeight));
+            Block("ShelterPillar", Rect.MinMaxRect(cx + half, 0f, cx + half + 0.6f, shelterHeight));
 
             float slabW = shelterWidth + 1.6f, slabH = 0.7f, hang = slabHangAndAnchor.x, anchorY = slabHangAndAnchor.y;
+            float anchorX = cx + shelterAnchorOffset;
             var slab = Block("Slab", Rect.MinMaxRect(cx - slabW * 0.5f, hang, cx + slabW * 0.5f, hang + slabH), slabColor, true);
 
             var links = new List<Transform>();
-            for (float y = hang + slabH + 0.2f; y < anchorY - 0.3f; y += 0.35f)
-                links.Add(FlatSprite.Create("ChainLink", root, new Vector2(cx, y), new Vector2(0.14f, 0.26f), new Color(0.7f, 0.65f, 0.75f), 5).transform);
-            Block("AnchorBeam", Rect.MinMaxRect(cx - 1.6f, anchorY + 0.35f, cx + 1.6f, anchorY + 0.85f));
+            Vector2 chainStart = new(cx, hang + slabH), chainEnd = new(anchorX, anchorY - 0.3f);
+            Vector2 connection = chainEnd - chainStart;
+            int linkCount = Mathf.Max(1, Mathf.CeilToInt(connection.magnitude / 0.26f));
+            float linkAngle = Mathf.Atan2(connection.y, connection.x) * Mathf.Rad2Deg - 90f;
+            for (int i = 0; i < linkCount; i++)
+            {
+                var link = FlatSprite.Create("ChainLink", root, Vector2.Lerp(chainStart, chainEnd, (i + 0.5f) / linkCount),
+                    new Vector2(0.14f, 0.26f), new Color(0.7f, 0.65f, 0.75f), 5).transform;
+                link.rotation = Quaternion.Euler(0f, 0f, linkAngle);
+                links.Add(link);
+            }
+            Block("AnchorBeam", Rect.MinMaxRect(anchorX - 1.6f, anchorY + 0.35f, anchorX + 1.6f, anchorY + 0.85f)).AddComponent<VioletRainPassThrough>();
 
-            var anchor = Block("ChainAnchor (shoot it)", Rect.MinMaxRect(cx - 0.45f, anchorY - 0.3f, cx + 0.45f, anchorY + 0.35f), new Color(1f, 0.88f, 0.55f), true);
-            var glow = IndigoShapes.Create("AnchorGlow", IndigoShapes.Ring, null, new Vector2(cx, anchorY), 1.4f, new Color(1f, 0.9f, 0.6f, 0.8f), 8);
+            var anchor = Block("ChainAnchor (shoot it)", Rect.MinMaxRect(anchorX - 0.45f, anchorY - 0.3f, anchorX + 0.45f, anchorY + 0.35f), new Color(1f, 0.88f, 0.55f), true);
+            anchor.AddComponent<VioletRainPassThrough>();
+            var glow = IndigoShapes.Create("AnchorGlow", IndigoShapes.Ring, null, new Vector2(anchorX, anchorY), 1.4f, new Color(1f, 0.9f, 0.6f, 0.8f), 8);
             glow.transform.SetParent(root, true);
             glow.gameObject.AddComponent<VioletPulse>();
 
             var s = slab.AddComponent<VioletSlab>();
-            s.Setup(slab, shelterHeight + slabH * 0.5f, links.ToArray(), glow, exitSupport);
+            s.Setup(slab, shelterHeight + slabH * 0.5f, links.ToArray(), glow);
+            slab.AddComponent<VioletDestructibleSlab>().Setup(s);
             anchor.AddComponent<VioletShelterWeakPoint>().Setup(s);
             return s;
         }

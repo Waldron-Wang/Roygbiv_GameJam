@@ -42,7 +42,7 @@ namespace Roygbiv
         }
 
         /// <summary>A spectral sword falling straight down from `at`.</summary>
-        public static Projectile Sword(Vector2 at, float speed, Color color, float length = 1.6f)
+        public static Projectile Sword(Vector2 at, float speed, Color color, float length = 1.6f, bool shelterRain = false)
         {
             var go = new GameObject("SpectralSword");
             go.transform.position = at;
@@ -66,6 +66,7 @@ namespace Roygbiv
             p.lifetime = 3f;
             p.destroyOnWorld = true;
             p.Launch(Vector2.down, Team.Enemy);
+            if (shelterRain) VioletRainPassThrough.Register(box);
             return p;
         }
     }

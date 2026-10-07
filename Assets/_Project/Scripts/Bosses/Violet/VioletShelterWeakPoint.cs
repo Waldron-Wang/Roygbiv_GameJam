@@ -19,7 +19,7 @@ namespace Roygbiv
             health.Died += Break;
         }
 
-        static bool Accepts(DamageInfo hit) => hit.amount > 0 && hit.sourceTeam == Team.Player
+        internal static bool Accepts(DamageInfo hit) => hit.amount > 0 && hit.sourceTeam == Team.Player
             && hit.source && hit.source.TryGetComponent<LightShotProjectileSource>(out _)
             && hit.source.TryGetComponent<Projectile>(out var shot) && shot.Team == Team.Player;
 

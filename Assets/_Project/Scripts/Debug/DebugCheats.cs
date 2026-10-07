@@ -11,7 +11,6 @@ namespace Roygbiv
     /// Level_Violet only (they reload the level at that checkpoint, intro skipped):
     ///   PageDown / PageUp   next / previous checkpoint
     ///   Home                skip to the duel (arena entrance)
-    ///   End                 skip to Twin Blades (phase 3)
     /// </summary>
     public class DebugCheats : MonoBehaviour
     {
@@ -19,6 +18,7 @@ namespace Roygbiv
         {
             var kb = Keyboard.current;
             if (kb == null) return;
+            if (!Game.Config || !Game.Manager || !Game.Scenes) return;
 
             var fKeys = new[] { kb.f1Key, kb.f2Key, kb.f3Key, kb.f4Key, kb.f5Key, kb.f6Key, kb.f7Key };
             var order = Game.Config.colorOrder;
@@ -45,11 +45,10 @@ namespace Roygbiv
             if (kb.pageDownKey.wasPressedThisFrame) target = VioletCheckpoint.Index + 1;
             else if (kb.pageUpKey.wasPressedThisFrame) target = VioletCheckpoint.Index - 1;
             else if (kb.homeKey.wasPressedThisFrame) target = VioletCheckpoint.ArenaIndex;
-            else if (kb.endKey.wasPressedThisFrame) target = VioletCheckpoint.TwinBladesIndex;
             if (target == int.MinValue) return;
 
             VioletCheckpoint.JumpTo(Mathf.Max(0, target));
-            Debug.Log($"[DebugCheats] Violet: checkpoint {VioletCheckpoint.Index} (arena = {VioletCheckpoint.ArenaIndex}, twin blades = {VioletCheckpoint.TwinBladesIndex}).");
+            Debug.Log($"[DebugCheats] Violet: checkpoint {VioletCheckpoint.Index} (arena entrance = {VioletCheckpoint.ArenaIndex}).");
             Game.Scenes.Reload();
         }
     }

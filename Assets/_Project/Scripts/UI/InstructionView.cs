@@ -52,6 +52,11 @@ namespace Roygbiv
         {
             GameEvents.InstructionShown += Show;
             GameEvents.InstructionClosed += Hide;
+            RebindPointerBlocker();
+        }
+
+        internal void RebindPointerBlocker()
+        {
             pointerBlocker ??= IsOverButton;
             if (Game.Input) Game.Input.AddPointerBlocker(pointerBlocker);
         }
@@ -83,6 +88,11 @@ namespace Roygbiv
         {
             GUI.depth = -100; // over the HUD, under the scene fade (-1000)
             var runner = Game.Instructions;
+            if (!runner)
+            {
+                tipVisible = closeVisible = false;
+                return;
+            }
             var e = Event.current;
 
             // Lay out on every event, so clicks and InputReader's hit test match what's on screen.
