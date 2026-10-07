@@ -5,6 +5,11 @@ namespace Roygbiv
     /// <summary>Independent slab durability; damage never releases the anchor.</summary>
     public sealed class VioletDestructibleSlab : MonoBehaviour, IDamageable
     {
+        [Tooltip("Hits (Light Shots or sword swings) it takes to break the slab: the way out of the shelter.")]
+        [SerializeField, Min(1)] int maxHealth = 4;
+        [Tooltip("Set by the bake: sets itself up when the level starts.")]
+        [SerializeField, HideInInspector] bool placedInScene;
+
         Health health;
         VioletSlab shelter;
         SpriteRenderer visual;
@@ -12,6 +17,11 @@ namespace Roygbiv
         float flashUntil;
         bool broken;
         public Team Team => Team.Neutral;
+
+        void Awake()
+        {
+            if (placedInScene) Setup(GetComponent<VioletSlab>(), maxHealth);
+        }
 
         public void Setup(VioletSlab owner, int maxHealth)
         {

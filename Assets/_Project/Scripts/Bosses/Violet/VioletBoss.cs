@@ -341,7 +341,9 @@ namespace Roygbiv
             figure.Build(transform, new Vector2(0f, -halfHeight / Mathf.Max(0.01f, transform.lossyScale.y)), sortingBase);
             ThronePose();
             Health.DamageFilter = FilterHit;
-            VioletSetup.EnsureLevel(this); // the scene has no Violet setup (menu not run): build it now
+            if (!FindAnyObjectByType<VioletApproach>(FindObjectsInactive.Include))
+                Debug.LogError("[Violet] Level_Violet isn't baked (no Violet course in the scene): in the editor, open Level_Violet, run " +
+                               "ROYGBIV > Bake Violet Level Into Scene, then save the scene and commit it.", this);
         }
 
         // If nothing told him where the arena is, find the real ground under him: his feet are never in mid-air.

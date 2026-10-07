@@ -7,13 +7,27 @@ namespace Roygbiv
     /// A slab of solid stone that rises out of the floor to seal a passage, and sinks back to open it
     /// (Royal Rain's seals, the arena door). Kinematic, so rising it lifts anyone standing on it instead of
     /// trapping them inside. Put it on a block that already has a solid collider.
+    /// Placed in the scene, its position IS the closed position (what you see in the Scene view); when the level
+    /// starts it sinks `sinkDepth` into the floor unless `startClosed` is on.
     /// </summary>
     [RequireComponent(typeof(Collider2D))]
     public class VioletGate : MonoBehaviour
     {
+        [Tooltip("How far it sinks into the floor when open: its height plus a little, so it hides completely.")]
+        [SerializeField] float sinkDepth = 14.2f;
+        [Tooltip("Closed when the level starts (a door). Off: it starts sunk (open) until something closes it (a seal).")]
+        [SerializeField] bool startClosed;
+
         Rigidbody2D body;
         float openY, closedY;
         Coroutine move;
+        bool configured;
+
+        // Placed in the scene: the authored position is the closed one.
+        void Awake()
+        {
+            if (!configured) Setup(transform.position.y - sinkDepth, transform.position.y, startClosed);
+        }
 
         public bool IsClosed { get; private set; }
 
@@ -21,6 +35,7 @@ namespace Roygbiv
         /// <param name="closedY">Center height when closed.</param>
         public void Setup(float openY, float closedY, bool startClosed)
         {
+            configured = true;
             body = GetComponent<Rigidbody2D>();
             if (!body) body = gameObject.AddComponent<Rigidbody2D>();
             body.bodyType = RigidbodyType2D.Kinematic;

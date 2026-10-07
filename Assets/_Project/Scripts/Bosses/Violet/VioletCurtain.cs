@@ -58,6 +58,19 @@ namespace Roygbiv
         const float PathStep = 0.01f;
         static readonly Color LightColor = new(0.85f, 0.85f, 1f);
 
+        [Header("Placed in the scene (a course curtain)")]
+        [Tooltip("Builds itself from the fields below when the level starts. Off for curtains made from code (Royal Decree).")]
+        [SerializeField] bool placedInScene;
+        [Tooltip("Curtain width, from this object's x. The safe spot is left of it.")]
+        [SerializeField] float width = 7f;
+        [Tooltip("Height of the ceiling the needles fall from, above this object's y (paint the ceiling tiles to match).")]
+        [SerializeField] float ceilingHeight = 4f;
+        [Tooltip("Name, for logs and the self-check.")]
+        [SerializeField] string curtainLabel = "Curtain";
+        [Tooltip("This curtain's tuning.")]
+        [SerializeField] Settings settings = new();
+        bool configured;
+
         readonly List<float> columns = new();
         readonly List<float> nextFire = new();
         readonly List<SpriteRenderer> emitters = new();
@@ -100,8 +113,16 @@ namespace Roygbiv
         // ---------- Setup ----------
 
         /// <summary>Course mode: the curtain spans [startX, endX] under a ceiling; the gap waits at the entrance.</summary>
+        // After every Awake: the player (whose speed it reads) exists by now.
+        void Start()
+        {
+            if (placedInScene && !configured)
+                Setup(transform.position.x, transform.position.x + width, transform.position.y, transform.position.y + ceilingHeight, settings, VioletNeedle.RimColor, curtainLabel);
+        }
+
         public void Setup(float startX, float endX, float floor, float ceiling, Settings settings, Color color, string name)
         {
+            configured = true;
             courseMode = true;
             Init(startX, endX, floor, ceiling, settings, color, name);
             parkLeft = x0 - s.parkOverlap;
@@ -116,6 +137,7 @@ namespace Roygbiv
         /// <summary>Arena mode (Royal Decree): needles over [minX, maxX] from `ceiling`; Park then BeginRun from code.</summary>
         public void SetupArena(float minX, float maxX, float floor, float ceiling, Settings settings, Color color, string name)
         {
+            configured = true;
             courseMode = false;
             Init(minX, maxX, floor, ceiling, settings, color, name);
             Park((minX + maxX) * 0.5f);

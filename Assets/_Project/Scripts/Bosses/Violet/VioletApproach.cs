@@ -19,14 +19,15 @@ namespace Roygbiv
     ///            the letterbox slides out and the duel starts (HP bar). Skippable with confirm once it's been seen.
     ///            Respawning at the arena plays a short version; at Twin Blades the fight resumes straight away.
     /// Checkpoints: one per approach segment and the arena entrance. Duel retries always start at full boss health.
+    /// Everything it runs is placed in the scene (ROYGBIV > Bake Violet Level Into Scene made the first version; move,
+    /// add or retune them by hand): VioletCheckpointMarker (ordered by x), VioletZone (one per attack, checked left to
+    /// right), VioletArrival, VioletFarKing and VioletArena. Missing any but the zones: one error, and nothing runs.
     /// Runs late, so the distant king sticks to the view after the camera has moved.
     /// </summary>
     [DefaultExecutionOrder(500)]
     public class VioletApproach : MonoBehaviour
     {
         enum Stage { Setup, Intro, Run, Arrival, Duel }
-
-        [SerializeField] VioletCourse course;
 
         [Header("Intro")]
         [Tooltip("Seconds the camera holds on the king before the pull.")]
@@ -39,16 +40,6 @@ namespace Roygbiv
         [Header("The run")]
         [Tooltip("Camera look-ahead to the right during the run, so incoming attacks (and the king) are in view.")]
         [SerializeField] float lookAhead = 5f;
-        [Tooltip("Size of the distant king at the start and at the end of the course (1 = life size).")]
-        [SerializeField] Vector2 farScale = new(1.25f, 2.1f);
-        [Tooltip("How hazy (faded toward the distance) he is at the start and at the end of the course.")]
-        [SerializeField] Vector2 farHaze = new(0.6f, 0.12f);
-        [Tooltip("How far in from the right screen edge he stands, in his own (scaled) units.")]
-        [SerializeField] float farInset = 2.4f;
-        [Tooltip("Height of his feet (the far hill's top) relative to the camera center.")]
-        [SerializeField] float hillLine = -1.9f;
-        [Tooltip("The far hill under his feet.")]
-        [SerializeField] Color hillColor = new(0.15f, 0.1f, 0.22f);
         [Tooltip("While the needle curtain is running, he raises his hand again every this many seconds.")]
         [SerializeField] float curtainGestureEvery = 1.6f;
 
@@ -75,15 +66,13 @@ namespace Roygbiv
         [Header("Rising Steps")]
         [Tooltip("Slam wind-up (ripples spawn after it).")]
         [SerializeField] float slamWindUp = 0.7f;
-        [Tooltip("Ripple height: a single jump clears it.")]
-        [SerializeField] float rippleHeight = 0.9f;
         [Tooltip("Ripple speed.")]
         [SerializeField] float rippleSpeed = 9f;
 
         [Header("Royal Rain")]
         [Tooltip("Swords per second during the barrage: dense enough that 7 s in the open costs more than 5 HP.")]
         [SerializeField] float rainRate = 30f;
-        [Tooltip("Height above the floor the swords fall from.")]
+        [Tooltip("Height above the hall's floor the swords fall from.")]
         [SerializeField] float rainHeight = 12f;
         [Tooltip("Sword falling speed.")]
         [SerializeField] float rainSpeed = 24f;
@@ -104,19 +93,20 @@ namespace Roygbiv
         [SerializeField] Color attackColor = new(0.76f, 0.4f, 1f);
 
         readonly List<GameObject> live = new(); // telegraphs of the running encounter
+        // The level, read from the scene.
+        VioletCheckpointMarker[] checkpoints = { };
+        VioletZone[] zones = { };
+        VioletArrival arrival;
+        VioletFarKing far;
+        VioletArena arena;
         VioletBoss boss;
         CameraFollow cam;
-        VioletCourse.Zone activeZone;
+        VioletZone activeZone;
         Coroutine encounter;
         Stage stage = Stage.Setup;
         SpriteRenderer farHill;
         bool inputBlocked, skipped, skippable;
         float introBlend = 1f, nextCurtainGesture;
-
-        void Awake()
-        {
-            if (!course) course = GetComponent<VioletCourse>();
-        }
 
         void OnEnable() => GameEvents.LevelCompleted += OnLevelCompleted;
         void OnDisable() => GameEvents.LevelCompleted -= OnLevelCompleted;
@@ -137,21 +127,25 @@ namespace Roygbiv
 
         IEnumerator Start()
         {
-            course.Build();
+            if (!ReadLevel())
+            {
+                enabled = false;
+                yield break;
+            }
             VioletCheckpoint.Bind(gameObject.scene.name);
-            VioletCheckpoint.SegmentCount = course.Checkpoints.Count;
+            VioletCheckpoint.SegmentCount = checkpoints.Length;
             cam = Camera.main ? Camera.main.GetComponent<CameraFollow>() : null;
 
             boss = LevelController.Current ? LevelController.Current.Boss as VioletBoss : FindAnyObjectByType<VioletBoss>();
             if (boss)
             {
-                boss.SetArena(course.ArenaFloor, course.ArenaMinX, course.ArenaMaxX);
+                boss.SetArena(arena.Floor, arena.MinX, arena.MaxX);
                 boss.SetDistant(true);
             }
             BuildFarHill();
 
             int cp = VioletCheckpoint.Index;
-            for (int i = 0; i <= Mathf.Min(cp, course.Checkpoints.Count - 1); i++) course.LightCheckpoint(i, false);
+            for (int i = 0; i <= Mathf.Min(cp, checkpoints.Length - 1); i++) checkpoints[i].Light(false);
 
             if (cp >= VioletCheckpoint.ArenaIndex)
             {
@@ -163,7 +157,7 @@ namespace Roygbiv
                 yield break;
             }
 
-            PlacePlayer(course.Checkpoints.Count > 0 ? course.Checkpoints[Mathf.Clamp(cp, 0, course.Checkpoints.Count - 1)] : Vector2.zero);
+            PlacePlayer(checkpoints[Mathf.Clamp(cp, 0, checkpoints.Length - 1)].Feet);
             if (cam) cam.Lead = new Vector2(lookAhead, 0f);
             if (cam) cam.SnapToPlayer();
             yield return null;
@@ -175,6 +169,33 @@ namespace Roygbiv
                 yield return Intro();
             }
             stage = Stage.Run;
+        }
+
+        /// <summary>Finds the level's pieces in the scene. False (and one error) if it was never baked.</summary>
+        bool ReadLevel()
+        {
+            var scene = gameObject.scene;
+            T[] InScene<T>() where T : Component => System.Array.FindAll(FindObjectsByType<T>(), c => c.gameObject.scene == scene);
+            checkpoints = InScene<VioletCheckpointMarker>();
+            System.Array.Sort(checkpoints, (a, b) => a.Feet.x.CompareTo(b.Feet.x));
+            zones = InScene<VioletZone>();
+            System.Array.Sort(zones, (a, b) => a.Area.xMin.CompareTo(b.Area.xMin));
+            var arrivals = InScene<VioletArrival>();
+            var fars = InScene<VioletFarKing>();
+            var arenas = InScene<VioletArena>();
+            arrival = arrivals.Length > 0 ? arrivals[0] : null;
+            far = fars.Length > 0 ? fars[0] : null;
+            arena = arenas.Length > 0 ? arenas[0] : null;
+
+            var missing = new List<string>();
+            if (checkpoints.Length == 0) missing.Add("checkpoints");
+            if (!arrival) missing.Add("the arrival");
+            if (!far) missing.Add("the far king");
+            if (!arena) missing.Add("the arena");
+            if (missing.Count == 0) return true;
+            Debug.LogError($"[Violet] Level_Violet has no {string.Join(", ", missing)} (it isn't baked): nothing runs. In the editor, open Level_Violet, " +
+                           "run ROYGBIV > Bake Violet Level Into Scene, then save the scene and commit it.", this);
+            return false;
         }
 
         void PlacePlayer(Vector2 feet)
@@ -232,7 +253,7 @@ namespace Roygbiv
             BlockInput(true);
 
             // The end of the course, as if the player stood there: the king is close and big on his hill.
-            var endView = new Vector2(course.EndX, course.ArenaFloor + 0.6f) + cam.Offset;
+            var endView = far.IntroView;
             cam.Hold(endView, true);
             introBlend = 0f;
             boss.IntroStance(true);
@@ -297,7 +318,7 @@ namespace Roygbiv
             var shape = VioletShapes.Polygon("FarHill", Vector2.zero, 0.45f,
                 new(-8f, -0.6f), new(-5f, -0.2f), new(-2.2f, 0f), new(1.2f, 0f), new(3.8f, -0.25f), new(6.5f, -0.9f), new(9f, -2f),
                 new(9f, -14f), new(-8f, -14f));
-            farHill = VioletShapes.Create("FarHill (his hill)", shape, transform, Vector2.zero, hillColor, -86);
+            farHill = VioletShapes.Create("FarHill (his hill)", shape, transform, Vector2.zero, far.hillColor, -86);
         }
 
         void LateUpdate()
@@ -313,22 +334,22 @@ namespace Roygbiv
             if (!c || !boss || !pc) return;
             float half = c.orthographicSize * c.aspect;
             Vector2 center = c.transform.position;
-            float progress = Mathf.InverseLerp(course.StartX, course.EndX, pc.transform.position.x);
+            float progress = Mathf.InverseLerp(checkpoints[0].Feet.x, arrival.X, pc.transform.position.x);
             progress = progress * progress * (3f - 2f * progress);
-            float scale = Mathf.Lerp(farScale.x, farScale.y, progress);
-            float haze = Mathf.Lerp(farHaze.x, farHaze.y, progress);
+            float scale = Mathf.Lerp(far.scale.x, far.scale.y, progress);
+            float haze = Mathf.Lerp(far.haze.x, far.haze.y, progress);
             // The intro starts on him close up, then he recedes as the camera pulls away.
-            scale = Mathf.Lerp(farScale.y, scale, introBlend);
-            haze = Mathf.Lerp(farHaze.y, haze, introBlend);
+            scale = Mathf.Lerp(far.scale.y, scale, introBlend);
+            haze = Mathf.Lerp(far.haze.y, haze, introBlend);
 
-            var feet = new Vector2(center.x + half - farInset * scale, center.y + hillLine);
+            var feet = new Vector2(center.x + half - far.inset * scale, center.y + far.hillLine);
             boss.PlaceDistant(feet, scale, haze);
             if (farHill)
             {
                 farHill.enabled = true;
                 farHill.transform.position = feet;
                 farHill.transform.localScale = Vector3.one * scale;
-                farHill.color = Color.Lerp(hillColor, new Color(0.3f, 0.24f, 0.42f), haze * 0.5f);
+                farHill.color = Color.Lerp(far.hillColor, new Color(0.3f, 0.24f, 0.42f), haze * 0.5f);
             }
         }
 
@@ -341,40 +362,43 @@ namespace Roygbiv
             Vector2 p = pc.transform.position;
 
             // Checkpoints reached (the banner lights up).
-            for (int i = VioletCheckpoint.Index + 1; i < course.Checkpoints.Count; i++)
+            for (int i = VioletCheckpoint.Index + 1; i < checkpoints.Length; i++)
             {
-                if (p.x < course.Checkpoints[i].x - 0.5f) break;
+                if (p.x < checkpoints[i].Feet.x - 0.5f) break;
                 VioletCheckpoint.Reach(i);
-                course.LightCheckpoint(i, true);
+                checkpoints[i].Light(true);
             }
 
-            if (p.x >= course.EndX) { StartCoroutine(Arrival()); return; }
+            if (p.x >= arrival.X) { StartCoroutine(Arrival()); return; }
 
             // The curtain runs itself; he keeps his hand raised over it.
-            if (activeZone?.curtain && activeZone.curtain.Active && p.x > activeZone.x0 + 8f && Time.time >= nextCurtainGesture)
+            if (activeZone && activeZone.curtain && activeZone.curtain.Active && p.x > activeZone.Area.xMin + 8f && Time.time >= nextCurtainGesture)
             {
                 nextCurtainGesture = Time.time + curtainGestureEvery;
                 boss.FarGesture(VioletBoss.Far.Cast, 0.5f);
             }
 
-            VioletCourse.Zone zone = null;
-            foreach (var z in course.Zones)
-                if (z.Contains(p) && !(z.type == VioletCourse.Encounter.Rain && z.done)) { zone = z; break; }
+            VioletZone zone = null;
+            foreach (var z in zones)
+                if (z && z.isActiveAndEnabled && z.Contains(p) && !(z.kind == VioletZone.Kind.Rain && z.done)) { zone = z; break; }
             // A sealed rain hall runs to the end whatever the player does.
-            if (activeZone != null && activeZone.type == VioletCourse.Encounter.Rain && !activeZone.done) return;
+            if (activeZone && activeZone.kind == VioletZone.Kind.Rain && !activeZone.done) return;
             if (zone == activeZone) return;
 
             StopEncounter();
             activeZone = zone;
-            if (zone == null) return;
-            switch (zone.type)
+            if (!zone) return;
+            switch (zone.kind)
             {
-                case VioletCourse.Encounter.Waves: encounter = StartCoroutine(Waves(zone)); break;
-                case VioletCourse.Encounter.Slams: encounter = StartCoroutine(Slams(zone)); break;
-                case VioletCourse.Encounter.LowBeam: encounter = StartCoroutine(LowBeam(zone)); break;
-                case VioletCourse.Encounter.Rain: encounter = StartCoroutine(Rain(zone)); break;
-                case VioletCourse.Encounter.GatePressure: encounter = StartCoroutine(GatePressure(zone)); break;
-                case VioletCourse.Encounter.Curtain: zone.curtain.Active = true; break;
+                case VioletZone.Kind.Waves: encounter = StartCoroutine(Waves(zone)); break;
+                case VioletZone.Kind.Slams: encounter = StartCoroutine(Slams(zone)); break;
+                case VioletZone.Kind.LowBeam: encounter = StartCoroutine(LowBeam(zone)); break;
+                case VioletZone.Kind.Rain: encounter = StartCoroutine(Rain(zone)); break;
+                case VioletZone.Kind.GatePressure: encounter = StartCoroutine(GatePressure(zone)); break;
+                case VioletZone.Kind.Curtain:
+                    if (zone.curtain) zone.curtain.Active = true;
+                    else Debug.LogError($"[Violet] Zone '{zone.label}' is a Curtain zone with no curtain set.", zone);
+                    break;
             }
         }
 
@@ -382,7 +406,7 @@ namespace Roygbiv
         {
             if (encounter != null) StopCoroutine(encounter);
             encounter = null;
-            if (activeZone?.curtain) activeZone.curtain.Active = false;
+            if (activeZone && activeZone.curtain) activeZone.curtain.Active = false;
             foreach (var go in live)
                 if (go) Destroy(go);
             live.Clear();
@@ -399,42 +423,49 @@ namespace Roygbiv
         float CamRight => Camera.main ? Camera.main.transform.position.x + Camera.main.orthographicSize * Camera.main.aspect : 0f;
         float CamTop => Camera.main ? Camera.main.transform.position.y + Camera.main.orthographicSize : 10f;
 
-        IEnumerator Waves(VioletCourse.Zone z)
+        IEnumerator Waves(VioletZone z)
         {
             yield return new WaitForSeconds(z.first);
             while (true)
             {
-                Live(VioletTelegraph.Edge(z.bottom, z.top, waveTelegraph, attackColor));
+                Live(VioletTelegraph.Edge(z.WaveBottom, z.WaveTop, waveTelegraph, attackColor));
                 boss.FarGesture(VioletBoss.Far.Slash, waveTelegraph);
                 yield return new WaitForSeconds(waveTelegraph);
-                float x = Mathf.Min(CamRight + 1.5f, z.spawnX);
-                VioletWave.Spawn(x, z.bottom, z.top, -1, waveSpeed, z.endX, waveThickness, 1, attackColor);
+                float x = Mathf.Min(CamRight + 1.5f, z.WaveFrom);
+                VioletWave.Spawn(x, z.WaveBottom, z.WaveTop, -1, waveSpeed, z.WaveTo, waveThickness, 1, attackColor);
                 yield return new WaitForSeconds(z.interval);
             }
         }
 
-        IEnumerator Slams(VioletCourse.Zone z)
+        IEnumerator Slams(VioletZone z)
         {
             yield return new WaitForSeconds(z.first);
+            float h = z.rippleHeight;
             while (true)
             {
                 boss.FarGesture(VioletBoss.Far.Slam, slamWindUp);
-                foreach (var l in z.landings)
-                    Live(VioletTelegraph.Spot(new Vector2(l.y - 0.4f, l.z + rippleHeight * 0.5f), new Vector2(0.35f, rippleHeight), slamWindUp, attackColor));
+                for (int i = 0; i < z.landings.Length; i++)
+                {
+                    var l = z.Landing(i);
+                    Live(VioletTelegraph.Spot(new Vector2(l.y - 0.4f, l.z + h * 0.5f), new Vector2(0.35f, h), slamWindUp, attackColor));
+                }
                 yield return new WaitForSeconds(slamWindUp);
                 VioletHits.ShakeCamera(0.2f, 0.25f);
-                foreach (var l in z.landings)
-                    VioletWave.Spawn(l.y - 0.4f, l.z, l.z + rippleHeight, -1, rippleSpeed, l.x + 0.2f, 0.5f, 1, attackColor);
+                for (int i = 0; i < z.landings.Length; i++)
+                {
+                    var l = z.Landing(i);
+                    VioletWave.Spawn(l.y - 0.4f, l.z, l.z + h, -1, rippleSpeed, l.x + 0.2f, 0.5f, 1, attackColor);
+                }
                 yield return new WaitForSeconds(z.interval);
             }
         }
 
-        IEnumerator LowBeam(VioletCourse.Zone z)
+        IEnumerator LowBeam(VioletZone z)
         {
             if (z.first > 0f) yield return new WaitForSeconds(z.first);
             while (true)
             {
-                var a = z.beamArea;
+                var a = z.BeamArea;
                 Live(VioletTelegraph.Edge(a.yMin, Mathf.Min(a.yMax, CamTop), z.telegraph, attackColor));
                 boss.FarGesture(VioletBoss.Far.Cast, z.telegraph);
                 VioletBeam.Band(a, z.telegraph, z.fire, 1, attackColor);
@@ -442,36 +473,47 @@ namespace Roygbiv
             }
         }
 
-        IEnumerator Rain(VioletCourse.Zone z)
+        IEnumerator Rain(VioletZone z)
         {
-            foreach (var seal in z.seals) seal.Close(sealTime);
-            boss.FarGesture(VioletBoss.Far.RaiseSword, z.telegraph);
-            Live(VioletTelegraph.Top(z.fromX, z.toX, z.telegraph, attackColor));
-            yield return new WaitForSeconds(z.telegraph);
+            var hall = z.rainHall;
+            if (!hall)
+            {
+                Debug.LogError($"[Violet] Zone '{z.label}' is a Rain zone with no rain hall set.", z);
+                z.done = true;
+                activeZone = null;
+                encounter = null;
+                yield break;
+            }
+            foreach (var seal in hall.seals) if (seal) seal.Close(sealTime);
+            boss.FarGesture(VioletBoss.Far.RaiseSword, hall.telegraph);
+            Live(VioletTelegraph.Top(hall.FromX, hall.ToX, hall.telegraph, attackColor));
+            yield return new WaitForSeconds(hall.telegraph);
 
+            float floor = hall.transform.position.y;
             float fall = (rainHeight - 1f) / rainSpeed;
             float next = 0f;
-            for (float t = 0f; t < z.duration; t += Time.deltaTime)
+            for (float t = 0f; t < hall.duration; t += Time.deltaTime)
             {
                 while (next <= t)
                 {
                     next += 1f / Mathf.Max(1f, rainRate);
-                    float x = Random.Range(z.fromX, z.toX);
-                    VioletTelegraph.Spot(new Vector2(x, 0.06f), new Vector2(0.45f, 0.1f), fall, attackColor);
-                    VioletShots.Sword(new Vector2(x, rainHeight), rainSpeed, new Color(0.85f, 0.75f, 1f, 0.85f), shelterRain: true);
+                    float x = Random.Range(hall.FromX, hall.ToX);
+                    VioletTelegraph.Spot(new Vector2(x, floor + 0.06f), new Vector2(0.45f, 0.1f), fall, attackColor);
+                    VioletShots.Sword(new Vector2(x, floor + rainHeight), rainSpeed, new Color(0.85f, 0.75f, 1f, 0.85f), shelterRain: true);
                 }
                 yield return null;
             }
             yield return new WaitForSeconds(fall + 0.4f);
-            foreach (var seal in z.seals) seal.Open(sealTime);
+            foreach (var seal in hall.seals) if (seal) seal.Open(sealTime);
             z.done = true;
             activeZone = null;
             encounter = null;
         }
 
-        IEnumerator GatePressure(VioletCourse.Zone z)
+        IEnumerator GatePressure(VioletZone z)
         {
             yield return new WaitForSeconds(z.first);
+            float floor = z.transform.position.y;
             int n = 0;
             while (z.crystal && !z.crystal.Shattered)
             {
@@ -495,9 +537,9 @@ namespace Roygbiv
                     boss.FarGesture(VioletBoss.Far.Cast, pressureSwordWarn);
                     float x = pc.transform.position.x;
                     float fall = (rainHeight - 1f) / rainSpeed;
-                    Live(VioletTelegraph.Spot(new Vector2(x, 0.06f), new Vector2(0.6f, 0.12f), pressureSwordWarn, attackColor));
+                    Live(VioletTelegraph.Spot(new Vector2(x, floor + 0.06f), new Vector2(0.6f, 0.12f), pressureSwordWarn, attackColor));
                     yield return new WaitForSeconds(Mathf.Max(0f, pressureSwordWarn - fall));
-                    VioletShots.Sword(new Vector2(x, rainHeight), rainSpeed, new Color(0.85f, 0.75f, 1f, 0.85f));
+                    VioletShots.Sword(new Vector2(x, floor + rainHeight), rainSpeed, new Color(0.85f, 0.75f, 1f, 0.85f));
                 }
                 yield return new WaitForSeconds(z.interval);
             }
@@ -510,7 +552,7 @@ namespace Roygbiv
         {
             stage = Stage.Arrival;
             StopEncounter();
-            foreach (var z in course.Zones) if (z.curtain) z.curtain.Active = false;
+            foreach (var z in zones) if (z && z.curtain) z.curtain.Active = false;
             BlockInput(true);
             var pc = PlayerController.Instance;
             if (pc) StopPlayer(pc);
@@ -567,14 +609,14 @@ namespace Roygbiv
         {
             stage = Stage.Arrival;
             if (farHill) farHill.enabled = false;
-            PlacePlayer(course.ArenaSpawn);
+            PlacePlayer(arena.PlayerFeet);
             if (cam)
             {
                 cam.Lead = Vector2.zero;
-                cam.Hold(course.ArenaCamera, true);
+                cam.Hold(arena.CameraCenter, true);
             }
             if (!boss) return;
-            boss.PlaceInArena(course.ArenaKingX);
+            boss.PlaceInArena(arena.BossX);
             if (plantedSword) boss.PlantSword();
         }
 
@@ -598,8 +640,8 @@ namespace Roygbiv
         {
             stage = Stage.Duel;
             VioletCheckpoint.Reach(VioletCheckpoint.ArenaIndex);
-            if (cam) cam.Hold(course.ArenaCamera);
-            if (boss) boss.PrepareFloorStart(course.ArenaKingX, false);
+            if (cam) cam.Hold(arena.CameraCenter);
+            if (boss) boss.PrepareFloorStart(arena.BossX, false);
             LevelController.Current?.StartBoss();
         }
     }
