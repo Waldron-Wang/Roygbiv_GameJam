@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 819302984672152261}
   - component: {fileID: 4999945093388740539}
   - component: {fileID: 3258768884967064905}
+  - component: {fileID: 6338678622452656313}
   m_Layer: 0
   m_Name: Projectile_Firecracker
   m_TagString: Untagged
@@ -179,3 +180,16 @@ MonoBehaviour:
   destroyOnWorld: 1
   bounces: 0
   shootable: 1
+--- !u!114 &6338678622452656313
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3601313652595343367}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b54720ac96d743c78c48407b6a80ae6b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.ProjectileLook
+  style: 3

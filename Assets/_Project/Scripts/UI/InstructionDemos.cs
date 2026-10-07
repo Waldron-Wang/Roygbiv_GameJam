@@ -136,7 +136,11 @@ namespace Roygbiv
             var cageTop = new Vector2(spotX + 20f, hangBottom - cageSize.y);
             if (!latchHit) CardGui.Line(latch, cageTop, 2.5f, WithAlpha(Ink, 0.6f));
             CardGui.Box(new Rect(latch.x - 14f, latch.y - 14f, 28f, 28f), latchHit ? new Color(0.55f, 0.55f, 0.55f) : Ink);
-            if (!latchHit) CardGui.Outline(new Rect(latch.x - 17f, latch.y - 17f, 34f, 34f), d.accent, 3f);
+            if (!latchHit) // the pulsing gold ring the in-game latch wears
+            {
+                float pulse = 0.5f + 0.5f * Mathf.Sin(time * 1.6f * Mathf.PI * 2f);
+                CardGui.Ring(latch, 26f * (1f + 0.35f * pulse), 4f, new Color(1f, 0.9f, 0.6f, 0.8f * (0.45f + 0.55f * pulse)));
+            }
             Spark(latch, Seg(t, shotHits, shotHits + 0.3f), ShotColor, 40f);
 
             // Boss: runs, or sits stunned in the cage.

@@ -500,7 +500,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.LightShotAbility
   cooldown: 0.5
-  projectilePrefab: {fileID: 8066445332528177978, guid: 5325d2bc32a8b421b98c9c1653e8fbab, type: 3}
+  projectilePrefab: {fileID: 8066445332528177978, guid: 2430a32857b54a6a9e01081125738ee3, type: 3}
   spawnOffset: 0.7
 --- !u!114 &6606677727418354654
 MonoBehaviour:
