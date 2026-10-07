@@ -59,7 +59,8 @@ Assets/_Project/
 ├── Prefabs/
 │   ├── Player.prefab
 │   ├── Projectile_PlayerShot / Projectile_EnemyOrb
-│   └── Bosses/Boss_<Color>.prefab
+│   ├── Bosses/Boss_<Color>.prefab
+│   └── Violet/                  Violet's level pieces: Checkpoint, Zone, Seal, Shelter, Crystal Gate, Curtain
 ├── Resources/GameConfig.asset   play order + global tuning (auto-loaded)
 ├── Resources/ScreenWarp.shader  full-screen distortion used by ScreenWarp (in Resources so builds include it)
 ├── Scenes/
@@ -257,12 +258,16 @@ Helpers available to subclasses: `Player`, `AimDirection`, `Fire(...)`, `Wait(..
   - Orange has a `ChaseDirector` that drives `PlayerMotor.autoRunSpeed` and `CameraFollow.autoScrollSpeed`, and a `ChaseCourse` that builds an endless track.
   - Blue is a vertical layout.
   - Indigo casts a curse each phase: input modifiers + a `ScreenWarp` look (any boss can use `ScreenWarp.Main`).
-  - **Violet** (the final exam) is a run + a duel. A `Violet` object holds `VioletCourse` (builds the course, the foot of the
-    king's hill and a separate arena at runtime from an Inspector list, one segment per ability) and `VioletApproach`: the intro
-    camera pull; the run (camera look-ahead, the king always on screen as a big distant figure in the background, every attack
-    starting with his gesture); the arrival cinematic (letterbox, wipe cut to the arena, he draws his planted greatsword,
-    name card); then `StartBoss`. `VioletCheckpoint` remembers the last checkpoint across death reloads (one per segment, the
-    arena, Twin Blades). **ROYGBIV > Build Violet Level** sets it up in the scene; without it `VioletSetup` builds it at runtime.
+  - **Violet** (the final exam) is a run + a duel, and a normal **hand-editable** level. The terrain is painted in a
+    `Grid > Tilemap` with the Violet palette (set up like Level_Yellow's). Every gameplay piece is a scene object under
+    `Violet`: checkpoint banners, one `VioletZone` per long-range attack, the Royal Rain halls, the Crystal Gate, the needle
+    curtains, the arrival at the foot of the king's hill, the far king's anchor and the arena. `VioletApproach` reads them
+    at Start and runs the intro camera pull; the run (camera look-ahead, the king always on screen as a big distant figure,
+    each zone's attack starting with his gesture); the arrival cinematic (letterbox, wipe cut to the arena, he draws his
+    planted greatsword, name card); then `StartBoss`. Only projectiles and attack visuals are spawned at runtime.
+    `VioletCheckpoint` remembers the last checkpoint across death reloads. The old code-built layout was migrated once with
+    **ROYGBIV > Bake Violet Level Into Scene**; an unbaked scene logs one error and runs nothing. How to edit it:
+    DEVELOPER_GUIDE.md, section 8, "Edit Violet's level".
 
 ### Recoloring the world (`ColorWorld`, `Recolorable`) — art-style agnostic
 - `ColorWorld` stores a value from 0 to 1 for each color, animated when the color is restored. It also sets shader globals:
@@ -293,6 +298,7 @@ Talk to each other before editing someone else's scene or prefab.
 | Task | Steps |
 |------|-------|
 | **Test my boss directly** | Open `Level_<Color>` and press Play. Use **F1–F7** to grant earlier colors/abilities, **F9** win the level, **F10** wipe the save. In Level_Violet: **PageDown/PageUp** next/previous checkpoint, **Home** the duel, **End** Twin Blades (abilities are granted automatically in the editor). |
+| **Edit Violet's level** | Open `Level_Violet`. Paint terrain with **Window > 2D > Tile Palette > Violet** on `Grid/Tilemap`; move or duplicate the objects under `Violet` (Checkpoints, Zones, Hazards, Arrival, Far King, Arena). Details: DEVELOPER_GUIDE.md, section 8. |
 | **Add an ability** | 1. Add a value at the **end** of `AbilityId`. 2. Subclass `AbilityBase`. 3. Add it under `Player/Abilities`. 4. Set `grantedAbility` in that color's `ColorData`. |
 | **Add a boss mechanic** | Edit `Bosses/<Color>/<Color>Boss.cs`. Each stub has a TODO plus the design notes. |
 | **Edit a how-to card** | Select `Data/Instructions/Instruction_<Color>`: caption (`[LMB]`, `[C]`, `[Space]`… become keycaps), keys, demo, sprites. Missing? Run **ROYGBIV > Build Instructions**. |
