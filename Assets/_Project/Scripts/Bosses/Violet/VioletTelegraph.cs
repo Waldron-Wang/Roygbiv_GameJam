@@ -105,9 +105,14 @@ namespace Roygbiv
                     float half = cam.orthographicSize * cam.aspect;
                     float right = cam.transform.position.x + half;
                     float x = right - 0.35f;
-                    float h = Mathf.Max(0.2f, y1 - y0), cy = (y0 + y1) * 0.5f;
-                    Place(bar, new Vector2(x, cy), new Vector2(0.28f + 0.25f * k, h), new Color(color.r, color.g, color.b, a));
-                    Place(lane, new Vector2(x - half, cy), new Vector2(half * 2f, h), new Color(color.r, color.g, color.b, 0.07f + 0.1f * k));
+                    float h = Mathf.Max(0.2f, y1 - y0), attackY = (y0 + y1) * 0.5f;
+                    float visibleHeight = Mathf.Min(h, Mathf.Max(0.2f, cam.orthographicSize * 2f - 2f));
+                    float inset = Mathf.Max(1f, visibleHeight * 0.5f + 0.2f);
+                    float cy = Mathf.Clamp(attackY, cam.transform.position.y - cam.orthographicSize + inset,
+                        cam.transform.position.y + cam.orthographicSize - inset);
+                    Place(bar, new Vector2(x, cy), new Vector2(0.28f + 0.25f * k, visibleHeight), new Color(color.r, color.g, color.b, a));
+                    // The screen-edge warning stays visible; its lane still marks the real attack height.
+                    Place(lane, new Vector2(x - half, attackY), new Vector2(half * 2f, h), new Color(color.r, color.g, color.b, 0.07f + 0.1f * k));
                     glyph.transform.position = new Vector2(x - 0.6f, cy);
                     glyph.transform.localScale = Vector3.one * Mathf.Lerp(1.6f, 0.7f, k);
                     glyph.color = new Color(1f, 1f, 1f, a * 0.8f);
