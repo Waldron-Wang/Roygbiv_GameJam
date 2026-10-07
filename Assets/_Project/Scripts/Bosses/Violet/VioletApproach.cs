@@ -6,15 +6,15 @@ namespace Roygbiv
 {
     /// <summary>
     /// Runs Violet's level around the duel: the run (phase 1), the arrival cinematic, and the hand-off to the fight.
-    ///   Intro:   first entry only. Input blocked, the camera on the end of the course with the king big on his hill,
-    ///            then a hard pull back along the whole course to the player (he recedes into the distance).
+    ///   Intro:   first entry only. Input blocked, the camera on the king standing on his hill at the end of the course,
+    ///            then a hard pull back along the whole course to the player.
     ///   The run: the player runs right through the course on their own (no auto-scroll); the camera looks ahead to the
-    ///            right. The king is ALWAYS on screen: a big distant figure in the background (no collision, hazy, drawn
-    ///            just in front of the tilemap and behind everything else; his hill stays behind the tilemap), feet on a
-    ///            far hill pinned near the right of the view, growing bigger and clearer
-    ///            as the player nears the end. While the player is inside a course zone, that zone's long-range attack
-    ///            runs: it starts with HIS gesture (the sword raised for waves, slammed down for ripples, the free hand
-    ///            for beams, rain and needles) and is announced at the right screen edge (VioletTelegraph).
+    ///            right. The king STANDS ON HIS HILL at the far end (VioletFarKing marks the spot; his feet go on the tile
+    ///            ground under it), a real figure at his real place, drawn in front of the tilemap like in the duel: off
+    ///            screen for most of the run, in view as the player nears the end. While the player is inside a course
+    ///            zone, that zone's long-range attack runs: it starts with HIS gesture (the sword raised for waves,
+    ///            slammed down for ripples, the free hand for beams, rain and needles; seen once he's on screen) and is
+    ///            announced at the right screen edge (VioletTelegraph).
     ///   Arrival: reaching the foot of his hill takes the controls: letterbox in, a violet wipe cuts to the arena, he
     ///            draws his planted greatsword, swings it overhead and points it at the player, the name card appears,
     ///            the letterbox slides out and the duel starts (HP bar). Skippable with confirm once it's been seen.
@@ -23,7 +23,8 @@ namespace Roygbiv
     /// Everything it runs is placed in the scene (ROYGBIV > Bake Violet Level Into Scene made the first version; move,
     /// add or retune them by hand): VioletCheckpointMarker (ordered by x), VioletZone (one per attack, checked left to
     /// right), VioletArrival, VioletFarKing and VioletArena. Missing any but the zones: one error, and nothing runs.
-    /// Runs late, so the distant king sticks to the view after the camera has moved.
+    /// Safety net: if the tilemap's merged collider was saved empty (nothing solid), Awake rebuilds it from the tiles.
+    /// Runs after the boss (its Start places him).
     /// </summary>
     [DefaultExecutionOrder(500)]
     public class VioletApproach : MonoBehaviour
@@ -105,9 +106,22 @@ namespace Roygbiv
         VioletZone activeZone;
         Coroutine encounter;
         Stage stage = Stage.Setup;
-        SpriteRenderer farHill;
+        Vector2 kingFeet; // where he stands during the run: on the tile ground under VioletFarKing
         bool inputBlocked, skipped, skippable;
-        float introBlend = 1f, nextCurtainGesture;
+        float nextCurtainGesture;
+
+        // A scene saved before its tile collider was generated has an EMPTY merged collider: the player falls through
+        // everything. Rebuild it from the tiles before anything lands on it.
+        void Awake()
+        {
+            foreach (var composite in VioletTerrain.Composites(gameObject.scene))
+            {
+                if (composite.pathCount > 0) continue;
+                int paths = VioletTerrain.Rebuild(composite);
+                Debug.LogWarning($"[Violet] {composite.name}'s collider was saved EMPTY (nothing was solid): rebuilt it from the tiles at runtime " +
+                                 $"({paths} paths). In the editor run ROYGBIV > Fix Violet Colliders, then commit Level_Violet.", composite);
+            }
+        }
 
         void OnEnable() => GameEvents.LevelCompleted += OnLevelCompleted;
         void OnDisable() => GameEvents.LevelCompleted -= OnLevelCompleted;
@@ -138,12 +152,12 @@ namespace Roygbiv
             cam = Camera.main ? Camera.main.GetComponent<CameraFollow>() : null;
 
             boss = LevelController.Current ? LevelController.Current.Boss as VioletBoss : FindAnyObjectByType<VioletBoss>();
+            kingFeet = KingFeet();
             if (boss)
             {
                 boss.SetArena(arena.Floor, arena.MinX, arena.MaxX);
-                boss.SetDistant(true);
+                boss.PlaceOnHill(kingFeet);
             }
-            BuildFarHill();
 
             int cp = VioletCheckpoint.Index;
             for (int i = 0; i <= Mathf.Min(cp, checkpoints.Length - 1); i++) checkpoints[i].Light(false);
@@ -253,10 +267,9 @@ namespace Roygbiv
             stage = Stage.Intro;
             BlockInput(true);
 
-            // The end of the course, as if the player stood there: the king is close and big on his hill.
-            var endView = far.IntroView;
+            // The end of the course: the king standing on his hill, framed from his real position.
+            var endView = kingFeet + far.introCamera;
             cam.Hold(endView, true);
-            introBlend = 0f;
             boss.IntroStance(true);
             boss.Glint();
 
@@ -275,16 +288,14 @@ namespace Roygbiv
                 yield return null;
                 t += Time.deltaTime;
                 u = Mathf.Min(1f, u + Time.deltaTime / Mathf.Max(0.1f, introPull));
-                // A hard pull: slow off the king, fast across the course, easing into the player. He recedes as it goes.
+                // A hard pull: slow off the king, fast across the course, easing into the player. He stays on his hill.
                 float e = u * u * u * (u * (u * 6f - 15f) + 10f);
                 cam.Hold(Vector2.Lerp(endView, (Vector2)pc.transform.position + cam.Offset, e), true);
-                introBlend = e;
                 if (u > 0.55f) boss.IntroStance(false);
                 if (!volleyed && u > 0.85f) { volleyed = true; StartCoroutine(OpeningVolley()); }
                 skip = ConfirmPressed;
             }
 
-            introBlend = 1f;
             boss.IntroStance(false);
             cam.Release();
             cam.SnapToPlayer();
@@ -312,52 +323,20 @@ namespace Roygbiv
             }
         }
 
-        // ---------- The distant king ----------
+        // ---------- The king on his hill ----------
 
-        // His hill is backdrop: behind the tilemap (0) and the seals (-1), so the course is always drawn over it (it fills
-        // the lower right of the view); in front of any parallax background (Far -30, Mid -20, Near -10), so he never
-        // stands on nothing. He himself is drawn in front of the tilemap (VioletBoss.distantOrder).
-        const int FarHillOrder = -5;
-
-        void BuildFarHill()
+        /// <summary>Where he stands during the run: on the top of the tile ground right under VioletFarKing (his hill).</summary>
+        Vector2 KingFeet()
         {
-            var shape = VioletShapes.Polygon("FarHill", Vector2.zero, 0.45f,
-                new(-8f, -0.6f), new(-5f, -0.2f), new(-2.2f, 0f), new(1.2f, 0f), new(3.8f, -0.25f), new(6.5f, -0.9f), new(9f, -2f),
-                new(9f, -14f), new(-8f, -14f));
-            farHill = VioletShapes.Create("FarHill (his hill)", shape, transform, Vector2.zero, far.hillColor, FarHillOrder);
+            var spot = far.Spot;
+            if (VioletTerrain.GroundBelow(spot + Vector2.up * FarKingLift, FarKingLift + 30f, out float y)) return new Vector2(spot.x, y);
+            Debug.LogError($"[Violet] No tile ground under the Far King at {spot}: he'd float. Paint his hill under it " +
+                           "(ROYGBIV > Paint Violet King's Hill) or move the Far King over it.", far);
+            return spot;
         }
 
-        void LateUpdate()
-        {
-            if (stage is Stage.Setup or Stage.Intro or Stage.Run) PlaceFarKing();
-        }
-
-        /// <summary>Pins him near the right of the view on his far hill, bigger and clearer the closer the player is to the end.</summary>
-        void PlaceFarKing()
-        {
-            var c = Camera.main;
-            var pc = PlayerController.Instance;
-            if (!c || !boss || !pc) return;
-            float half = c.orthographicSize * c.aspect;
-            Vector2 center = c.transform.position;
-            float progress = Mathf.InverseLerp(checkpoints[0].Feet.x, arrival.X, pc.transform.position.x);
-            progress = progress * progress * (3f - 2f * progress);
-            float scale = Mathf.Lerp(far.scale.x, far.scale.y, progress);
-            float haze = Mathf.Lerp(far.haze.x, far.haze.y, progress);
-            // The intro starts on him close up, then he recedes as the camera pulls away.
-            scale = Mathf.Lerp(far.scale.y, scale, introBlend);
-            haze = Mathf.Lerp(far.haze.y, haze, introBlend);
-
-            var feet = new Vector2(center.x + half - far.inset * scale, center.y + far.hillLine);
-            boss.PlaceDistant(feet, scale, haze);
-            if (farHill)
-            {
-                farHill.enabled = true;
-                farHill.transform.position = feet;
-                farHill.transform.localScale = Vector3.one * scale;
-                farHill.color = Color.Lerp(far.hillColor, new Color(0.3f, 0.24f, 0.42f), haze * 0.5f);
-            }
-        }
+        // How far above VioletFarKing the search for his ground starts, so a marker dropped a little into the hill still works.
+        const float FarKingLift = 2f;
 
         // ---------- The run ----------
 
@@ -614,7 +593,6 @@ namespace Roygbiv
         void CutToArena(bool plantedSword)
         {
             stage = Stage.Arrival;
-            if (farHill) farHill.enabled = false;
             PlacePlayer(arena.PlayerFeet);
             if (cam)
             {

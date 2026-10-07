@@ -5,6 +5,7 @@ using System.Text;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.Tilemaps;
 using Object = UnityEngine.Object;
 
@@ -16,15 +17,19 @@ namespace Roygbiv.EditorTools
     ///   Grid > Tilemap (set up like Level_Yellow: TilemapCollider2D merged into a CompositeCollider2D, static
     ///   Rigidbody2D, Recolorable(Violet) with Desaturate), with every piece of static terrain PAINTED from the layout
     ///   below: floor, walls, corridor ceilings, steps, the tunnel roof, the ledge, the shelter pillars, the curtain
-    ///   ceilings, the hill and the arena. Each cell gets its 9-slice tile from its neighbours, with inner-corner tiles at
-    ///   concave corners.
+    ///   ceilings, the king's hill and the arena. Each cell gets its 9-slice tile from its neighbours, with inner-corner
+    ///   tiles at concave corners.
     ///   A "Violet" object holding the director (VioletApproach) and every gameplay element as a real scene object:
     ///   checkpoints, one VioletZone per attack, the Royal Rain halls (seals, shelter), the Crystal Gate, the curtains,
-    ///   the arrival at the foot of the hill, the far king's anchor and the arena. Repeatable pieces are prefabs in
-    ///   Prefabs/Violet/ (made here if missing, kept if they exist).
-    /// It also removes the skeleton's Environment ground/walls/platforms, stretches the KillZone under everything, turns
-    /// the boss's immediate start off and saves the scene. Every clearance is checked against the real Player.prefab.
+    ///   the arrival at the foot of the hill, the king's spot on top of it (Far King) and the arena. Repeatable pieces
+    ///   are prefabs in Prefabs/Violet/ (made here if missing, kept if they exist).
+    /// It also removes the skeleton's Environment ground/walls/platforms, stretches the KillZone under everything and turns
+    /// the boss's immediate start off. Then it builds the tilemap's collider (only once the tiles are processed: built any
+    /// earlier it merges nothing, and an EMPTY collider gets saved), checks the level is solid where it must be, and saves
+    /// the scene only if every check passes. Every clearance is checked against the real Player.prefab.
     /// Running it again ASKS before replacing an existing bake, so hand edits aren't lost by accident.
+    /// Without re-baking: ROYGBIV > Fix Violet Colliders (rebuild + check + save) and ROYGBIV > Paint Violet King's Hill
+    /// (paints the hill at the arrival into the existing tilemap, moves the Far King onto it, then the same).
     /// </summary>
     public static class VioletBaker
     {
@@ -49,16 +54,19 @@ namespace Roygbiv.EditorTools
         const float CrystalHeight = 9f;
         const int CurtainSafe = 10, CurtainWidth = 7, CurtainExit = 6, CurtainCeiling = 4, CurtainCeilingTop = 14;
         const int WallHeight = 4;
-        const int HillApproach = 8, HillLength = 8, HillHeight = 1;
+        // The end: a flat run-up (the arrival triggers at its end, one tile before the hill), then the king's hill. It
+        // rises one tile per step to its top, which runs on past him so it fills the view behind him. He stands
+        // KingOnTop into the top: in view about a second before the arrival, his resting blade well clear of its edge.
+        const int HillApproach = 8, HillStepWidth = 2, HillTop = 3, HillTopLength = 16, KingOnTop = 2;
+        const int HillWidth = (HillTop - 1) * HillStepWidth + HillTopLength;
         const int ArenaGap = 60, ArenaWall = 2, ArenaWidth = 24, ArenaHeight = 16, DoorHeight = 3;
         const int PlatformInset = 4, PlatformLength = 4, PlatformTop = 3;
         const int BossInset = 5, PlayerInset = 3;
-        const float LookAhead = 5f, CameraOffsetY = 1.5f;
 
-        // ---------- Sorting orders (Default layer; the tilemap is 0, the distant king 1, the player 10) ----------
+        // ---------- Sorting orders (Default layer; the tilemap is 0, the king 6 and up, the player 10) ----------
         const int TilemapOrder = 0;
         const int SealOrder = -1; // behind the tilemap: the part sunk into the floor hides behind the floor tiles
-        const int SlabOrder = 2;  // in front of the tilemap and the distant king, never tied with the tiles it rests on
+        const int SlabOrder = 2;  // in front of the tilemap, never tied with the tiles it rests on
 
         enum P { Floor, WaveCorridor, Steps, LowBeamLane, LowTunnel, LedgeBeam, RainHall, CrystalGate, Curtain, Wall, WallBeam }
 
@@ -140,14 +148,75 @@ namespace Roygbiv.EditorTools
             Paint();
             int removed = CleanSkeleton(end);
             SetUpLevel(firstCheckpointX);
-
-            EditorSceneManager.MarkSceneDirty(scene);
-            EditorSceneManager.SaveScene(scene);
-            AssetDatabase.SaveAssets();
-            Debug.Log($"[ROYGBIV] Violet baked into Level_Violet: {solid.Count} tiles painted, {removed} skeleton objects removed, scene saved. " +
-                      "Commit Level_Violet.unity, Prefabs/Violet/ and Art/tiles/ (VioletTiles, Palettes/Violet.prefab, the .png.meta slicing).");
-            ValidateClearances();
+            int painted = solid.Count;
             solid = null;
+
+            AssetDatabase.SaveAssets();
+            FinishTerrain(scene, $"Violet baked into Level_Violet: {painted} tiles painted, {removed} skeleton objects removed",
+                "Level_Violet.unity, Prefabs/Violet/ and Art/tiles/ (VioletTiles, Palettes/Violet.prefab, the .png.meta slicing)");
+            ValidateClearances();
+        }
+
+        [MenuItem("ROYGBIV/Fix Violet Colliders")]
+        public static void FixColliders()
+        {
+            if (!OpenLevel(out var scene)) return;
+            FinishTerrain(scene, "Violet's tilemap collider rebuilt from its tiles (nothing else in Level_Violet changed)", "Level_Violet.unity");
+        }
+
+        /// <summary>
+        /// Paints the king's hill into the EXISTING Level_Violet (no re-bake: hand edits are kept), right after the
+        /// arrival: the hill's cells and the edges of the tiles around them. Moves the arrival's Stop to the hill's first
+        /// step and the Far King onto its top, then rebuilds, checks and saves like Fix Violet Colliders.
+        /// </summary>
+        [MenuItem("ROYGBIV/Paint Violet King's Hill")]
+        public static void PaintKingsHill()
+        {
+            if (!OpenLevel(out var scene)) return;
+            if (!VioletTileBuilder.Ready) { Debug.LogError("[ROYGBIV] The Violet tiles are missing: run ROYGBIV > Make Violet Tiles first."); return; }
+            var map = VioletTerrain.Composites(scene).Select(c => c.GetComponent<Tilemap>()).FirstOrDefault(m => m);
+            var arrival = FindInScene<VioletArrival>(scene);
+            var far = FindInScene<VioletFarKing>(scene);
+            if (!map || !arrival || !far)
+            {
+                Debug.LogError("[ROYGBIV] Level_Violet has no Grid/Tilemap, Arrival or Far King: bake it first (ROYGBIV > Bake Violet Level Into Scene).");
+                return;
+            }
+
+            int hill0 = Mathf.RoundToInt(arrival.X) + 1;
+            var hill = new HashSet<Vector2Int>(HillCells(hill0));
+            var edge = VioletTileBuilder.EdgeTiles;
+            var inner = VioletTileBuilder.InnerTiles;
+            var violet = new HashSet<TileBase>(edge.Concat<TileBase>(inner));
+            bool SolidAt(Vector2Int c) => hill.Contains(c) || map.HasTile(new Vector3Int(c.x, c.y, 0));
+            var repaint = new HashSet<Vector2Int>(hill);
+            foreach (var c in hill)
+                for (int dx = -1; dx <= 1; dx++)
+                for (int dy = -1; dy <= 1; dy++)
+                {
+                    var n = new Vector2Int(c.x + dx, c.y + dy);
+                    if (violet.Contains(map.GetTile(new Vector3Int(n.x, n.y, 0)))) repaint.Add(n);
+                }
+            var cells = repaint.ToArray();
+            map.SetTiles(cells.Select(c => new Vector3Int(c.x, c.y, 0)).ToArray(), cells.Select(c => Pick(c, SolidAt, edge, inner)).ToArray());
+            EditorUtility.SetDirty(map);
+
+            var stop = arrival.GetComponentsInChildren<BoxCollider2D>(true).FirstOrDefault(b => !b.isTrigger);
+            if (stop) PlaceStop(stop, hill0);
+            far.transform.position = KingSpot(hill0);
+            EditorUtility.SetDirty(far.transform);
+            FinishTerrain(scene, $"The king's hill painted into Level_Violet from x {hill0} to {hill0 + HillWidth} ({hill.Count} cells), " +
+                                 "the arrival's Stop on its first step and the Far King on its top", "Level_Violet.unity");
+        }
+
+        /// <summary>Level_Violet: the open one if it's loaded (its unsaved edits are kept), else opened (asking to save the current scene).</summary>
+        static bool OpenLevel(out Scene scene)
+        {
+            scene = SceneManager.GetSceneByPath(ScenePath);
+            if (scene.IsValid() && scene.isLoaded) return true;
+            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return false;
+            scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+            return scene.IsValid();
         }
 
         static Transform Group(string name)
@@ -179,25 +248,53 @@ namespace Roygbiv.EditorTools
                 x = Piece(prefabs, kind, length, amount, x);
             }
 
-            // The foot of the hill: the arrival triggers on the approach; a low rise, then an invisible stop.
-            Fill(x, -GroundDepth, x + HillApproach + HillLength, 0);
-            int arrivalX = x + HillApproach / 2, hill0 = x + HillApproach;
-            Fill(hill0, 0, hill0 + HillLength, HillHeight);
+            // The end: the run-up, then the king's hill (painted, solid). The arrival triggers one tile before the hill;
+            // an invisible stop on its first step keeps anyone from climbing to him. He stands on its top.
+            Fill(x, -GroundDepth, x + HillApproach, 0);
+            int hill0 = x + HillApproach;
+            foreach (var c in HillCells(hill0)) solid.Add(c);
             var arrival = new GameObject("Arrival (foot of the hill)").AddComponent<VioletArrival>();
             arrival.transform.SetParent(root, false);
-            arrival.transform.position = new Vector3(arrivalX, 0f, 0f);
+            arrival.transform.position = new Vector3(hill0 - 1, 0f, 0f);
             var stop = new GameObject("Stop").AddComponent<BoxCollider2D>();
             stop.transform.SetParent(arrival.transform, false);
-            stop.transform.position = new Vector3(hill0 + 1 + (HillLength - 1) * 0.5f, TallTop * 0.5f, 0f);
-            stop.size = new Vector2(HillLength - 1, TallTop);
-            stop.sharedMaterial = noFriction;
+            PlaceStop(stop, hill0);
 
-            var far = new GameObject("Far King (intro camera)").AddComponent<VioletFarKing>();
+            var far = new GameObject("Far King (on his hill)").AddComponent<VioletFarKing>();
             far.transform.SetParent(root, false);
-            far.transform.position = new Vector3(arrivalX + LookAhead, 0.6f + CameraOffsetY, 0f);
+            far.transform.position = KingSpot(hill0);
 
-            x = hill0 + HillLength;
+            x = hill0 + HillWidth;
             return BuildArena(prefabs, x + ArenaGap);
+        }
+
+        /// <summary>The king's hill with its foot at x = hill0: steps one tile up each, then the top, all down to the ground's bottom.</summary>
+        static IEnumerable<Vector2Int> HillCells(int hill0)
+        {
+            int x = hill0;
+            for (int top = 1; top <= HillTop; top++)
+            {
+                int width = top < HillTop ? HillStepWidth : HillTopLength;
+                for (int cx = x; cx < x + width; cx++)
+                for (int y = -GroundDepth; y < top; y++)
+                    yield return new Vector2Int(cx, y);
+                x += width;
+            }
+        }
+
+        /// <summary>His feet on the top of the hill whose foot is at hill0.</summary>
+        static Vector2 KingSpot(int hill0) => new(hill0 + (HillTop - 1) * HillStepWidth + KingOnTop, HillTop);
+
+        /// <summary>The arrival's invisible wall: the hill's first step, full height.</summary>
+        static void PlaceStop(BoxCollider2D stop, int hill0)
+        {
+            if (!noFriction) noFriction = AssetDatabase.LoadAssetAtPath<PhysicsMaterial2D>(MaterialPath);
+            stop.transform.position = new Vector3(hill0 + 0.5f, TallTop * 0.5f, 0f);
+            stop.offset = Vector2.zero;
+            stop.size = new Vector2(1f, TallTop);
+            stop.sharedMaterial = noFriction;
+            EditorUtility.SetDirty(stop);
+            EditorUtility.SetDirty(stop.transform);
         }
 
         static int Piece(Prefabs prefabs, P kind, int len, float amount, int x)
@@ -449,19 +546,19 @@ namespace Roygbiv.EditorTools
             var inner = VioletTileBuilder.InnerTiles;
             var cells = solid.ToArray();
             var tiles = new TileBase[cells.Length];
-            for (int i = 0; i < cells.Length; i++) tiles[i] = Pick(cells[i], edge, inner);
+            for (int i = 0; i < cells.Length; i++) tiles[i] = Pick(cells[i], solid.Contains, edge, inner);
             map.SetTiles(cells.Select(c => new Vector3Int(c.x, c.y, 0)).ToArray(), tiles);
-            map.CompressBounds();
-            composite.GenerateGeometry();
+            // No collider yet: the TilemapCollider2D takes tile changes lazily, so generating the merged collider here
+            // merges nothing. FinishTerrain builds it once the tiles are processed, checks it, then saves.
         }
 
         /// <summary>
         /// The 9-slice piece for a cell from its four neighbours (edges and corners), or for a cell inside the mass,
-        /// an inner corner where one diagonal is open (a concave corner) or the plain middle.
+        /// an inner corner where one diagonal is open (a concave corner) or the plain middle. solidAt = is that cell ground.
         /// </summary>
-        static TileBase Pick(Vector2Int c, Tile[] edge, Tile[] inner)
+        static TileBase Pick(Vector2Int c, System.Func<Vector2Int, bool> solidAt, Tile[] edge, Tile[] inner)
         {
-            bool Has(int dx, int dy) => solid.Contains(new Vector2Int(c.x + dx, c.y + dy));
+            bool Has(int dx, int dy) => solidAt(new Vector2Int(c.x + dx, c.y + dy));
             bool up = Has(0, 1), down = Has(0, -1), left = Has(-1, 0), right = Has(1, 0);
             if (!up) return !left ? edge[0] : !right ? edge[2] : edge[1];
             if (!down) return !left ? edge[6] : !right ? edge[8] : edge[7];
@@ -473,6 +570,105 @@ namespace Roygbiv.EditorTools
             if (!Has(-1, 1)) return inner[3];  // notch top-left
             return edge[4];
         }
+
+        // ---------- The terrain's collider ----------
+
+        /// <summary>
+        /// Builds the tilemap's merged collider from its tiles (after they're processed), checks the level is solid where
+        /// it must be, and saves the scene only if every check passes. Otherwise: an error listing what failed, and the
+        /// scene is left open, unsaved, with the rebuilt collider.
+        /// </summary>
+        static bool FinishTerrain(Scene scene, string done, string commit)
+        {
+            var composites = VioletTerrain.Composites(scene);
+            int paths = 0;
+            foreach (var composite in composites)
+            {
+                paths += VioletTerrain.Rebuild(composite);
+                EditorUtility.SetDirty(composite);
+            }
+            EditorSceneManager.MarkSceneDirty(scene);
+
+            var report = new StringBuilder();
+            var errors = VerifyTerrain(scene, composites, paths, report);
+            if (errors.Count > 0)
+            {
+                Debug.LogError($"[ROYGBIV] {done}, but Level_Violet FAILED its checks, so it was NOT saved (it's open with the rebuilt " +
+                               "collider). Fix what's listed and run this again:\n  - " + string.Join("\n  - ", errors) + "\n" + report);
+                return false;
+            }
+            EditorSceneManager.SaveScene(scene);
+            Debug.Log($"[ROYGBIV] {done}. Every check passed and Level_Violet is saved: commit {commit}.\n{report}");
+            return true;
+        }
+
+        /// <summary>
+        /// The merged collider has paths; a ray straight down lands on the tiles right under the start, every checkpoint
+        /// (each segment), the arrival, the king's spot on his hill and the arena's spawns; rays across the arena hit both
+        /// walls; and every solid piece (seals, the door, slabs, crystals, the arrival's Stop) has a solid collider.
+        /// </summary>
+        static List<string> VerifyTerrain(Scene scene, List<CompositeCollider2D> composites, int paths, StringBuilder report)
+        {
+            var errors = new List<string>();
+            if (composites.Count == 0) { errors.Add("no Grid/Tilemap with a TilemapCollider2D merged into a CompositeCollider2D"); return errors; }
+            if (paths == 0) { errors.Add("the tilemap's collider is still EMPTY after rebuilding it: are the Violet tiles' Collider Type set to Sprite?"); return errors; }
+            report.AppendLine($"  tilemap collider: {paths} paths");
+            Physics2D.SyncTransforms();
+
+            void Floor(string what, Vector2 feet)
+            {
+                if (!VioletTerrain.GroundBelow(feet + Vector2.up * 0.5f, 3f, out float y)) errors.Add($"{what}: no tile ground under ({feet.x:0.##}, {feet.y:0.##})");
+                else if (Mathf.Abs(y - feet.y) > 0.2f) errors.Add($"{what}: the tile ground is at y {y:0.##}, expected {feet.y:0.##}");
+                else report.AppendLine($"  {what}: solid ground at ({feet.x:0.##}, {y:0.##})");
+            }
+
+            var markers = FindAllInScene<VioletCheckpointMarker>(scene).OrderBy(m => m.Feet.x).ToArray();
+            if (markers.Length == 0) errors.Add("no checkpoints");
+            for (int i = 0; i < markers.Length; i++) Floor(i == 0 ? $"start ({markers[i].label})" : $"checkpoint {markers[i].label}", markers[i].Feet);
+
+            var arrival = FindInScene<VioletArrival>(scene);
+            if (arrival) Floor("arrival (foot of the hill)", arrival.transform.position);
+            else errors.Add("no Arrival");
+
+            var far = FindInScene<VioletFarKing>(scene);
+            if (!far) errors.Add("no Far King");
+            else if (!VioletTerrain.GroundBelow(far.Spot + Vector2.up * 2f, 32f, out float hillY)) errors.Add($"the king's hill: no tile ground under the Far King at {far.Spot}");
+            else report.AppendLine($"  the king's hill: he stands at ({far.Spot.x:0.##}, {hillY:0.##})");
+
+            var arena = FindInScene<VioletArena>(scene);
+            if (!arena) errors.Add("no Arena");
+            else
+            {
+                Floor("arena, player spawn", arena.PlayerFeet);
+                Floor("arena, boss spawn", new Vector2(arena.BossX, arena.Floor));
+                var middle = new Vector2((arena.MinX + arena.MaxX) * 0.5f, arena.Floor + DoorHeight + 3f); // above the door
+                foreach (var (what, dir, wallX) in new[] { ("left", Vector2.left, arena.MinX), ("right", Vector2.right, arena.MaxX) })
+                {
+                    if (!VioletTerrain.Raycast(middle, dir, arena.inner.width, out var hit)) errors.Add($"arena, {what} wall: no tiles across the arena");
+                    else if (Mathf.Abs(hit.x - wallX) > 0.2f) errors.Add($"arena, {what} wall: tiles at x {hit.x:0.##}, expected {wallX:0.##}");
+                    else report.AppendLine($"  arena, {what} wall: solid at x {hit.x:0.##}");
+                }
+            }
+
+            var pieces = FindAllInScene<VioletGate>(scene).Cast<Component>()
+                .Concat(FindAllInScene<VioletSlab>(scene)).Concat(FindAllInScene<VioletCrystal>(scene)).ToList();
+            var stop = arrival ? arrival.GetComponentsInChildren<BoxCollider2D>(true).FirstOrDefault(b => !b.isTrigger) : null;
+            if (stop) pieces.Add(stop);
+            else if (arrival) errors.Add("the arrival has no solid Stop");
+            foreach (var piece in pieces)
+            {
+                var c = piece.GetComponent<Collider2D>();
+                if (!c || !c.enabled || c.isTrigger || c.bounds.size.x < 0.01f || c.bounds.size.y < 0.01f)
+                    errors.Add($"{piece.name} ({piece.GetType().Name}): no enabled, solid (non-trigger) collider");
+            }
+            report.AppendLine($"  solid pieces (seals, door, slabs, crystals, stop): {pieces.Count} checked");
+            return errors;
+        }
+
+        static T FindInScene<T>(Scene scene) where T : Component => FindAllInScene<T>(scene).FirstOrDefault();
+
+        static IEnumerable<T> FindAllInScene<T>(Scene scene) where T : Component =>
+            scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<T>(true));
 
         // ---------- The rest of the scene ----------
 
@@ -712,12 +908,11 @@ namespace Roygbiv.EditorTools
             Need(CurtainWidth >= dash * 1.5f, $"curtain {CurtainWidth}: must be well over one dash ({dash:0.00})");
             Need(PillarHeight >= stand + 0.2f && ShelterInner >= wide + 2f, $"shelter {ShelterInner}x{PillarHeight}: room under the slab");
             Need(PlatformTop <= twice - 0.5f, $"arena platforms {PlatformTop}: reachable with a double jump");
-            Need(HillHeight <= single - 0.5f, $"hill rise {HillHeight}: a small hop");
 
             var table = new StringBuilder();
             table.AppendLine($"[Violet bake] Player: {wide}x{stand}, surf height {surf:0.00}, single jump {single:0.00}, double jump {twice:0.00}, dash {dash:0.00}, run {(motor ? motor.runSpeed : 0f)}.");
             table.AppendLine($"  corridor ceiling {CorridorCeiling} (waves fill it) | steps {string.Join("/", StepHeights)} | wall {WallHeight} | low beam gap {LowBeamGap} | tunnel {TunnelHeight}");
-            table.AppendLine($"  ledge step {LedgeStepHeight}, ledge {LedgeHeight} | shelter {ShelterInner} wide x {PillarHeight} high | curtain {CurtainWidth} wide, ceiling {CurtainCeiling} | hill {HillHeight} | arena {ArenaWidth}x{ArenaHeight}, platforms at {PlatformTop}");
+            table.AppendLine($"  ledge step {LedgeStepHeight}, ledge {LedgeHeight} | shelter {ShelterInner} wide x {PillarHeight} high | curtain {CurtainWidth} wide, ceiling {CurtainCeiling} | king's hill {HillTop} high | arena {ArenaWidth}x{ArenaHeight}, platforms at {PlatformTop}");
             if (errors.Count == 0) Debug.Log(table + "  All clearances OK.");
             else Debug.LogError(table + "  Clearance problems:\n  - " + string.Join("\n  - ", errors));
         }
