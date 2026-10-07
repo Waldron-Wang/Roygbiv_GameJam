@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace Roygbiv
 {
@@ -34,6 +35,8 @@ namespace Roygbiv
         [HideInInspector] public Color hazeColor = new(0.22f, 0.16f, 0.34f);
 
         const float HipHeight = 1.35f;
+        /// <summary>The greatsword's hilt, above sortingBase: over his hand and arm (the planted sword's hilt uses it too).</summary>
+        public const int HiltOrder = 15;
 
         Transform pose, hips, torso, head, armFront, armBack, sword, offSword, crown, capeRoot, legFront, legBack;
         SpriteRenderer blade, bladeEdge, offBlade, offBladeEdge, offHilt, handGlowSr, handRing, visor, auraRing, glint;
@@ -46,7 +49,8 @@ namespace Roygbiv
         float animTime, flash, jolt, spinPhase, glintAt = 2f;
         Vector2 lastPos, smoothVel;
         bool hasCape = true, swordsShattered, crownFallen;
-        int baseOrder, builtOrder;
+        int baseOrder;
+        SortingGroup group;
 
         public Transform Pose => pose;
         public bool HasCape => hasCape;
@@ -54,10 +58,12 @@ namespace Roygbiv
         /// <summary>Builds the rig under `parent` with the feet at local `feet`. sortingBase = the lowest order it uses.</summary>
         public void Build(Transform parent, Vector2 feet, int sortingBase)
         {
-            baseOrder = builtOrder = sortingBase;
+            baseOrder = sortingBase;
             pose = new GameObject("Pose").transform;
             pose.SetParent(parent, false);
             pose.localPosition = feet;
+            group = pose.gameObject.AddComponent<SortingGroup>();
+            group.enabled = false; // off: every part sorts on its own (SortAsOne)
 
             hips = Node("Hips", pose, new Vector2(0f, HipHeight));
             legBack = Part("LegBack", VioletShapes.Leg, hips, new Vector2(-0.16f, 0f), VioletShapes.Dark, 3).transform;
@@ -103,7 +109,7 @@ namespace Roygbiv
             sword = Node("Sword", hand, Vector2.zero);
             blade = Part("Blade", VioletShapes.Blade, sword, Vector2.zero, VioletShapes.Steel, 12);
             bladeEdge = Part("BladeEdge", VioletShapes.BladeEdge, sword, Vector2.zero, VioletShapes.Glow, 13); // over the blade, under the arm
-            Part("Hilt", VioletShapes.Hilt, sword, Vector2.zero, VioletShapes.Bright, 15);
+            Part("Hilt", VioletShapes.Hilt, sword, Vector2.zero, VioletShapes.Bright, HiltOrder);
 
             auraRing = IndigoShapes.Create("Aura", IndigoShapes.ThinRing, pose, new Vector2(0f, 1.7f), 4.4f, Color.clear, baseOrder + 20);
             lastPos = transform.position;
@@ -134,17 +140,20 @@ namespace Roygbiv
             jolt = 1f;
         }
 
-        /// <summary>Moves every part to a new lowest sorting order (behind the level for the distant king, back in front for the duel).</summary>
-        public void SetSortingBase(int order)
+        /// <summary>
+        /// A number: the whole figure sorts as ONE piece at that order (the distant king: just in front of the tilemap,
+        /// behind the player and every hazard), his parts keeping their order among themselves. Null: every part sorts
+        /// on its own again, SortingBase and up (the duel: the cape behind the player, the sword arm in front).
+        /// </summary>
+        public void SortAsOne(int? order)
         {
-            if (!pose || order == baseOrder) return;
-            int delta = order - baseOrder;
-            foreach (var sr in pose.GetComponentsInChildren<SpriteRenderer>(true)) sr.sortingOrder += delta;
-            baseOrder = order;
+            if (!group) return;
+            if (order.HasValue) group.sortingOrder = order.Value;
+            group.enabled = order.HasValue;
         }
 
-        /// <summary>The sortingBase it was built with.</summary>
-        public int BuiltSortingBase => builtOrder;
+        /// <summary>The lowest sorting order of his parts (the sortingBase it was built with).</summary>
+        public int SortingBase => baseOrder;
 
         /// <summary>Shows or hides the greatsword in his right hand (it's planted in the ground for the arrival).</summary>
         public void ShowHandSword(bool show)

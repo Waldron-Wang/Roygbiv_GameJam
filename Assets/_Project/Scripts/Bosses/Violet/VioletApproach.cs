@@ -9,8 +9,9 @@ namespace Roygbiv
     ///   Intro:   first entry only. Input blocked, the camera on the end of the course with the king big on his hill,
     ///            then a hard pull back along the whole course to the player (he recedes into the distance).
     ///   The run: the player runs right through the course on their own (no auto-scroll); the camera looks ahead to the
-    ///            right. The king is ALWAYS on screen: a big distant figure in the background (behind the level, no
-    ///            collision, hazy), feet on a far hill pinned near the right of the view, growing bigger and clearer
+    ///            right. The king is ALWAYS on screen: a big distant figure in the background (no collision, hazy, drawn
+    ///            just in front of the tilemap and behind everything else; his hill stays behind the tilemap), feet on a
+    ///            far hill pinned near the right of the view, growing bigger and clearer
     ///            as the player nears the end. While the player is inside a course zone, that zone's long-range attack
     ///            runs: it starts with HIS gesture (the sword raised for waves, slammed down for ripples, the free hand
     ///            for beams, rain and needles) and is announced at the right screen edge (VioletTelegraph).
@@ -313,12 +314,17 @@ namespace Roygbiv
 
         // ---------- The distant king ----------
 
+        // His hill is backdrop: behind the tilemap (0) and the seals (-1), so the course is always drawn over it (it fills
+        // the lower right of the view); in front of any parallax background (Far -30, Mid -20, Near -10), so he never
+        // stands on nothing. He himself is drawn in front of the tilemap (VioletBoss.distantOrder).
+        const int FarHillOrder = -5;
+
         void BuildFarHill()
         {
             var shape = VioletShapes.Polygon("FarHill", Vector2.zero, 0.45f,
                 new(-8f, -0.6f), new(-5f, -0.2f), new(-2.2f, 0f), new(1.2f, 0f), new(3.8f, -0.25f), new(6.5f, -0.9f), new(9f, -2f),
                 new(9f, -14f), new(-8f, -14f));
-            farHill = VioletShapes.Create("FarHill (his hill)", shape, transform, Vector2.zero, far.hillColor, -86);
+            farHill = VioletShapes.Create("FarHill (his hill)", shape, transform, Vector2.zero, far.hillColor, FarHillOrder);
         }
 
         void LateUpdate()

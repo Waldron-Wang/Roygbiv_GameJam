@@ -10,7 +10,8 @@ namespace Roygbiv
     /// greatsword, who can only be beaten by using every ability at the right moment.
     ///
     /// PHASE 1, THE RUN (not a BossBase phase: the fight hasn't started). He's a big distant figure in the background
-    /// (SetDistant / PlaceDistant: behind the level, no collision, hazy), pinned near the right of the view on a far
+    /// (SetDistant / PlaceDistant: no collision, hazy, drawn just in front of the tilemap but behind the player and every
+    /// hazard), pinned near the right of the view on a far
     /// hill, growing as the player nears the end of the course. He only stands and casts: every long-range attack
     /// starts with his gesture (FarGesture); VioletApproach spawns the attacks. He can't be reached or hurt.
     /// ARRIVAL: VioletApproach cuts to the arena (PlaceInArena) and plays his beat (ArrivalBeat: the greatsword is
@@ -69,10 +70,12 @@ namespace Roygbiv
         [SerializeField] Vector2 bodySize = new(1.6f, 3.2f);
 
         [Header("Look")]
-        [Tooltip("Lowest sorting order the procedural king uses.")]
+        [Tooltip("Lowest sorting order of the procedural king's parts (they use it to +20). In the duel and the arrival they sort " +
+                 "on their own: all in front of the tilemap (0), the cape behind the player (10), the sword arm in front.")]
         [SerializeField] int sortingBase = 6;
-        [Tooltip("Lowest sorting order while he's the distant figure of the run: behind the level geometry (order 0).")]
-        [SerializeField] int distantSortingBase = -80;
+        [Tooltip("While he's the distant figure of the run he's drawn as ONE piece at this order: in front of the tilemap (0), " +
+                 "behind the slab and checkpoint banners (2), telegraph lanes (3), the player (10) and every attack.")]
+        [SerializeField] int distantOrder = 1;
         [Tooltip("Color of his slashes, beams and eruptions.")]
         [SerializeField] Color attackColor = new(0.76f, 0.4f, 1f);
         [Tooltip("Tip color of his eruptions.")]
@@ -404,14 +407,15 @@ namespace Roygbiv
         }
 
         /// <summary>
-        /// The run: he's a distant figure behind the level (no collision, drawn behind the geometry), or back to a
-        /// solid, full-size king for the duel.
+        /// The run: he's a distant figure (no collision, drawn as one piece at distantOrder: in front of the tilemap,
+        /// behind the player and every hazard), or back to a solid, full-size king for the duel (his parts sorted on
+        /// their own from sortingBase). Safe to call again with the same value.
         /// </summary>
         public void SetDistant(bool on)
         {
             distant = on;
             foreach (var c in GetComponents<Collider2D>()) c.enabled = !on;
-            figure.SetSortingBase(on ? distantSortingBase : figure.BuiltSortingBase);
+            figure.SortAsOne(on ? distantOrder : null);
             if (!on)
             {
                 figure.scale = 1f;
@@ -422,6 +426,7 @@ namespace Roygbiv
         /// <summary>The run: feet on a far hill line at `feet`, `scale` times life size, `haze` faded toward the distance.</summary>
         public void PlaceDistant(Vector2 feet, float scale, float haze)
         {
+            if (IsFighting || Health.IsDead) return; // once the duel is on, he never goes back into the distance
             if (!distant) SetDistant(true);
             Teleport(new Vector2(feet.x, feet.y + halfHeight)); // the figure scales about its feet
             figure.scale = scale;
@@ -444,7 +449,7 @@ namespace Roygbiv
             StopAllCoroutines(); // any gesture or cinematic beat still running (the brain starts right after this)
             ClearPlantedSword();
             figure.ShowHandSword(true);
-            if (distant) SetDistant(false);
+            SetDistant(false); // whatever path led here (arrival, respawn), the duel's king is solid and sorted for the duel
             if (!startOnFloor && Body) Teleport(new Vector2(Body.position.x, GroundedY)); // feet on the floor, always
             if (Player && bodyCollider)
                 foreach (var c in Player.GetComponentsInChildren<Collider2D>())
@@ -459,7 +464,7 @@ namespace Roygbiv
         public void PrepareFloorStart(float x, bool twin)
         {
             startOnFloor = true;
-            if (distant) SetDistant(false);
+            SetDistant(false);
             var spot = new Vector2(Mathf.Clamp(x, arenaMinX + 2f, arenaMaxX - 2f), GroundedY);
             if (!Body || Vector2.Distance(Body.position, spot) > 0.3f)
             {
@@ -664,6 +669,10 @@ namespace Roygbiv
 
         // ---------- The arrival (cinematic) ----------
 
+        // The planted greatsword's blade (and its edge, one above) is drawn behind the floor tiles (order 0), so the part
+        // sunk in the floor is hidden; above the floor it stands in the open, in front of nothing.
+        const int PlantedBladeOrder = -2;
+
         /// <summary>First shot of the arrival: his greatsword stands planted in the floor beside him, his hand empty on the pommel.</summary>
         public void PlantSword()
         {
@@ -672,10 +681,9 @@ namespace Roygbiv
             plantedSword = new GameObject("PlantedGreatsword");
             const float sunk = 0.8f, bladeLength = 2.85f;
             plantedSword.transform.position = new Vector3(transform.position.x + figure.facing * 1.15f, floorY + bladeLength - sunk, 0f);
-            // Drawn behind the floor (order 0), so the sunk part of the blade is hidden in it.
-            VioletShapes.Create("Blade", VioletShapes.Blade, plantedSword.transform, Vector2.zero, VioletShapes.Steel, -2);
-            VioletShapes.Create("Edge", VioletShapes.BladeEdge, plantedSword.transform, Vector2.zero, new Color(VioletShapes.Glow.r, VioletShapes.Glow.g, VioletShapes.Glow.b, 0.5f), -1);
-            VioletShapes.Create("Hilt", VioletShapes.Hilt, plantedSword.transform, Vector2.zero, VioletShapes.Bright, figure.BuiltSortingBase + 15);
+            VioletShapes.Create("Blade", VioletShapes.Blade, plantedSword.transform, Vector2.zero, VioletShapes.Steel, PlantedBladeOrder);
+            VioletShapes.Create("Edge", VioletShapes.BladeEdge, plantedSword.transform, Vector2.zero, new Color(VioletShapes.Glow.r, VioletShapes.Glow.g, VioletShapes.Glow.b, 0.5f), PlantedBladeOrder + 1);
+            VioletShapes.Create("Hilt", VioletShapes.Hilt, plantedSword.transform, Vector2.zero, VioletShapes.Bright, figure.SortingBase + VioletFigure.HiltOrder);
             figure.armResponse = 8f;
             figure.swordArm = 66f; figure.swordTwist = 0f; figure.offArm = 12f; figure.lean = 2f; figure.crouch = 0f; figure.capeWind = 0.5f;
             figure.SnapArms();

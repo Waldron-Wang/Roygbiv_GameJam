@@ -55,6 +55,11 @@ namespace Roygbiv.EditorTools
         const int BossInset = 5, PlayerInset = 3;
         const float LookAhead = 5f, CameraOffsetY = 1.5f;
 
+        // ---------- Sorting orders (Default layer; the tilemap is 0, the distant king 1, the player 10) ----------
+        const int TilemapOrder = 0;
+        const int SealOrder = -1; // behind the tilemap: the part sunk into the floor hides behind the floor tiles
+        const int SlabOrder = 2;  // in front of the tilemap and the distant king, never tied with the tiles it rests on
+
         enum P { Floor, WaveCorridor, Steps, LowBeamLane, LowTunnel, LedgeBeam, RainHall, CrystalGate, Curtain, Wall, WallBeam }
 
         // kind, length, checkpoint label (null = none), amount (rain seconds / wave interval; 0 = default)
@@ -427,7 +432,7 @@ namespace Roygbiv.EditorTools
             var map = go.AddComponent<Tilemap>();
             map.tileAnchor = new Vector3(0.5f, 0.5f, 0f);
             var renderer = go.AddComponent<TilemapRenderer>();
-            renderer.sortingOrder = 0;
+            renderer.sortingOrder = TilemapOrder;
             renderer.mode = TilemapRenderer.Mode.Chunk;
             var body = go.AddComponent<Rigidbody2D>();
             body.bodyType = RigidbodyType2D.Static;
@@ -565,7 +570,7 @@ namespace Roygbiv.EditorTools
             sr.sprite = square;
             sr.drawMode = SpriteDrawMode.Tiled;
             sr.size = new Vector2(1f, SealHeight);
-            sr.sortingOrder = -1; // sunk, it hides behind the floor tiles
+            sr.sortingOrder = SealOrder;
             var box = go.AddComponent<BoxCollider2D>();
             box.size = new Vector2(1f, SealHeight);
             box.sharedMaterial = noFriction;
@@ -595,6 +600,7 @@ namespace Roygbiv.EditorTools
             sr.drawMode = SpriteDrawMode.Tiled;
             sr.size = new Vector2(slabWidth, SlabThickness);
             sr.color = SlabColor;
+            sr.sortingOrder = SlabOrder;
             var box = slab.AddComponent<BoxCollider2D>();
             box.size = new Vector2(slabWidth, SlabThickness);
             box.sharedMaterial = noFriction;
