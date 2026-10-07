@@ -3,7 +3,7 @@ using UnityEngine;
 namespace Roygbiv
 {
     /// <summary>Which looping animation a how-to card plays. Saved as ints: ONLY APPEND.</summary>
-    public enum InstructionDemo { None, Reflect, ShootLatch, Overheat, Steal, Climb, FlipControls }
+    public enum InstructionDemo { None, Reflect, ShootLatch, Overheat, Steal, Climb, FlipControls, Gauntlet }
 
     /// <summary>
     /// A how-to card for a boss: a small looping demo of the mechanic plus one short caption with key icons.
@@ -30,7 +30,9 @@ namespace Roygbiv
         [Header("Demo")]
         public InstructionDemo demo;
         [Tooltip("Keys the demo shows being pressed: the caption's tokens without brackets (LMB, C, Space...). " +
-                 "Steal flies them to the boss; FlipControls swaps [0]<->[1] and [2]<->[3]. Matching caption keys press in sync.")]
+                 "Steal: the ability key it takes, then the attack key. FlipControls: Left, Right, Space, LMB, RMB, Shift " +
+                 "(the curses trade them around). Gauntlet: one key per ability, in the order the run uses them. " +
+                 "Matching caption keys press in sync.")]
         public string[] keys = { };
         [Tooltip("The player's looping frames: idle, or run in a chase.")]
         public Sprite[] playerLoop = { };
@@ -46,5 +48,15 @@ namespace Roygbiv
         public Sprite[] bossMove = { };
         [Tooltip("Round things: orbs, shots. Empty = a plain disc.")]
         public Sprite prop;
+
+        [Header("More player frames (Steal, Climb, FlipControls, Gauntlet)")]
+        [Tooltip("Running. Empty = playerLoop.")]
+        public Sprite[] playerRun = { };
+        public float playerRunFps = 12f;
+        [Tooltip("One jump, take-off to landing (held on the last frame). Empty = playerLoop.")]
+        public Sprite[] playerJump = { };
+        public float playerJumpFps = 15f;
+        [Tooltip("Knocked back. Empty = the first playerLoop frame.")]
+        public Sprite playerHurt;
     }
 }

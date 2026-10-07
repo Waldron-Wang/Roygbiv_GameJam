@@ -64,6 +64,12 @@ namespace Roygbiv
         }
 
         public void ContinueGame() => Game.Scenes.Load(Game.Config.hubScene);
+
+        /// <summary>
+        /// Reloads the current level: the same reload dying does (RespawnSequence), so Violet resumes from its last
+        /// checkpoint (VioletCheckpoint only forgets when another scene loads).
+        /// </summary>
+        public void RestartLevel() => Game.Scenes.Reload();
         public void ReturnToMenu() => Game.Scenes.Load(Game.Config.mainMenuScene);
         public void ReturnToHub() => Game.Scenes.Load(Game.Config.hubScene);
 
@@ -125,7 +131,7 @@ namespace Roygbiv
         IEnumerator RespawnSequence()
         {
             yield return new WaitForSeconds(Game.Config.respawnDelay);
-            Game.Scenes.Reload();
+            RestartLevel();
         }
     }
 }

@@ -55,6 +55,32 @@ namespace Roygbiv
             GUI.DrawTexture(new Rect(center.x - radius, center.y - radius, radius * 2f, radius * 2f), GlowTexture,
                 ScaleMode.StretchToFill, true, 0f, Fade(c), 0f, 0f);
 
+        /// <summary>The same soft glow stretched over `r` (an elliptical pool of light).</summary>
+        public static void GlowRect(Rect r, Color c) =>
+            GUI.DrawTexture(r, GlowTexture, ScaleMode.StretchToFill, true, 0f, Fade(c), 0f, 0f);
+
+        /// <summary>A solid ellipse `width` x `height` (IndigoShapes' disc, stretched): eyes, lids, pools.</summary>
+        public static void Ellipse(Vector2 center, float width, float height, Color c) =>
+            Sprite(IndigoShapes.Disc, center, new Vector2(width, height), c, false, 0f);
+
+        /// <summary>A square turned on its corner: `size` is its side, `degrees` turns it further.</summary>
+        public static void Diamond(Vector2 center, float size, Color c, float degrees = 0f)
+        {
+            var prev = Rotate(center, 45f + degrees);
+            Box(new Rect(center.x - size * 0.5f, center.y - size * 0.5f, size, size), c);
+            GUI.matrix = prev;
+        }
+
+        /// <summary>A diamond stretched to `width` x `height` (a gem, a lozenge): drawn as a squashed, turned square.</summary>
+        public static void Lozenge(Vector2 center, float width, float height, Color c)
+        {
+            var prev = GUI.matrix;
+            GUI.matrix = prev * Matrix4x4.TRS(center, Quaternion.identity, new Vector3(width / 1.41421f, height / 1.41421f, 1f))
+                              * Matrix4x4.TRS(Vector3.zero, Quaternion.Euler(0f, 0f, 45f), Vector3.one);
+            Box(new Rect(-0.5f, -0.5f, 1f, 1f), c);
+            GUI.matrix = prev;
+        }
+
         public static void Line(Vector2 a, Vector2 b, float width, Color c)
         {
             var d = b - a;
@@ -117,6 +143,24 @@ namespace Roygbiv
             GUI.matrix = prev;
         }
 
+        /// <summary>
+        /// A sprite with its pivot at `anchor`, scaled separately along its own x and y (`unitPx` = GUI pixels per world
+        /// unit on each axis) and turned by `degrees`. For runtime-built parts (Violet's king) that a SpriteRenderer
+        /// would scale unevenly; the art itself never needs it.
+        /// </summary>
+        public static void Sprite(Sprite s, Vector2 anchor, Vector2 unitPx, Color tint, bool flipX, float degrees)
+        {
+            if (!s) return;
+            var prev = GUI.matrix;
+            GUI.matrix = prev * Matrix4x4.TRS(anchor, Quaternion.Euler(0f, 0f, degrees),
+                new Vector3(unitPx.x / s.pixelsPerUnit, unitPx.y / s.pixelsPerUnit, 1f));
+            var size = s.rect.size;
+            var pivot = s.pivot;
+            float left = flipX ? -(size.x - pivot.x) : -pivot.x;
+            DrawCanvas(s, new Rect(left, -(size.y - pivot.y), size.x, size.y), tint, flipX);
+            GUI.matrix = prev;
+        }
+
         /// <summary>Same, but `feet` is the bottom of the canvas (our art stands on its canvas's bottom edge).</summary>
         public static void SpriteOnGround(Sprite s, Vector2 feet, float unitPx, Color tint, bool flipX = false, float degrees = 0f)
         {
@@ -158,7 +202,7 @@ namespace Roygbiv
 
         // ---------- Text ----------
 
-        static GUIStyle Style(int size, FontStyle fontStyle, TextAnchor align)
+        static GUIStyle Style(int size, FontStyle fontStyle, TextAnchor align, bool wrap = false)
         {
             style ??= new GUIStyle(GUI.skin.label)
             {
@@ -168,6 +212,7 @@ namespace Roygbiv
             style.fontSize = size;
             style.fontStyle = fontStyle;
             style.alignment = align;
+            style.wordWrap = wrap;
             return style;
         }
 
@@ -177,6 +222,13 @@ namespace Roygbiv
         static float CanvasScale => Mathf.Max(0.01f, GUI.matrix.lossyScale.x);
         static int ScreenFontSize(int size, float scale) => Mathf.Max(1, Mathf.RoundToInt(size * scale));
 
+        /// <summary>Height of `text` wrapped to `width` canvas units (dialogue boxes size themselves with it).</summary>
+        public static float WrappedHeight(string text, int size, float width, FontStyle fontStyle = FontStyle.Normal)
+        {
+            float s = CanvasScale;
+            return Style(ScreenFontSize(size, s), fontStyle, TextAnchor.UpperLeft, true).CalcHeight(new GUIContent(text), width * s) / s;
+        }
+
         /// <summary>Size of `text` in canvas units.</summary>
         public static Vector2 Measure(string text, int size, FontStyle fontStyle = FontStyle.Normal)
         {
@@ -184,28 +236,61 @@ namespace Roygbiv
             return Style(ScreenFontSize(size, s), fontStyle, TextAnchor.MiddleLeft).CalcSize(new GUIContent(text)) / s;
         }
 
-        public static void Text(Rect r, string text, int size, Color c, TextAnchor align = TextAnchor.MiddleCenter, FontStyle fontStyle = FontStyle.Normal)
+        /// <param name="wrap">Break lines to fit r's width (dialogue); otherwise one line that may overflow.</param>
+        /// <param name="shadow">A 1-pixel outline in this color behind the text (UiKit.Label's high-contrast look). Null = none.</param>
+        public static void Text(Rect r, string text, int size, Color c, TextAnchor align = TextAnchor.MiddleCenter, FontStyle fontStyle = FontStyle.Normal,
+                                bool wrap = false, Color? shadow = null)
         {
+            if (string.IsNullOrEmpty(text)) return;
             var canvas = GUI.matrix;
             float s = CanvasScale;
             Vector2 min = canvas.MultiplyPoint3x4(r.min), max = canvas.MultiplyPoint3x4(r.max);
-            var st = Style(ScreenFontSize(size, s), fontStyle, align);
-            // Same color in every state: GUI.Label draws the hover state under the mouse, and the skin's hover
-            // color (near white) would otherwise make text change, or vanish on a light fill, when hovered.
-            st.normal.textColor = st.hover.textColor = st.active.textColor = st.focused.textColor = c;
+            var st = Style(ScreenFontSize(size, s), fontStyle, align, wrap);
+            var screen = Rect.MinMaxRect(Mathf.Round(min.x), Mathf.Round(min.y), Mathf.Round(max.x), Mathf.Round(max.y));
+
+            // One line: place it on whole screen pixels ourselves. Aligned inside the rect by GUI.Label, a centered line
+            // can land on a half pixel, and the glyphs come out soft.
+            if (!wrap && text.IndexOf('\n') < 0)
+            {
+                var content = st.CalcSize(new GUIContent(text));
+                int h = (int)align % 3, v = (int)align / 3; // TextAnchor: Upper/Middle/Lower x Left/Center/Right
+                float x = h == 0 ? screen.x : h == 1 ? screen.center.x - content.x * 0.5f : screen.xMax - content.x;
+                float y = v == 0 ? screen.y : v == 1 ? screen.center.y - content.y * 0.5f : screen.yMax - content.y;
+                screen = new Rect(Mathf.Round(x), Mathf.Round(y), Mathf.Ceil(content.x) + 1f, Mathf.Ceil(content.y) + 1f);
+                st.alignment = TextAnchor.UpperLeft;
+            }
+
             var prevColor = GUI.color;
-            GUI.color = new Color(1f, 1f, 1f, Alpha); // also fades <color=...> runs, which ignore textColor
             GUI.matrix = Matrix4x4.identity;
-            GUI.Label(Rect.MinMaxRect(Mathf.Round(min.x), Mathf.Round(min.y), Mathf.Round(max.x), Mathf.Round(max.y)), text, st);
+            if (shadow is { } sc)
+            {
+                string plain = text.IndexOf('<') >= 0 ? RichTag.Replace(text, "") : text;
+                SetColor(st, sc);
+                GUI.color = new Color(1f, 1f, 1f, Alpha * Alpha);
+                float d = Mathf.Max(1f, Mathf.Round(s * 1.25f)); // 1 px at 1080p
+                foreach (var o in new[] { new Vector2(-d, 0f), new Vector2(d, 0f), new Vector2(0f, -d), new Vector2(0f, d), new Vector2(d, d) })
+                    GUI.Label(new Rect(screen.x + o.x, screen.y + o.y, screen.width, screen.height), plain, st);
+            }
+            SetColor(st, c);
+            GUI.color = new Color(1f, 1f, 1f, Alpha); // also fades <color=...> runs, which ignore textColor
+            GUI.Label(screen, text, st);
             GUI.matrix = canvas;
             GUI.color = prevColor;
         }
+
+        static readonly Regex RichTag = new(@"<[^>]+>");
+
+        // Same color in every state: GUI.Label draws the hover state under the mouse, and the skin's hover
+        // color (near white) would otherwise make text change, or vanish on a light fill, when hovered.
+        static void SetColor(GUIStyle st, Color c) =>
+            st.normal.textColor = st.hover.textColor = st.active.textColor = st.focused.textColor = c;
 
         // ---------- Keys ----------
 
         static bool IsMouse(string key) => key is "LMB" or "RMB";
 
-        static string KeyLabel(string key) => key switch
+        /// <summary>What a key's cap says: arrows for Left / Right / Up / Down, the name otherwise.</summary>
+        public static string KeyLabel(string key) => key switch
         {
             "Left" => "←", "Right" => "→", "Up" => "↑", "Down" => "↓",
             _ => key,
