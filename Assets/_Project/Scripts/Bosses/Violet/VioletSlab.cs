@@ -11,6 +11,15 @@ namespace Roygbiv
     /// </summary>
     public class VioletSlab : MonoBehaviour
     {
+        [Tooltip("How far the slab drops when the anchor breaks: down onto the pillars (painted in the tilemap).")]
+        [SerializeField] float dropDistance = 4.4f;
+        [Tooltip("The chain's links: they fall away when it snaps.")]
+        [SerializeField] Transform[] chainLinks = { };
+        [Tooltip("The anchor it hangs from: a glow marks it as the thing to shoot.")]
+        [SerializeField] Transform anchor;
+        [Tooltip("Set by the bake: this slab sets itself up when the level starts (off = made and set up from code).")]
+        [SerializeField, HideInInspector] bool placedInScene;
+
         Rigidbody2D slab;
         Collider2D[] slabColliders;
         Transform[] chain;
@@ -21,16 +30,31 @@ namespace Roygbiv
 
         public bool Dropped { get; private set; }
 
+        void Awake()
+        {
+            if (!placedInScene) return;
+            SpriteRenderer glow = null;
+            if (anchor)
+            {
+                glow = IndigoShapes.Create("AnchorGlow", IndigoShapes.Ring, transform.parent, anchor.position - (transform.parent ? transform.parent.position : Vector3.zero),
+                    1.4f, new Color(1f, 0.9f, 0.6f, 0.8f), 8);
+                glow.gameObject.AddComponent<VioletPulse>();
+            }
+            Setup(gameObject, transform.position.y - dropDistance, chainLinks, glow);
+        }
+
         /// <param name="slabBlock">The slab: a solid block. It gets a kinematic body here.</param>
         /// <param name="landCenterY">The slab's center height once it rests on the pillars.</param>
         public void Setup(GameObject slabBlock, float landCenterY, Transform[] chainLinks, SpriteRenderer glow)
         {
-            slab = slabBlock.AddComponent<Rigidbody2D>();
+            slab = slabBlock.GetComponent<Rigidbody2D>();
+            if (!slab) slab = slabBlock.AddComponent<Rigidbody2D>();
             slab.bodyType = RigidbodyType2D.Kinematic;
             slab.interpolation = RigidbodyInterpolation2D.Interpolate;
             landY = landCenterY;
             slabColliders = slabBlock.GetComponents<Collider2D>();
-            rainPassThrough = slabBlock.AddComponent<VioletRainPassThrough>();
+            rainPassThrough = slabBlock.GetComponent<VioletRainPassThrough>();
+            if (!rainPassThrough) rainPassThrough = slabBlock.AddComponent<VioletRainPassThrough>();
             chain = chainLinks;
             anchorGlow = glow;
         }

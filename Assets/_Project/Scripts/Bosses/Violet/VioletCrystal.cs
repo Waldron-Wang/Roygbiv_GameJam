@@ -12,6 +12,9 @@ namespace Roygbiv
     [RequireComponent(typeof(Collider2D))]
     public class VioletCrystal : MonoBehaviour, IDamageable
     {
+        [Tooltip("The crystal's color (its facets are drawn at runtime from the collider's size).")]
+        [SerializeField] Color crystalColor = new(0.8f, 0.5f, 1f, 0.92f);
+
         SpriteRenderer[] facets;
         Color[] baseColors;
         float flash, shake;
@@ -24,11 +27,27 @@ namespace Roygbiv
 
         void Awake()
         {
+            if (!transform.Find("Facets") && TryGetComponent<BoxCollider2D>(out var box)) BuildFacets(box.size.y);
             facets = GetComponentsInChildren<SpriteRenderer>();
             baseColors = new Color[facets.Length];
             for (int i = 0; i < facets.Length; i++) baseColors[i] = facets[i].color;
             look = transform.Find("Facets");
             if (look) lookPos = look.localPosition;
+        }
+
+        /// <summary>Placed in the scene: the facets are runtime sprites, so they're made here, to the collider's height.</summary>
+        void BuildFacets(float height)
+        {
+            var root = new GameObject("Facets").transform;
+            root.SetParent(transform, false);
+            float[] heights = { 1f, 0.82f, 0.95f, 0.7f };
+            float[] offsets = { 0f, -0.35f, 0.3f, 0.05f };
+            float[] widths = { 1.3f, 1f, 0.9f, 0.7f };
+            for (int i = 0; i < heights.Length; i++)
+            {
+                var f = VioletShapes.Create("Facet", VioletShapes.Crystal, root, new Vector2(offsets[i], 0f), Color.Lerp(crystalColor, Color.white, i * 0.12f), 6 + i);
+                f.transform.localScale = new Vector3(widths[i], height * heights[i], 1f);
+            }
         }
 
         public bool TakeDamage(in DamageInfo info)

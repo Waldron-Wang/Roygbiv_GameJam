@@ -477,7 +477,7 @@ Interactions to know about:
 | `GreenBoss` | Rooted bramble, **armored** (`Health.DamageFilter`) except while **wilted**. Steals the ability the player used **most recently** (`AbilityBase.LastUsedAt`; `stealOrder` only if nothing's been used): by **Covet** (telegraphed thread in that ability's color, unavoidable, whenever no pod is growing) or when a **Lash** (floor vine, jump it; phase 2 adds a high one, stay down) connects while there's room (`maxPodsPerPhase` 1/2/3). Each stolen ability grows into a `GreenPod` somewhere in the arena: break it up close (`podHitsPerPhase`; shots bounce off unless `podsTakeShots`; each hit sets off thorns under the player, `guardWarnTime` / `guardCooldown`) and the ability returns and the boss **wilts** (`wiltTime` or `maxHitsPerWilt`); let it ripen and it bursts in spores and reseeds. While holding an ability it uses its own copy: Light Shot volleys, Dash (uproots, dashes at the player, `DashHitbox`), Blaze Strike when the player is close. Phase 1+ adds thorns (`FirePatch`, green). Each phase change it burrows to the root spot farthest from the player and covets again. Its body doesn't collide with the player. Procedural animation on a `Pose` child (made at runtime if missing; `CurrentState`). 12 HP, thresholds 0.67 / 0.34 = one phase per wilt. Returns everything on defeat or destroy | AbilityLoadout (own + player's), `AbilityStolen` / `AbilityReturned`, GreenPod, FirePatch, HeatPuff, FlatSprite, Hitbox | Art on `onSteal` / `onWilt`, playtest tuning, reward |
 | `BlueBoss` | A weeping figure the player climbs after. **Climb** (invulnerable): it floats `hoverAbove` over the player, a little behind, and drops **tears** (`BlueTear`: the landing spot glows, then it falls; ledges shelter you; knockback only, never damage; any hit pops it) in volleys that grow with height, and every `sighEvery`-th volley **sighs** instead (it breathes in while faint streaks drift, then a gust pushes the player sideways through `PlayerMotor.Wind`). **Summit:** it builds a one-way floor across the shaft at `summit` (catches every fall, so the summit can't be lost) and one-way perches above it, turns away and hops between perches while tears fall around the player. **Catch** it (touch it or melee it; `Health.DamageFilter` rejects shots) `catchesToWin` (3) times: each catch is a phase (thresholds set in code), it flees to the far perch, the perches shrink and it cries harder. Then it settles beside the player and the level completes through `Defeated`. Its body doesn't collide with the player. Procedural eyes, sobbing, tear trickle (`CurrentState`). Cleans up wind, tears and the summit on destroy | PlayerController, PlayerMotor (`Wind`), BlueTear, FlatSprite, IndigoShapes, HeatPuff | Art, playtest tuning |
 | `IndigoBoss` | A floating seer. Each of its 4 phases opens with a **curse** (Inspector data: which controls to scramble + a `WarpLook`): MIRROR (left/right; mirrored ghost, split colors, rocking camera), SWAP (jump/attack + shoot/dash; hues inverted, glitch slices), ECHO (0.2 s input delay; heavy trails), INVERSION (world upside down + mirror + swap; hue cycling). **Between phases it casts:** the old curse lifts at once (clean screen, normal controls, invulnerable, orbs dispelled), it rises over the player and draws a sigil naming the next curse and what it does (`IndigoSigil`), then the curse lands with a flash and shockwave. Attacks: **Gaze** (eye tracks with a line, locks, beam), **Mandala** (orb rings / spirals, reflectable), **Blink** (vanish, a mark hunts the player, drop + floor ripples, then meditates on the floor: the melee opening), **Illusions** (copies shuffle with eyes shut; only the real one casts light below it and watches you; hitting a copy bursts it into orbs, `IndigoDecoy`), **Starfall** (`FirePatch` pillars around the player). Procedural diamond / halo / eye (`IndigoShapes`). 12 HP, thresholds 0.75 / 0.5 / 0.25. Cleans up on defeat or destroy | `Game.Input`, InputModifiers, ScreenWarp, Projectile (`Projectile_EnemyOrb`), FirePatch, HeatPuff, FlatSprite | Art on `onCast` / `onCurse`, playtest tuning, reward |
-| `VioletBoss` | The final exam: a KING (crown, segmented cape, broad armor, one-handed greatsword, glowing left hand), all procedural (`VioletFigure` on a Pose child, pivot at the feet; `VioletShapes` rasterizes polygons into sprites; `CurrentState`). **Phase 1, the Run** (not a BossBase phase): a big distant figure in the background (`SetDistant` / `PlaceDistant`: behind the level, no collision, hazy, pinned near the right of the view on a far hill, growing toward the end), untouchable; `VioletApproach` spawns his long-range attacks per segment, each starting with his `FarGesture` (with a burst of light as it leaves his blade / hand) and telegraphed at the right screen edge (`VioletTelegraph`). **Arrival**: `PlaceInArena`, `PlantSword`, `ArrivalBeat` (draw, overhead swing, point, name card). Always on the floor except Earthsplitter's leap. **Duel** (BossBase phase 0): Crescent Slash (low wave: jump / high wave: Down Dash under or dash), Earthsplitter (leap + slam, eruptions both ways: double jump; sword stuck 1.2 s = the opening), Royal Lance (tracking beam), Arcane Rings (orb rings with gaps, gold orbs reflectable), Blade Rain, Lunge (low thrust: jump / dash). Casting = untouchable (aura; hits clang). **Twin Blades** (phase 1 at 50%): untouchable transition (dispel, roar, cape torn off, second sword forms), then Twin Crescent, Whirlwind, Double Earthsplitter (+ shockwave rings: dash through), Laser Grid (fan / sliding bars / pinwheel), and below 25% **Royal Decree**: a short dense storm of piercing needles + orb rings, announced, never again before Serenity could have recharged (real time). Defeat: kneels, swords shatter, crown falls. 24 HP, threshold 0.5 | VioletApproach / VioletCourse / VioletCheckpoint, VioletWave, VioletBeam, VioletRing, VioletNeedle, VioletShots (runtime Projectiles), FirePatch, ScreenWarp | Art (replace `VioletFigure`), playtest tuning |
+| `VioletBoss` | The final exam: a KING (crown, segmented cape, broad armor, one-handed greatsword, glowing left hand), all procedural (`VioletFigure` on a Pose child, pivot at the feet; `VioletShapes` rasterizes polygons into sprites; `CurrentState`). **Phase 1, the Run** (not a BossBase phase): a big distant figure in the background (`SetDistant` / `PlaceDistant`: behind the level, no collision, hazy, pinned near the right of the view on a far hill, growing toward the end), untouchable; `VioletApproach` spawns his long-range attacks per segment, each starting with his `FarGesture` (with a burst of light as it leaves his blade / hand) and telegraphed at the right screen edge (`VioletTelegraph`). **Arrival**: `PlaceInArena`, `PlantSword`, `ArrivalBeat` (draw, overhead swing, point, name card). Always on the floor except Earthsplitter's leap. **Duel** (BossBase phase 0): Crescent Slash (low wave: jump / high wave: Down Dash under or dash), Earthsplitter (leap + slam, eruptions both ways: double jump; sword stuck 1.2 s = the opening), Royal Lance (tracking beam), Arcane Rings (orb rings with gaps, gold orbs reflectable), Blade Rain, Lunge (low thrust: jump / dash). Casting = untouchable (aura; hits clang). **Twin Blades** (phase 1 at 50%): untouchable transition (dispel, roar, cape torn off, second sword forms), then Twin Crescent, Whirlwind, Double Earthsplitter (+ shockwave rings: dash through), Laser Grid (fan / sliding bars / pinwheel), and below 25% **Royal Decree**: a short dense storm of piercing needles + orb rings, announced, never again before Serenity could have recharged (real time). Defeat: kneels, swords shatter, crown falls. 24 HP, threshold 0.5 | VioletApproach / VioletZone / VioletCheckpoint, VioletWave, VioletBeam, VioletRing, VioletNeedle, VioletShots (runtime Projectiles), FirePatch, ScreenWarp | Art (replace `VioletFigure`), playtest tuning |
 
 ### 3.7 Level flow (`Scripts/Levels`)
 
@@ -585,9 +585,20 @@ Then remove the matching `AddComponent` lines in `Bootstrapper`.
 #### `AbilitySetup.cs` — menu **ROYGBIV > Add New Abilities To Player**
 Adds `DownDashAbility` and `SerenityAbility` under Player.prefab › Abilities if they're missing. Safe to re-run.
 
-#### `VioletBuilder.cs` — menu **ROYGBIV > Build Violet Level**
-Boss_Violet: 24 HP, thresholds {0.5}, a 1.6 × 3.2 body. Level_Violet: removes the skeleton's flat arena, adds the `Violet` object
-(course, director, block template with the violet tile), turns off `startBossImmediately`, stretches the KillZone. Safe to re-run.
+#### `VioletTileBuilder.cs` — menu **ROYGBIV > Make Violet Tiles**
+Slices `Art/tiles/violetTile.png` (3×3) and `violetInnerTile.png` (2×2) the way Yellow's are sliced, and makes the Tile assets in
+`Art/tiles/VioletTiles/` (`violetTile_0–8`, `violetInnerTile_0–3`: white, Lock Color, Sprite collider). It also makes the palette
+`Art/tiles/Palettes/Violet.prefab`. Safe to re-run: what exists is kept.
+
+#### `VioletBaker.cs` — menu **ROYGBIV > Bake Violet Level Into Scene**
+A one-time migration of the old code-built course into Level_Violet. It does the following:
+- Paints the terrain into `Grid > Tilemap`, choosing each cell's 9-slice tile from its neighbours, with inner corners.
+- Places every gameplay piece as a scene object, using the prefabs in `Prefabs/Violet/` (it makes them if they're missing).
+- Removes the skeleton's Ground / Wall / Platform, stretches the KillZone and turns off `startBossImmediately`.
+- Saves the scene and logs the snapped clearances, checked against Player.prefab.
+
+After the first bake, edit the scene by hand. Running it again asks first, because it DELETES the current `Grid` and `Violet`
+objects (hand edits included) and bakes the original layout again.
 
 #### `SkeletonBuilder.cs` — menu **ROYGBIV > Build Skeleton**
 - **Purpose:** Generates placeholder sprites, a physics material, ColorData and dialogue assets, `GameConfig`, prefabs, all scenes and Build Settings.
@@ -750,12 +761,22 @@ Player             prefab instance
 Boss_<Color>       prefab instance
 ```
 Variants: **Orange** has no fixed ground: a `Chase` object (ChaseDirector + ChaseCourse + an inactive `BlockTemplate`) builds the endless track and drives the speed.
-**Blue** is a vertical ledge climb. The boss builds the summit (floor + perches) at runtime around its `summit` point; the old `Goal (CompleteLevel)` trigger is kept but inactive.
-**Violet** has no hand-placed geometry: a `Violet` object (VioletCourse + VioletApproach + an inactive `BlockTemplate` with Recolorable(Violet),
-drawn with `Art/tiles/violetTile`) builds the course, the foot of the king's hill and a separate arena (60 units further, out of sight) at
-runtime; `LevelController.startBossImmediately` is off (the arrival cinematic starts the fight). Set up by **ROYGBIV > Build Violet Level** (safe to re-run). If the menu was never run,
-`VioletSetup` (called from `VioletBoss.Awake`) builds the same thing at runtime (flat blocks instead of the tile art) and warns once.
-`VioletBoss` applies its own HP (24), threshold (0.5) and body size in Awake, and snaps to the real ground if nothing placed it.
+**Blue** is a vertical ledge climb with a Goal `LevelTrigger(CompleteLevel)` at the top.
+**Violet** is a hand-edited level (see [Edit Violet's level](#edit-violets-level)):
+```
+Grid > Tilemap     all terrain, painted with the Violet palette (TilemapCollider2D merged into a CompositeCollider2D,
+                   static Rigidbody2D, Recolorable(Violet, Desaturate)), like Level_Yellow
+Violet             VioletApproach: the director (intro, run, arrival cinematic, duel hand-off)
+├── Checkpoints    Violet Checkpoint prefabs (VioletCheckpointMarker): respawn feet + a banner that lights up
+├── Zones          Violet Zone prefabs (VioletZone): one per long-range attack, a disabled BoxCollider2D as the box
+├── Hazards        Royal Rain halls (VioletRainHall + 2 Violet Seal + Violet Shelter), Violet Crystal Gate, Violet Curtain
+├── Arrival        VioletArrival at the foot of the hill (+ "Stop", the solid wall behind it)
+├── Far King       VioletFarKing: the distant king's tuning + where the intro camera starts
+└── Arena          VioletArena: bounds, camera rect, PlayerSpawn / BossSpawn, Door (a closed VioletGate)
+```
+The arena is 60 units past the hill, out of sight. `LevelController.startBossImmediately` is off, because the arrival cinematic
+starts the fight. If the scene was never baked, `VioletBoss` logs one error and nothing is built. `VioletBoss` applies its own HP
+(24), threshold (0.5) and body size in Awake, and snaps to the real ground if nothing placed it.
 
 ### Other scenes
 `MainMenu`, `Hub` and `Ending` each contain a camera plus their IMGUI screen. `Sandbox` has a player, platforms and a 999-HP training dummy,
@@ -825,6 +846,68 @@ Build the new HUD to listen to the same events (see the [§4](#4-event-reference
 Remove `DebugHud`, `DialogueView` and `PauseMenu` from `Bootstrapper`, or keep `DebugHud` behind `#if UNITY_EDITOR`.
 For a scene-based UI, put it in a prefab and add it to `[Systems]` in `Bootstrapper` with
 `Object.Instantiate(Resources.Load<GameObject>("UI"), systems.transform)`.
+
+### Edit Violet's level
+Open `Level_Violet`. Everything is in the scene; no menu needs to be run again. One tile = 1 unit, and the floor top is y = 0.
+Gizmos draw each zone's box and attack, the banners, the arrival, the intro frame and the arena's bounds and camera.
+
+**Paint terrain.**
+1. Open **Window > 2D > Tile Palette**, pick **Violet**, and set Active Tilemap to `Grid/Tilemap`.
+2. Paint with B, erase with D, box-fill with U. The collider follows the tiles on its own.
+3. Pick tiles by the open side. The 3×3 set is the outer edges and corners, with the plain middle at its center. The 4 inner
+   corners go where two surfaces meet in a concave corner, for example the bottom of a step: notch bottom-right, notch
+   bottom-left, notch top-right, notch top-left.
+
+Gaps and heights are designed around the player:
+- standing 0.8 × 1.2; a Down Dash surf ~0.54 tall
+- single jump ~2.87; double jump ~5.32; dash ~3.24
+
+The current numbers, which you can reuse:
+- 4 high = double jump only (steps, walls)
+- a 1-tile gap = surf only (the tunnel)
+- a 3-high ceiling over a wave corridor (too low to jump the waves)
+- a 2-high, 4-wide shelter under the slab
+
+**Move or add a checkpoint.** Duplicate a `Violet Checkpoint` under `Violet/Checkpoints` (or drag in the prefab from
+`Prefabs/Violet/`) and put its pivot on the floor: that's where the player's feet respawn. Checkpoints are ordered by x, and the
+leftmost is the start of the level. The arena's checkpoint is automatic. **PageDown / PageUp** jump between them.
+
+**Move or add a zone.** Duplicate a `Violet Zone` under `Violet/Zones` and set its **Kind**. Edit the box with the
+BoxCollider2D's **Edit Collider** button; the collider stays disabled, because it's only a handle. While the player is inside the
+box, that attack runs. Where boxes overlap, the box that starts further left wins. Every position below is **local** to the
+zone object, so moving the object moves its whole attack.
+
+| Kind | Parameters | What they do |
+|---|---|---|
+| (all) | `label`, `first`, `interval` | Name for logs; seconds after entering before the first attack; seconds between attacks (LowBeam: after a beam ends) |
+| Waves | `waveBand` (bottom, top), `waveFromX`, `waveToX` | Crescent waves fill the band and run from `waveFromX` (or the right screen edge, if that's nearer) to `waveToX`. Fill the band floor to ceiling so the waves must be dashed through. |
+| Slams | `landings` (x = from, y = to, z = floor height), `rippleHeight` | Each slam sends a ripple along every landing, from its right end to its left. Keep `rippleHeight` under a single jump. |
+| LowBeam | `beamArea`, `telegraph`, `fire` | A band beam fills `beamArea` after `telegraph` seconds of warning and burns for `fire`. Its bottom must sit between ~0.6 (over a surf) and ~1.1 (under a standing player) above the floor. A glowing safe line marks it. |
+| Rain | `rainHall` | Runs that Royal Rain hall once per life (see below). |
+| GatePressure | `crystal` | Swords fall at the player, and every 3rd attack is a lobbed gold orb, until that crystal is broken. |
+| Curtain | `curtain` | That needle curtain runs while the player is inside. Cover the safe spot left of it and the curtain itself. |
+
+**Royal Rain hall** (`VioletRainHall`): when the player enters its Rain zone, the hall runs in this order:
+1. Its `seals` rise.
+2. The swords gather for `telegraph` seconds. This is the time to shoot the shelter's anchor.
+3. Swords fall over `rainRange` (local x) for `duration` seconds.
+4. The seals sink.
+
+Each seal is a `VioletGate`. Its position in the scene is its closed position; it sinks `sinkDepth`, unless `startClosed` is on.
+
+The `Violet Shelter` prefab is the slab, the anchor and the chain. The slab drops `dropDistance` onto pillars painted in the
+tilemap, and its `maxHealth` (on VioletDestructibleSlab) is how many hits break it open.
+
+**Move or add a curtain.** Drag in the `Violet Curtain` prefab. Its position is the curtain's left end at floor level, and
+`width` / `ceilingHeight` set its size. Paint ceiling tiles over [x, x + width] at that height, then add a Curtain zone that
+points to it. `settings` is the tuning: gap width, speed and burst/stop timing. On Play, the editor checks that a player who
+follows the gap gets through, and it logs an error if not.
+
+**The rest:**
+- `Arrival`: its x triggers the arrival cinematic; keep its `Stop` child just past it.
+- `Far King`: its position is where the intro camera starts. `scale`, `haze`, `inset` and `hillLine` place the distant king
+  during the run.
+- `Arena`: `inner` (between the walls), `cameraView` and the spawns are local to it. The walls and platforms are tiles.
 
 ### Make recoloring look good (once the art style is chosen)
 - **Per object:** change `Recolorable.Apply(amount)`. For example, set a `_Saturation` property on a desaturation material through a `MaterialPropertyBlock`.
