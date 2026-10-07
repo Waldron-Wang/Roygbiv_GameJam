@@ -438,7 +438,7 @@ namespace Roygbiv
         {
             float half = shelterWidth * 0.5f;
             Block("ShelterPillar", Rect.MinMaxRect(cx - half - 0.6f, 0f, cx - half, shelterHeight));
-            Block("ShelterPillar", Rect.MinMaxRect(cx + half, 0f, cx + half + 0.6f, shelterHeight));
+            var exitSupport = Block("ShelterPillar (breaks on impact)", Rect.MinMaxRect(cx + half, 0f, cx + half + 0.6f, shelterHeight));
 
             float slabW = shelterWidth + 1.6f, slabH = 0.7f, hang = slabHangAndAnchor.x, anchorY = slabHangAndAnchor.y;
             var slab = Block("Slab", Rect.MinMaxRect(cx - slabW * 0.5f, hang, cx + slabW * 0.5f, hang + slabH), slabColor, true);
@@ -449,13 +449,13 @@ namespace Roygbiv
             Block("AnchorBeam", Rect.MinMaxRect(cx - 1.6f, anchorY + 0.35f, cx + 1.6f, anchorY + 0.85f));
 
             var anchor = Block("ChainAnchor (shoot it)", Rect.MinMaxRect(cx - 0.45f, anchorY - 0.3f, cx + 0.45f, anchorY + 0.35f), new Color(1f, 0.88f, 0.55f), true);
-            var shootable = anchor.AddComponent<ShootableSwitch>();
             var glow = IndigoShapes.Create("AnchorGlow", IndigoShapes.Ring, null, new Vector2(cx, anchorY), 1.4f, new Color(1f, 0.9f, 0.6f, 0.8f), 8);
             glow.transform.SetParent(root, true);
             glow.gameObject.AddComponent<VioletPulse>();
 
             var s = slab.AddComponent<VioletSlab>();
-            s.Setup(slab, shelterHeight + slabH * 0.5f, links.ToArray(), shootable, glow);
+            s.Setup(slab, shelterHeight + slabH * 0.5f, links.ToArray(), glow, exitSupport);
+            anchor.AddComponent<VioletShelterWeakPoint>().Setup(s);
             return s;
         }
 

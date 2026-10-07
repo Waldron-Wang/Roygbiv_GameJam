@@ -17,7 +17,9 @@ namespace Roygbiv
             if (projectilePrefab == null) { Debug.LogWarning("LightShot has no projectile prefab."); return; }
             var dir = Owner.AimDirection;
             var pos = (Vector2)Owner.Root.position + dir * spawnOffset;
-            Instantiate(projectilePrefab, pos, Quaternion.identity).Launch(dir, Owner.Team);
+            var shot = Instantiate(projectilePrefab, pos, Quaternion.identity);
+            shot.gameObject.AddComponent<LightShotProjectileSource>();
+            shot.Launch(dir, Owner.Team);
         }
     }
 }

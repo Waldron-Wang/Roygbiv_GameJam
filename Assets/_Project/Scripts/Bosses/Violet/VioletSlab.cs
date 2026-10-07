@@ -5,10 +5,10 @@ namespace Roygbiv
 {
     /// <summary>
     /// ROYAL RAIN's shelter: a heavy stone slab hanging on a chain from an anchor high above, out of reach of any
-    /// jump or swing. Hit the anchor with a Light Shot (it's a ShootableSwitch) and the chain snaps: the slab drops
-    /// onto two short pillars and makes a roof to hide under while the spectral swords rain down (they shatter on it).
+    /// jump or swing. Break the destructible anchor with a player Light Shot and the chain snaps: the slab drops
+    /// onto the supports and makes a roof to hide under while the spectral swords rain down (they shatter on it).
     /// It isn't solid while it hangs (the spectral swords pass through it), so standing under it does nothing until
-    /// it has been dropped; it turns solid when it lands on the pillars.
+    /// it has landed; the right support breaks on impact to open an exit, while the left support stays solid.
     /// </summary>
     public class VioletSlab : MonoBehaviour
     {
@@ -17,22 +17,31 @@ namespace Roygbiv
         Transform[] chain;
         SpriteRenderer anchorGlow;
         float landY;
+        GameObject exitSupport;
+
+        /// <summary>Rain starts below the hanging structure, so its solid anchor beam cannot act as a roof.
+        /// Keep the spawn plane fixed even after the slab drops.</summary>
+        public float RainSpawnY { get; private set; }
 
         public bool Dropped { get; private set; }
 
         /// <param name="slabBlock">The slab: a solid block. It gets a kinematic body here.</param>
         /// <param name="landCenterY">The slab's center height once it rests on the pillars.</param>
-        public void Setup(GameObject slabBlock, float landCenterY, Transform[] chainLinks, ShootableSwitch anchor, SpriteRenderer glow)
+        public void Setup(GameObject slabBlock, float landCenterY, Transform[] chainLinks, SpriteRenderer glow, GameObject supportToBreak)
         {
             slab = slabBlock.AddComponent<Rigidbody2D>();
             slab.bodyType = RigidbodyType2D.Kinematic;
             slab.interpolation = RigidbodyInterpolation2D.Interpolate;
             landY = landCenterY;
             slabColliders = slabBlock.GetComponents<Collider2D>();
+            float bottom = slabBlock.transform.position.y;
+            foreach (var c in slabColliders) bottom = Mathf.Min(bottom, c.bounds.min.y);
+            // A default spectral sword extends 0.6 units above its origin (including its visual).
+            RainSpawnY = bottom - 0.9f;
             foreach (var c in slabColliders) c.enabled = false;
             chain = chainLinks;
             anchorGlow = glow;
-            anchor.OnActivated.AddListener(Drop);
+            exitSupport = supportToBreak;
         }
 
         public void Drop()
@@ -65,6 +74,13 @@ namespace Roygbiv
                 slab.MovePosition(new Vector2(slab.position.x, Mathf.Max(landY, slab.position.y + vy * Time.fixedDeltaTime)));
             }
             foreach (var c in slabColliders) if (c) c.enabled = true;
+            // Open the right-hand exit before the next physics step; retain the left structural support.
+            if (exitSupport)
+            {
+                foreach (var c in exitSupport.GetComponentsInChildren<Collider2D>()) c.enabled = false;
+                VioletHits.Burst(exitSupport.transform.position, new Color(0.55f, 0.45f, 0.6f), 12, 5f);
+                Destroy(exitSupport);
+            }
             VioletHits.ShakeCamera(0.4f, 0.35f);
             var bottom = new Vector2(slab.position.x, landY);
             for (int i = 0; i < 14; i++)

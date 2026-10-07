@@ -455,7 +455,10 @@ namespace Roygbiv
             Live(VioletTelegraph.Top(z.fromX, z.toX, z.telegraph, attackColor));
             yield return new WaitForSeconds(z.telegraph);
 
-            float fall = (rainHeight - 1f) / rainSpeed;
+            // Spawn below this hall's hanging slab/anchor, but above the eventual landed roof.
+            // Other Violet attacks continue using rainHeight.
+            float spawnY = z.slab ? Mathf.Min(rainHeight, z.slab.RainSpawnY) : rainHeight;
+            float fall = (spawnY - 1f) / rainSpeed;
             float next = 0f;
             for (float t = 0f; t < z.duration; t += Time.deltaTime)
             {
@@ -464,7 +467,7 @@ namespace Roygbiv
                     next += 1f / Mathf.Max(1f, rainRate);
                     float x = Random.Range(z.fromX, z.toX);
                     VioletTelegraph.Spot(new Vector2(x, 0.06f), new Vector2(0.45f, 0.1f), fall, attackColor);
-                    VioletShots.Sword(new Vector2(x, rainHeight), rainSpeed, new Color(0.85f, 0.75f, 1f, 0.85f));
+                    VioletShots.Sword(new Vector2(x, spawnY), rainSpeed, new Color(0.85f, 0.75f, 1f, 0.85f));
                 }
                 yield return null;
             }
