@@ -35,6 +35,8 @@ namespace Roygbiv
         public bool IsActive => state == SerenityState.Active;
         /// <summary>Real seconds it lasts.</summary>
         public float Duration => duration;
+        /// <summary>Speed of the whole game while Serenity is active.</summary>
+        public float TimeScale => timeScale;
         /// <summary>Real seconds it recharges after it ends.</summary>
         public float RechargeTime => rechargeTime;
 

@@ -330,7 +330,7 @@ namespace Roygbiv
                     var go = new GameObject("Curtain (Serenity)");
                     go.transform.SetParent(root, false);
                     var c = go.AddComponent<VioletCurtain>();
-                    c.Setup(c0, c1, 0f, curtainCeiling, curtain, VioletNeedle.RimColor);
+                    c.Setup(c0, c1, 0f, curtainCeiling, curtain, VioletNeedle.RimColor, p.label);
                     var z = AddZone(Encounter.Curtain, p, x, c1 + 2f);
                     z.curtain = c;
                     return c1 + exit;
