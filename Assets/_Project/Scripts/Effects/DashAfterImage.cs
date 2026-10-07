@@ -25,6 +25,7 @@ namespace Roygbiv
         bool active;
         float endTime = float.PositiveInfinity;
         float nextSpawn;
+        Color? tintOverride; // set by Play(duration, tint) for the current trail only
 
         void Awake()
         {
@@ -40,14 +41,22 @@ namespace Roygbiv
             active = true;
             endTime = Time.time + duration;
             nextSpawn = 0f; // spawn one immediately
+            tintOverride = null;
         }
 
-        
+        /// <summary>Like Play, with a different ghost tint for this trail only (Down Dash's dive).</summary>
+        public void Play(float duration, Color tint)
+        {
+            Play(duration);
+            tintOverride = tint;
+        }
+
         public void StartTrail()
         {
             active = true;
             endTime = float.PositiveInfinity;
             nextSpawn = 0f;
+            tintOverride = null;
         }
 
         public void StopTrail() => active = false;
@@ -82,7 +91,7 @@ namespace Roygbiv
                 ghost.sharedMaterial = src.sharedMaterial;
                 ghost.sortingLayerID = src.sortingLayerID;
                 ghost.sortingOrder = src.sortingOrder + sortingOrderOffset;
-                ghost.color = src.color * tint;
+                ghost.color = src.color * (tintOverride ?? tint);
 
                 Destroy(go, fadeTime + 0.1f); // safety net if this object is disabled mid-fade
                 StartCoroutine(Fade(ghost));

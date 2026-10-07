@@ -6,30 +6,24 @@ namespace Roygbiv
     /// <summary>
     /// Editor / development builds only (see Bootstrapper). Lets everyone test their level out of order.
     ///   F1..F7  restore the Nth color in play order (+ its ability)
-    ///   F8      toggle god mode
     ///   F9      complete the current level
     ///   F10     wipe save + reset colors
+    /// Level_Violet only (they reload the level at that checkpoint, intro skipped):
+    ///   PageDown / PageUp   next / previous checkpoint
+    ///   Home                skip to the duel (arena entrance)
     /// </summary>
     public class DebugCheats : MonoBehaviour
     {
-        bool godMode;
-
         void Update()
         {
             var kb = Keyboard.current;
             if (kb == null) return;
+            if (!Game.Config || !Game.Manager || !Game.Scenes) return;
 
             var fKeys = new[] { kb.f1Key, kb.f2Key, kb.f3Key, kb.f4Key, kb.f5Key, kb.f6Key, kb.f7Key };
             var order = Game.Config.colorOrder;
             for (int i = 0; i < fKeys.Length && i < order.Count; i++)
                 if (fKeys[i].wasPressedThisFrame) Game.Manager.RestoreColor(order[i].id);
-
-            if (kb.f8Key.wasPressedThisFrame)
-            {
-                godMode = !godMode;
-                if (!godMode && PlayerController.Instance) PlayerController.Instance.Health.Invulnerable = false;
-            }
-            if (godMode && PlayerController.Instance) PlayerController.Instance.Health.Invulnerable = true;
 
             if (kb.f9Key.wasPressedThisFrame) LevelController.Current?.Complete();
 
@@ -38,11 +32,24 @@ namespace Roygbiv
                 GameProgress.DeleteSave();
                 Game.Manager.NewGame();
             }
+
+            VioletKeys(kb);
         }
 
-        void OnGUI()
+        static void VioletKeys(Keyboard kb)
         {
-            if (godMode) GUI.Label(new Rect(Screen.width - 110, 10, 100, 25), "GOD MODE");
+            var level = LevelController.Current;
+            if (!level || level.Color != ColorId.Violet || Game.Scenes.IsLoading) return;
+
+            int target = int.MinValue;
+            if (kb.pageDownKey.wasPressedThisFrame) target = VioletCheckpoint.Index + 1;
+            else if (kb.pageUpKey.wasPressedThisFrame) target = VioletCheckpoint.Index - 1;
+            else if (kb.homeKey.wasPressedThisFrame) target = VioletCheckpoint.ArenaIndex;
+            if (target == int.MinValue) return;
+
+            VioletCheckpoint.JumpTo(Mathf.Max(0, target));
+            Debug.Log($"[DebugCheats] Violet: checkpoint {VioletCheckpoint.Index} (arena entrance = {VioletCheckpoint.ArenaIndex}).");
+            Game.Scenes.Reload();
         }
     }
 }

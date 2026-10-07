@@ -15,6 +15,8 @@ namespace Roygbiv
         public bool attackPressed, attackHeld, attackReleased;
         public bool shootPressed;
         public bool dashPressed;
+        /// <summary>Indigo's Serenity (slow down everything around you).</summary>
+        public bool serenityPressed;
 
         /// <summary>World-space point under the mouse. Only valid when hasAimPoint (keyboard + mouse);
         /// on gamepad the player aims with move + facing instead.</summary>
@@ -31,6 +33,7 @@ namespace Roygbiv
             jumpPressed = jumpHeld = false;
             attackPressed = attackHeld = attackReleased = false;
             shootPressed = dashPressed = false;
+            serenityPressed = false;
         }
     }
 }

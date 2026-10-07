@@ -9,7 +9,8 @@ namespace Roygbiv
 
         void Update()
         {
-            // Not over the instruction card: it owns timeScale while open, and the Esc that closes it shouldn't also pause.
+            if (!Game.Input || !Game.Scenes || !Game.Instructions) return;
+            // Not over the instruction card: it holds its own pause while open, and the Esc that closes it shouldn't also pause.
             if (Game.Input.Intent.pausePressed && LevelController.Current != null && !Game.Scenes.IsLoading && !Game.Instructions.BlocksPause)
                 SetPaused(!IsPaused);
         }
@@ -18,8 +19,16 @@ namespace Roygbiv
         {
             if (paused == IsPaused) return;
             IsPaused = paused;
-            Time.timeScale = paused ? 0f : 1f;
-            if (paused) Game.Input.BlockGameplay(); else Game.Input.UnblockGameplay();
+            if (paused)
+            {
+                Game.Time.Pause(this); // through Game.Time, so resuming brings back any slow motion (Serenity)
+                Game.Input.BlockGameplay();
+            }
+            else
+            {
+                Game.Time.Resume(this);
+                Game.Input.UnblockGameplay();
+            }
             GameEvents.RaisePauseChanged(paused);
         }
 

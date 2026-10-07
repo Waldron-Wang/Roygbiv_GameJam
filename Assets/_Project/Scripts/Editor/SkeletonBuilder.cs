@@ -42,8 +42,8 @@ namespace Roygbiv.EditorTools
             [ColorId.Orange] = new ColorSpec { name = "Orange", emotion = "Excitement, enthusiasm, youth", boss = "Orange Runner", tint = new Color(1f, .55f, .1f), ability = AbilityId.Dash, bossHp = 3, bossType = typeof(OrangeBoss) },
             [ColorId.Red] = new ColorSpec { name = "Red", emotion = "Hot-blooded, anger", boss = "Red Rager", tint = new Color(.9f, .15f, .15f), ability = AbilityId.BlazeStrike, bossHp = 12, bossType = typeof(RedBoss) },
             [ColorId.Green] = new ColorSpec { name = "Green", emotion = "Envy, disgust", boss = "Bramble Thief", tint = new Color(.2f, .75f, .3f), ability = AbilityId.None, bossHp = 12, bossType = typeof(GreenBoss) },
-            [ColorId.Blue] = new ColorSpec { name = "Blue", emotion = "Loneliness, sadness, melancholy", boss = "Rising Gloom", tint = new Color(.2f, .4f, .95f), ability = AbilityId.HeavySlam, bossHp = 1, bossType = typeof(BlueBoss) },
-            [ColorId.Indigo] = new ColorSpec { name = "Indigo", emotion = "Calm, perceptiveness, spirituality", boss = "Indigo Seer", tint = new Color(.3f, .2f, .65f), ability = AbilityId.None, bossHp = 12, bossType = typeof(IndigoBoss) },
+            [ColorId.Blue] = new ColorSpec { name = "Blue", emotion = "Loneliness, sadness, melancholy", boss = "Rising Gloom", tint = new Color(.2f, .4f, .95f), ability = AbilityId.DownDash, bossHp = 1, bossType = typeof(BlueBoss) },
+            [ColorId.Indigo] = new ColorSpec { name = "Indigo", emotion = "Calm, perceptiveness, spirituality", boss = "Indigo Seer", tint = new Color(.3f, .2f, .65f), ability = AbilityId.Serenity, bossHp = 12, bossType = typeof(IndigoBoss) },
             [ColorId.Violet] = new ColorSpec { name = "Violet", emotion = "Royalty, wisdom, creativity", boss = "Violet Sovereign", tint = new Color(.6f, .3f, .85f), ability = AbilityId.None, bossHp = 15, bossType = typeof(VioletBoss) },
         };
 
@@ -186,7 +186,7 @@ namespace Roygbiv.EditorTools
 
                 var abilities = new GameObject("Abilities").transform;
                 abilities.SetParent(go.transform, false);
-                AddAbilities(abilities, shot, Team.Player, AbilityId.LightShot, AbilityId.Dash, AbilityId.BlazeStrike, AbilityId.HeavySlam);
+                AddAbilities(abilities, shot, Team.Player, AbilityId.LightShot, AbilityId.Dash, AbilityId.BlazeStrike, AbilityId.HeavySlam, AbilityId.DownDash, AbilityId.Serenity);
                 return go;
             });
         }
@@ -211,6 +211,12 @@ namespace Roygbiv.EditorTools
                     case AbilityId.HeavySlam:
                         var slam = MakeHitbox(parent, "SlamHitbox", new Vector2(0f, -0.6f), new Vector2(2.5f, 0.8f), team, 2, false);
                         Set(go.AddComponent<HeavySlamAbility>(), "landingHitbox", slam);
+                        break;
+                    case AbilityId.DownDash:
+                        Set(go.AddComponent<DownDashAbility>(), "cooldown", 0.6f);
+                        break;
+                    case AbilityId.Serenity:
+                        Set(go.AddComponent<SerenityAbility>(), "cooldown", 0f);
                         break;
                 }
             }

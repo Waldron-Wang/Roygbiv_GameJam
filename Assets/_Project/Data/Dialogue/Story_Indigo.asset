@@ -17,3 +17,5 @@ MonoBehaviour:
     text: "<color=#7B6CFF>Indigo</color> returns."
   - speaker: 
     text: "A deep calm settles over you."
+  - speaker: 
+    text: "<color=#7B6CFF>Serenity</color> unlocked: press Q to slow down everything around you."

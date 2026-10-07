@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -19,10 +20,30 @@ namespace Roygbiv
         readonly Dictionary<AbilityId, AbilityBase> abilities = new();
         readonly HashSet<AbilityId> stolen = new();
 
+        // Abilities designed after Player.prefab was built. If the prefab doesn't have them yet (nobody ran
+        // ROYGBIV > Add New Abilities To Player and committed it), the player's loadout adds them at runtime with
+        // their defaults, so they always exist. They need no prefab references, unlike Light Shot or Blaze Strike.
+        static readonly (AbilityId id, Type type)[] RuntimeInstallable =
+        {
+            (AbilityId.DownDash, typeof(DownDashAbility)),
+            (AbilityId.Serenity, typeof(SerenityAbility)),
+        };
+        static bool warnedInstall;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics()
+        {
+            warnedInstall = false;
+#if UNITY_EDITOR
+            explainedDownDash = null;
+#endif
+        }
+
         public IEnumerable<AbilityBase> All => abilities.Values;
 
         void Awake()
         {
+            if (syncWithProgress) InstallMissing();
             foreach (var a in GetComponentsInChildren<AbilityBase>(true))
             {
                 if (abilities.ContainsKey(a.Id)) { Debug.LogWarning($"Duplicate ability {a.Id} on {name}"); continue; }
@@ -55,6 +76,32 @@ namespace Roygbiv
             GameEvents.AbilityReturned -= OnReturned;
         }
 
+        /// <summary>Adds any RuntimeInstallable ability the prefab doesn't have, under the "Abilities" child.</summary>
+        void InstallMissing()
+        {
+            List<string> added = null;
+            foreach (var (id, type) in RuntimeInstallable)
+            {
+                if (GetComponentInChildren(type, true)) continue;
+                var parent = transform.Find("Abilities");
+                if (!parent)
+                {
+                    parent = new GameObject("Abilities").transform;
+                    parent.SetParent(transform, false);
+                }
+                parent.gameObject.AddComponent(type);
+                (added ??= new List<string>()).Add(type.Name);
+            }
+#if UNITY_EDITOR
+            if (added != null && !warnedInstall)
+            {
+                warnedInstall = true;
+                Debug.LogWarning($"[ROYGBIV] {name} has no {string.Join(" / ", added)}: added at runtime with default settings. " +
+                    "To make it permanent, run ROYGBIV > Add New Abilities To Player, then save and commit Player.prefab.", this);
+            }
+#endif
+        }
+
         public bool Has(AbilityId id) => abilities.TryGetValue(id, out var a) && a.enabled;
         public AbilityBase Get(AbilityId id) => abilities.TryGetValue(id, out var a) ? a : null;
 
@@ -75,11 +122,44 @@ namespace Roygbiv
         /// <summary>Player path. Returns true if any ability consumed the input.</summary>
         public bool HandleInput(in PlayerIntent intent)
         {
+            // Dash and Down Dash share the dash button. Who gets a press is decided here, once, never by
+            // dictionary order: Down Dash unlocked + Down held = Down Dash's press (even while it cools down, so it
+            // never turns into a plain Dash); anything else = Dash's. A Dash fired mid Down Dash ends that first.
+            var downDash = Get(AbilityId.DownDash) as DownDashAbility;
+            bool pressIsDownDash = intent.dashPressed && downDash && downDash.enabled && downDash.IsDownHeld(intent);
+#if UNITY_EDITOR
+            if (syncWithProgress && intent.dashPressed && intent.move.y < -0.5f && !pressIsDownDash) ExplainNoDownDash(downDash);
+#endif
+            if (intent.dashPressed && !pressIsDownDash && downDash && downDash.IsActive && Get(AbilityId.Dash) is { IsReady: true })
+                downDash.Cancel();
+
             bool consumed = false;
             foreach (var a in abilities.Values)
-                if (a.enabled && a.HandleInput(intent)) consumed = true;
+            {
+                if (!a.enabled) continue;
+                var routed = intent;
+                if (a.Id == AbilityId.Dash) routed.dashPressed = intent.dashPressed && !pressIsDownDash;
+                else if (a.Id == AbilityId.DownDash) routed.dashPressed = pressIsDownDash;
+                if (a.HandleInput(routed)) consumed = true;
+            }
             return consumed;
         }
+
+#if UNITY_EDITOR
+        static string explainedDownDash;
+
+        /// <summary>Editor only: Down + Dash was pressed but Down Dash didn't take it. Says why, once per reason.</summary>
+        void ExplainNoDownDash(DownDashAbility downDash)
+        {
+            string why = !downDash ? "the player has no DownDashAbility component"
+                : stolen.Contains(AbilityId.DownDash) ? "it's stolen right now (Green)"
+                : !Game.Progress.HasAbility(AbilityId.DownDash) ? "it isn't unlocked in this save (Blue grants it: F5 restores Blue)"
+                : "it's disabled";
+            if (explainedDownDash == why) return;
+            explainedDownDash = why;
+            Debug.Log($"[ROYGBIV] Down + Dash pressed, but Down Dash didn't fire: {why}. It was a normal Dash instead.", this);
+        }
+#endif
 
         void OnStolen(AbilityId id)
         {

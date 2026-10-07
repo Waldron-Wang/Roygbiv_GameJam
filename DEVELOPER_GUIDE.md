@@ -69,7 +69,8 @@ There are two deliberate exceptions, so treat them with care:
 | `ColorWorld` | Game, GameEvents, shader globals | Recolorable, GameManager.NewGame |
 | `DialogueRunner` | Game.Input, GameEvents, DialogueData | GameManager, LevelController, EndingScreen |
 | `InstructionData` | — | ColorData, InstructionRunner, InstructionView, GameEvents |
-| `InstructionRunner` | Game.Input, Game.Config, Game.Dialogue, Game.Scenes, GameEvents, InstructionData, `SceneManager`, `Time.timeScale` | InstructionView, PauseMenu |
+| `InstructionRunner` | Game.Input, Game.Config, Game.Dialogue, Game.Scenes, Game.Time, GameEvents, InstructionData, `SceneManager` | InstructionView, PauseMenu |
+| `TimeController` | `Time.timeScale`, `Time.fixedDeltaTime` (its only writer) | PauseMenu, InstructionRunner, SceneLoader, SerenityAbility |
 | `AudioManager` | Game.Config, Game.Progress | SceneMusic, any gameplay that plays SFX |
 | `CombatInterfaces` | Ids (Team), Health | Health, Hitbox, Projectile, abilities, PlayerController, BossBase, ShootableSwitch |
 | **`Health`** | IDamageable, Combat, `Rigidbody2D` | PlayerController, BossBase, abilities (i-frames), LevelTrigger, CameraFollow, DebugCheats |
@@ -81,7 +82,7 @@ There are two deliberate exceptions, so treat them with care:
 | **`PlayerController`** | PlayerMotor, Health, PlayerCombat, AbilityLoadout, Game.Input, GameEvents | BossBase (`Player`), CameraFollow, LevelTrigger, OrangeBoss, BlueBoss, DebugHud, DebugCheats |
 | `AbilityBase` | IActor, PlayerIntent | AbilityLoadout, all abilities |
 | `AbilityLoadout` | AbilityBase, Game.Progress, GameEvents | PlayerController, GreenBoss, DebugHud |
-| Abilities (`LightShot`, `Dash`, `BlazeStrike`, `HeavySlam`) | AbilityBase, IActor, Projectile / Hitbox / Health | AbilityLoadout (player & Green boss) |
+| Abilities (`LightShot`, `Dash`, `BlazeStrike`, `DoubleJump`, `DownDash`, `HeavySlam`) | AbilityBase, IActor, Projectile / Hitbox / Health | AbilityLoadout (player & Green boss) |
 | **`BossBase`** | Health, IActor, PlayerController.Instance, Projectile, GameEvents | LevelController, DebugHud, 7 bosses |
 | `YellowBoss` … `VioletBoss` | BossBase (+ see each) | prefab only |
 | **`LevelController`** | BossBase, DialogueData, Game.Dialogue, GameEvents | LevelTrigger, PauseMenu, DebugHud, DebugCheats |
@@ -107,7 +108,7 @@ SubsystemRegistration   GameEvents.ResetAll(), Game.ResetAll()        (wipe stat
 BeforeSceneLoad         Bootstrapper.Init()
                           ├─ Game.Config = Resources/GameConfig
                           └─ new "[Systems]" (DontDestroyOnLoad), AddComponent in this order:
-                             InputReader → SceneLoader → GameManager → ColorWorld → DialogueRunner
+                             InputReader → TimeController → SceneLoader → GameManager → ColorWorld → DialogueRunner
                              → InstructionRunner → AudioManager → PauseMenu → DialogueView
                              → InstructionView → DebugHud → DebugCheats
                              (each Awake runs immediately inside AddComponent)
@@ -137,7 +138,7 @@ Every frame             InputReader.Update   (DefaultExecutionOrder -100: always
 
 `Game.Scenes.Load(name)` does the following:
 1. Fades to black (unscaled time).
-2. Sets `Time.timeScale = 1`.
+2. Calls `Game.Time.ResetAll()`: normal speed, no pause, no slow motion.
 3. Calls `LoadSceneAsync`, which destroys the old scene's objects. Their `OnDisable` runs and unsubscribes them from events.
 4. Raises `GameEvents.SceneLoaded(name)`.
 5. Fades back in.
@@ -186,7 +187,7 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
 
 #### `PlayerIntent.cs` — struct
 - **Purpose:** One frame of player intention, independent of the input device.
-- **Fields:** `move`, `jumpPressed/Held`, `attackPressed/Held/Released`, `shootPressed`, `aimPoint`/`hasAimPoint` (mouse world position; false on gamepad), `dashPressed`, `confirmPressed`, `pausePressed`.
+- **Fields:** `move`, `jumpPressed/Held`, `attackPressed/Held/Released`, `shootPressed`, `aimPoint`/`hasAimPoint` (mouse world position; false on gamepad), `dashPressed`, `serenityPressed`, `confirmPressed`, `pausePressed`.
 - **API:** `ClearGameplay()` zeroes everything except confirm and pause.
 - **Extend:** To add an action, add a field here, bind it in `InputReader`, clear it in `ClearGameplay()`, and read it in an ability or controller.
 
@@ -194,7 +195,7 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
 
 #### `Game.cs` — static service locator
 - **Purpose:** The single access point for persistent systems.
-- **API:** `Game.Config`, `Game.Manager`, `Game.Progress`, `Game.Scenes`, `Game.Input`, `Game.Colors`, `Game.Dialogue`, `Game.Instructions`, `Game.Audio`.
+- **API:** `Game.Config`, `Game.Manager`, `Game.Progress`, `Game.Scenes`, `Game.Input`, `Game.Time`, `Game.Colors`, `Game.Dialogue`, `Game.Instructions`, `Game.Audio`.
 - **Rule:** Use `Game.*` to **command** a service ("load this scene", "play this dialogue"). Use `GameEvents` to **announce** something.
 - **Gotchas:** Setters are `internal` and only `Bootstrapper` sets them. Never cache these in fields across scenes; just call `Game.X` each time.
 
@@ -222,6 +223,7 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
 - **API (queries):** `Progress`, `IsUnlocked(ColorId)` (linear: all previous colors in play order are restored), `AllColorsRestored`.
 - **Listens:** `LevelCompleted` → `ReclaimSequence`, `LevelFailed` → `RespawnSequence`.
 - **Raises:** `ColorRestored`, `AbilityUnlocked` (inside `RestoreColor`).
+- **Save migration:** on load, every restored color grants its *current* ability (a save that restored Blue before Down Dash existed gets it).
 - **ReclaimSequence:**
   1. Calls `RestoreColor`, which saves and raises the events.
   2. Plays `storyFragment`, the first time only.
@@ -231,11 +233,19 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
   fragment is skipped. The waits use scaled time, so pausing during the reclaim sequence delays it.
 
 #### `SceneLoader.cs`
-- **Purpose:** Fade, then load the scene asynchronously. Always use this rather than calling `SceneManager` directly, so the fades, the `SceneLoaded` event and the time-scale reset all happen.
+- **Purpose:** Fade, then load the scene asynchronously. Always use this rather than calling `SceneManager` directly, so the fades, the `SceneLoaded` event and the time reset (`Game.Time.ResetAll`) all happen.
 - **API:** `Load(string)`, `Reload()`, `IsLoading`, `Current`.
 - **Raises:** `SceneLoaded`.
 - **Gotchas:** `Load` is ignored while another load is running. A scene that isn't in Build Settings logs an error and doesn't load.
   The fade is drawn with IMGUI. Replace it when the real UI exists.
+
+#### `TimeController.cs` (`Game.Time`)
+- **Purpose:** The single owner of `Time.timeScale` and `Time.fixedDeltaTime`, so pause and slow motion can't undo each other.
+- **API:** `Pause(owner)`, `Resume(owner)`, `IsPaused`; `SetScale(owner, scale)`, `ClearScale(owner)`, `Scale`; `ResetAll()`.
+- **Rules:** any held pause = `timeScale` 0. Scales multiply. `fixedDeltaTime` = the project's step (0.02) × scale, restored exactly
+  when nothing is held. `SceneLoader` calls `ResetAll()` on every load. Real-time timers that must not run while paused
+  (Serenity) check `IsPaused`.
+- **Gotchas:** never write `Time.timeScale` yourself. An owner must call `Resume` / `ClearScale` with the same object it paused / scaled with.
 
 #### `InputReader.cs` — `[DefaultExecutionOrder(-100)]`
 - **Purpose:** Reads the devices once per frame and publishes `Intent`.
@@ -283,8 +293,8 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
   FlipControls, None), an `accent` color and the demo's sprites. `[LMB]` `[RMB]` `[Left]` `[Space]`… in a caption draw as keycaps.
 - **API:** `Game.Instructions.LevelCard`, `CanOpen` (the button shows when true), `IsOpen`, `Open()`, `Close()`, `Toggle()`, `BlocksPause`.
 - **Flow:** `LevelStarted` makes the level's card available; `InstructionView` draws the Tip button while `CanOpen` and calls
-  `Toggle()` on a click. `Open()` blocks gameplay input and sets `Time.timeScale = 0` (so the Orange chase doesn't scroll);
-  `Close()` restores both exactly as they were. Open it as often as you like.
+  `Toggle()` on a click. `Open()` blocks gameplay input and holds a pause on `Game.Time` (so the Orange chase doesn't scroll);
+  `Close()` lifts both, so any slow motion (Serenity) comes back exactly as it was. Open it as often as you like.
 - **Closes on:** the card's X or the Tip button (view → `Close` / `Toggle`), confirm (Z / Enter) or Esc (read in `Update`),
   the level completing / failing (F9 too), or the scene changing.
 - **Button hidden when:** the ColorData has no `instruction` (Violet for now), dialogue is playing, the pause menu is open
@@ -310,7 +320,7 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
 #### `CombatInterfaces.cs`
 | Type | What | Implemented by |
 |---|---|---|
-| `DamageInfo` | `amount`, `sourceTeam`, `knockback`, `source` | — |
+| `DamageInfo` | `amount`, `sourceTeam`, `knockback`, `source`, `pierceInvulnerability` (opt-in: lands through `Health.Invulnerable`, e.g. Dash's i-frames; post-hit i-frames still apply. Only Violet's needles set it) | — |
 | `IDamageable` | `Team`, `bool TakeDamage(in DamageInfo)` | `Health`, `ShootableSwitch` |
 | `IReflectable` | `CanBeReflected`, `Reflect(Team, Vector2)` | `Projectile` |
 | `IActor` | `Team`, `Root`, `Body`, `Health`, `FacingSign`, `AimDirection`, `IsGrounded`, `MovementLocked` | `PlayerController`, `BossBase` |
@@ -321,13 +331,14 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
 #### `Health.cs` — implements `IDamageable`
 - **Purpose:** HP for anything.
 - **API:**
-  - Properties: `Current`, `Max`, `Fraction`, `IsDead`, `Invulnerable` (settable), `DamageFilter` (optional veto; Yellow uses it to take damage only from reflected orbs)
+  - Properties: `Current`, `Max`, `Fraction`, `IsDead`, `Invulnerable` (settable; a `pierceInvulnerability` hit ignores it), `DamageFilter` (optional veto; Yellow uses it to take damage only from reflected orbs)
+  - `SetCurrent(hp)`: set HP without a hit (Violet resumes at its Twin Blades threshold from a checkpoint)
   - Methods: `TakeDamage`, `Heal`, `Kill`
 - **Events (local C#, not global):** `Changed(current, max)`, `Damaged(DamageInfo)`, `Died`.
 - **Inspector:** `team`, `maxHealth`, `hitInvulnerability`.
 - **TakeDamage rejects the hit when:** the target is dead, invulnerable, still in post-hit i-frames, or on a team it can't be hurt by. Otherwise it applies knockback, but only to a **Dynamic** body.
 - **Pattern:** The owning script (`PlayerController`, `BossBase`) subscribes to these local events and re-raises the relevant ones globally.
-- **Gotchas:** `Invulnerable` is a single shared flag used by Dash, Red, Orange, Blue and god mode. Whoever sets it last wins.
+- **Gotchas:** `Invulnerable` is a single shared flag used by Dash, Red, Orange and Blue. Whoever sets it last wins.
 
 #### `Hitbox.cs`
 - **Purpose:** A trigger that damages things while active.
@@ -411,6 +422,9 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
   - Listens for `AbilityStolen` → disable and remember it as stolen.
   - Listens for `AbilityReturned` → un-steal it and re-grant if it's owned.
 - **With `syncWithProgress = false` (bosses):** only code calls `Grant` and `Revoke`.
+- **Runtime install (player only):** in `Awake`, before collecting, it adds `DownDashAbility` / `SerenityAbility` under `Abilities`
+  if Player.prefab lacks them (they need no prefab references), with their default settings, and warns once in the editor.
+  **ROYGBIV > Add New Abilities To Player** makes it permanent.
 - **Gotchas:** Each `AbilityId` may appear only once per loadout; duplicates are ignored with a warning.
 
 #### Concrete abilities
@@ -420,9 +434,15 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
 | `LightShotAbility` | Yellow | `shootPressed` (Left Click / C) | Spawns `projectilePrefab` along `AimDirection` | `projectilePrefab`, `spawnOffset`, `cooldown` |
 | `DashAbility` | Orange | `dashPressed` (Shift) | Locks movement, removes gravity, sets velocity to `facing * speed` for `duration`, gives i-frames | `speed`, `duration`, `invulnerableWhileDashing` |
 | `BlazeStrikeAbility` | Red | Hold attack ≥ `chargeTime`, then release | Opens a big hitbox; sets the hitbox team to the owner's team (so it works when stolen) | `strikeHitbox`, `chargeTime`, `activeTime`. Exposes `ChargeFraction` for UI/VFX |
-| `HeavySlamAbility` | Blue (tentative) | Down + attack while airborne | Locks movement and plunges until grounded, then opens a landing hitbox | `landingHitbox`, `slamSpeed`, `maxFallTime` |
+| `DoubleJumpAbility` | Green | Jump again in mid-air | Sets the upward speed; recharges on touching the ground (own contact check) | `jumpVelocity`, `extraJumps`, `groundNormalY` |
+| `DownDashAbility` | Blue | Hold Down + Dash (Shift) | **Air:** DIVE 55° down-forward at 22 u/s until it lands (wall = clean cancel; landing shockwave, 1 dmg). **Ground / on landing:** SURF, 16 u/s easing to run speed over 0.55 s, body collider at 45% height (feet anchored). Jump = SURF JUMP (keeps momentum + boost). Steer a little, never reverse; walls end it. Afterwards it stays low in a slow slide while there's a ceiling overhead or Down is held, and only stands up where there's room. Not invulnerable. Look: a blue streak trail + blue afterimages along the dive with the body tilted into it, a blue splash + small shake on landing, the body squashed low and tilted forward with a continuous blue spray and wake trail while surfing (lighter in the slow slide); all restored after. Editor: Down + Dash that falls back to a plain Dash logs why once | `diveSpeed`, `diveAngle`, `maxDiveTime`, `surfStartSpeed`, `surfEndSpeed`, `surfTime`, `lowHeight`, `surfJump*`, `lowSlideSpeed`, `holdDownToStayLow`, look fields; cooldown 0.6 |
+| `SerenityAbility` | Indigo | `serenityPressed` (Q / LB) | `Game.Time.SetScale(0.35)`: EVERYTHING slows (the player too) for `duration` real seconds; press again to end early. Then it recharges for `rechargeTime` real seconds and can't be used (a press raises `SerenityDenied`). Both timers use unscaled time and don't run while `Game.Time.IsPaused`. Ends on death, level won/lost, dialogue start, scene unload; can't start during dialogue or pause. Raises `SerenityChanged` | `duration` 4, `rechargeTime` 10, `timeScale` 0.35 (cooldown 0: it runs its own timers) |
+| `HeavySlamAbility` | (none: Blue gives Down Dash now) | Down + attack while airborne | Locks movement and plunges until grounded, then opens a landing hitbox. Kept for old saves and the enum | `landingHitbox`, `slamSpeed`, `maxFallTime` |
 
 Interactions to know about:
+- **Dash and Down Dash share the dash button.** `AbilityLoadout.HandleInput` decides once per press, never by dictionary order:
+  Down Dash unlocked + Down held = Down Dash's press (even while it cools down, so it never becomes a plain Dash); otherwise Dash's.
+  A Dash fired while a Down Dash is running cancels it first (`DownDashAbility.Cancel()`; the body stays low until there's room).
 - **Blaze Strike and the basic attack:** Blaze Strike consumes input only on release, so the press still triggers a basic attack. Pressing gives a quick swing; holding and releasing gives the heavy strike.
 - **Revoking mid-use:** if an ability is revoked partway through (e.g., stolen during a dash), its coroutine still finishes.
 
@@ -439,7 +459,8 @@ Interactions to know about:
 - **Subclass contract:**
   - **Required:** `protected abstract IEnumerator RunPhase(int phase)`. It runs **one attack cycle** and is called again and again.
   - **Optional:** `OnFightStarted`, `OnPhaseChanged(int)`, `OnDefeated`, and override `FacingSign`, `AimDirection` or `IsGrounded`.
-- **Helpers:** `Player` (Transform or null), `Fire(prefab, dir, from?)`, `Wait(seconds)`, `Color`, `DisplayName`, `Phase`, `IsFighting`.
+- **Helpers:** `Player` (Transform or null), `Fire(prefab, dir, from?)`, `Wait(seconds)`, `Color`, `DisplayName`, `Phase`, `IsFighting`, `PhaseThresholds` (read-only).
+- **Careful:** inside a BossBase subclass `Color` is the boss's `ColorId` property. Write `UnityEngine.Color.white` for colors.
 - **Inspector:** `color`, `displayName`, `phaseThresholds` (e.g., `{0.66, 0.33}` gives 3 phases: 0, 1, 2).
 - **Gotchas:**
   - A phase change takes effect at the **end of the current cycle**. Keep cycles short, or react immediately in `OnPhaseChanged`.
@@ -456,7 +477,7 @@ Interactions to know about:
 | `GreenBoss` | Rooted bramble, **armored** (`Health.DamageFilter`) except while **wilted**. Steals the ability the player used **most recently** (`AbilityBase.LastUsedAt`; `stealOrder` only if nothing's been used): by **Covet** (telegraphed thread in that ability's color, unavoidable, whenever no pod is growing) or when a **Lash** (floor vine, jump it; phase 2 adds a high one, stay down) connects while there's room (`maxPodsPerPhase` 1/2/3). Each stolen ability grows into a `GreenPod` somewhere in the arena: break it up close (`podHitsPerPhase`; shots bounce off unless `podsTakeShots`; each hit sets off thorns under the player, `guardWarnTime` / `guardCooldown`) and the ability returns and the boss **wilts** (`wiltTime` or `maxHitsPerWilt`); let it ripen and it bursts in spores and reseeds. While holding an ability it uses its own copy: Light Shot volleys, Dash (uproots, dashes at the player, `DashHitbox`), Blaze Strike when the player is close. Phase 1+ adds thorns (`FirePatch`, green). Each phase change it burrows to the root spot farthest from the player and covets again. Its body doesn't collide with the player. Procedural animation on a `Pose` child (made at runtime if missing; `CurrentState`). 12 HP, thresholds 0.67 / 0.34 = one phase per wilt. Returns everything on defeat or destroy | AbilityLoadout (own + player's), `AbilityStolen` / `AbilityReturned`, GreenPod, FirePatch, HeatPuff, FlatSprite, Hitbox | Art on `onSteal` / `onWilt`, playtest tuning, reward |
 | `BlueBoss` | A rising kill-trigger (invulnerable). The level is won at the top through `LevelTrigger(CompleteLevel)` | PlayerController | The climb itself |
 | `IndigoBoss` | A floating seer. Each of its 4 phases opens with a **curse** (Inspector data: which controls to scramble + a `WarpLook`): MIRROR (left/right; mirrored ghost, split colors, rocking camera), SWAP (jump/attack + shoot/dash; hues inverted, glitch slices), ECHO (0.2 s input delay; heavy trails), INVERSION (world upside down + mirror + swap; hue cycling). **Between phases it casts:** the old curse lifts at once (clean screen, normal controls, invulnerable, orbs dispelled), it rises over the player and draws a sigil naming the next curse and what it does (`IndigoSigil`), then the curse lands with a flash and shockwave. Attacks: **Gaze** (eye tracks with a line, locks, beam), **Mandala** (orb rings / spirals, reflectable), **Blink** (vanish, a mark hunts the player, drop + floor ripples, then meditates on the floor: the melee opening), **Illusions** (copies shuffle with eyes shut; only the real one casts light below it and watches you; hitting a copy bursts it into orbs, `IndigoDecoy`), **Starfall** (`FirePatch` pillars around the player). Procedural diamond / halo / eye (`IndigoShapes`). 12 HP, thresholds 0.75 / 0.5 / 0.25. Cleans up on defeat or destroy | `Game.Input`, InputModifiers, ScreenWarp, Projectile (`Projectile_EnemyOrb`), FirePatch, HeatPuff, FlatSprite | Art on `onCast` / `onCurse`, playtest tuning, reward |
-| `VioletBoss` | Placeholder shooting | Projectile | Everything (final boss) |
+| `VioletBoss` | The final exam: a KING (crown, segmented cape, broad armor, one-handed greatsword, glowing left hand), all procedural (`VioletFigure` on a Pose child, pivot at the feet; `VioletShapes` rasterizes polygons into sprites; `CurrentState`). **Phase 1, the Run** (not a BossBase phase): a big distant figure in the background (`SetDistant` / `PlaceDistant`: behind the level, no collision, hazy, pinned near the right of the view on a far hill, growing toward the end), untouchable; `VioletApproach` spawns his long-range attacks per segment, each starting with his `FarGesture` (with a burst of light as it leaves his blade / hand) and telegraphed at the right screen edge (`VioletTelegraph`). **Arrival**: `PlaceInArena`, `PlantSword`, `ArrivalBeat` (draw, overhead swing, point, name card). Always on the floor except Earthsplitter's leap. **Duel** (BossBase phase 0): Crescent Slash (low wave: jump / high wave: Down Dash under or dash), Earthsplitter (leap + slam, eruptions both ways: double jump; sword stuck 1.2 s = the opening), Royal Lance (tracking beam), Arcane Rings (orb rings with gaps, gold orbs reflectable), Blade Rain, Lunge (low thrust: jump / dash). Casting = untouchable (aura; hits clang). **Twin Blades** (phase 1 at 50%): untouchable transition (dispel, roar, cape torn off, second sword forms), then Twin Crescent, Whirlwind, Double Earthsplitter (+ shockwave rings: dash through), Laser Grid (fan / sliding bars / pinwheel), and below 25% **Royal Decree**: a short dense storm of piercing needles + orb rings, announced, never again before Serenity could have recharged (real time). Defeat: kneels, swords shatter, crown falls. 24 HP, threshold 0.5 | VioletApproach / VioletCourse / VioletCheckpoint, VioletWave, VioletBeam, VioletRing, VioletNeedle, VioletShots (runtime Projectiles), FirePatch, ScreenWarp | Art (replace `VioletFigure`), playtest tuning |
 
 ### 3.7 Level flow (`Scripts/Levels`)
 
@@ -497,6 +518,7 @@ Interactions to know about:
 - **Purpose:** A smooth follow for `PlayerController.Instance`. If `autoScrollSpeed > 0`, the camera scrolls on its own and **kills the player if they fall off the left edge**.
 - **API:** `Shake(amplitude, duration)` jitters the view, fading out over `duration`. A weaker shake never cuts a stronger one short. The jitter is removed before following, so it doesn't disturb the smoothing or the auto-scroll kill check.
 - **Auto-scroll:** On `Start` the camera snaps so the player is `autoScrollLead` units left of center, so they start on screen at any aspect ratio. The player dies `leftBehindGrace` units past the left edge (`KillLineX`). `ScrollX` is the steady (unshaken) camera X.
+- **Hold:** `Hold(position, snap)` frames a point instead of the player until `Release()` (Violet's intro pull, its locked arena); `SnapToPlayer()` after a respawn moves the player; `Offset`.
 - **Gotchas:** It's fine to replace with Cinemachine later; only the Orange chase reads `ScrollX` / `HalfWidth` / `KillLineX`.
 
 #### Orange chase (`Levels/Chase`)
@@ -537,7 +559,10 @@ Calls `Game.Audio.PlayMusic(music)` on `Start`. Put one in each scene.
 | `DebugHud` | `[Systems]` | `PlayerHealthChanged`, `BossFightStarted/HealthChanged/Defeated`, `SceneLoaded`, `Game.Progress`, `PlayerController.Instance.Loadout` | — |
 | `DialogueView` | `[Systems]` | `DialogueLineShown`, `DialogueEnded` | — |
 | `InstructionView` (+ `CardGui`, `InstructionDemos`) | `[Systems]` | `InstructionShown`, `InstructionClosed`, `Game.Instructions.CanOpen / LevelCard`, `Game.Config` | `Game.Instructions.Toggle/Close` on clicks; `Game.Input.AddPointerBlocker`. Tip button top-right; card on a 1920×1080 canvas, unscaled time |
-| `PauseMenu` | `[Systems]` | `Intent.pausePressed` (only inside a level) | `Time.timeScale`, `Game.Input.Block/Unblock`, `Game.Scenes.Reload`, `Game.Manager.ReturnToHub`; raises `PauseChanged` |
+| `SerenityView` (+ `SerenityFilter` on the camera) | `[Systems]` | `SerenityChanged`, `SerenityDenied`, `SceneLoaded`, `PlayerController.Instance` (ripple origin) | Start: three indigo rings (#4B2BFF core, #7B6CFF edge, LineRenderers in the world, on top) race out past the screen edges + indigo flash + ripple. Active: indigo wash + vignette, everything but the player desaturated (`Resources/SerenityFilter.shader` keeps a soft ellipse around them), a pulsing indigo aura/outline on the player. End: the rings contract into the player, the look fades in ~0.3 s. Denied: a gray ring blip. Meter top-left (draining / recharging / READY, red shake when denied). Unscaled time |
+| `TitleCardView` | `[Systems]` | `TitleCardShown`, `SceneLoaded` | Big centered title + subtitle, fades in / out. Unscaled time |
+| `CinematicView` | `[Systems]` | `CinematicChanged`, `ScreenWipe`, `SceneLoaded` | Letterbox bars slide in / out; a slanted wipe covers the screen by its halfway point (with a flash) and uncovers. Over the HUD. Unscaled time |
+| `PauseMenu` | `[Systems]` | `Intent.pausePressed` (only inside a level) | `Game.Time.Pause/Resume`, `Game.Input.Block/Unblock`, `Game.Scenes.Reload`, `Game.Manager.ReturnToHub`; raises `PauseChanged` |
 | `MainMenuScreen` | MainMenu scene | `GameProgress.HasSave` | `Game.Manager.NewGame/ContinueGame` |
 | `HubScreen` | Hub scene | `Game.Config.colorOrder`, `Game.Progress`, `Game.Manager.IsUnlocked` | `Game.Manager.EnterLevel` |
 | `EndingScreen` | Ending scene | `endingDialogue` | `Game.Dialogue.Play`, `Game.Manager.ReturnToMenu` |
@@ -550,11 +575,19 @@ Then remove the matching `AddComponent` lines in `Bootstrapper`.
 | Key | Effect |
 |---|---|
 | F1–F7 | `RestoreColor` for the Nth color in play order (also unlocks its ability) |
-| F8 | Toggle god mode (forces `Health.Invulnerable` every frame) |
 | F9 | `LevelController.Current.Complete()` |
 | F10 | Wipe the save, then `NewGame()` |
+| PageDown / PageUp | Level_Violet only: reload at the next / previous checkpoint (intro skipped) |
+| Home / End | Level_Violet only: reload at the duel (short arrival) / at Twin Blades |
 
 ### 3.9 Editor (`Scripts/Editor`)
+
+#### `AbilitySetup.cs` — menu **ROYGBIV > Add New Abilities To Player**
+Adds `DownDashAbility` and `SerenityAbility` under Player.prefab › Abilities if they're missing. Safe to re-run.
+
+#### `VioletBuilder.cs` — menu **ROYGBIV > Build Violet Level**
+Boss_Violet: 24 HP, thresholds {0.5}, a 1.6 × 3.2 body. Level_Violet: removes the skeleton's flat arena, adds the `Violet` object
+(course, director, block template with the violet tile), turns off `startBossImmediately`, stretches the KillZone. Safe to re-run.
 
 #### `SkeletonBuilder.cs` — menu **ROYGBIV > Build Skeleton**
 - **Purpose:** Generates placeholder sprites, a physics material, ColorData and dialogue assets, `GameConfig`, prefabs, all scenes and Build Settings.
@@ -577,6 +610,8 @@ Then remove the matching `AddComponent` lines in `Bootstrapper`.
 | `AbilityUnlocked` | `AbilityId` | GameManager.RestoreColor | **Player AbilityLoadout** | "New ability" popup |
 | `AbilityStolen` | `AbilityId` | GreenBoss | **Player AbilityLoadout** | HUD icon grayed out |
 | `AbilityReturned` | `AbilityId` | GreenBoss | **Player AbilityLoadout** | HUD icon restored |
+| `SerenityChanged` | `SerenityState, float` | SerenityAbility (every frame while active / recharging) | SerenityView | Music filter, SFX |
+| `SerenityDenied` | — | SerenityAbility (pressed while not ready) | SerenityView | "Not ready" SFX |
 | `PlayerHealthChanged` | `int current, int max` | PlayerController | DebugHud | Real HUD, hurt SFX, screen shake |
 | `PlayerDied` | — | PlayerController | **LevelController** | Death SFX/VFX |
 | `BossFightStarted` | `BossBase` | BossBase.StartFight | DebugHud | Boss bar, boss music |
@@ -588,6 +623,9 @@ Then remove the matching `AddComponent` lines in `Bootstrapper`.
 | `DialogueEnded` | — | DialogueRunner | DialogueView | — |
 | `InstructionShown` | `ColorId, InstructionData` | InstructionRunner.Open (Tip button) | InstructionView | Card SFX, music duck |
 | `InstructionClosed` | — | InstructionRunner | InstructionView | — |
+| `TitleCardShown` | `string title, string subtitle` | VioletBoss (arrival name card, Twin Blades, Royal Decree) | TitleCardView | Stinger SFX |
+| `CinematicChanged` | `bool playing` | VioletApproach (arrival) | CinematicView (letterbox), SerenityAbility (ends) | Music duck |
+| `ScreenWipe` | `Color, float seconds` | VioletApproach (the cut to the arena) | CinematicView | Whoosh SFX |
 | `SceneLoaded` | `string` | SceneLoader | DebugHud | — |
 | `PauseChanged` | `bool` | PauseMenu | — | Music low-pass |
 
@@ -607,7 +645,7 @@ PlayerController.Update
   │     LightShot: shootPressed → TryActivate → Projectile.Launch
   │     Dash:      dashPressed  → TryActivate → coroutine (Locked, i-frames)
   │     Blaze:     accumulate hold; on release & charged → open hitbox
-  │     Slam:      down+attack in air → plunge → landing hitbox
+  │     DownDash:  down+dash → dive (air) → surf (low collider) → slow slide while low → stand when there's room
   └─ if nothing consumed && attackPressed → PlayerCombat.TryAttack → melee Hitbox.Open
 PlayerMotor.FixedUpdate
   ground check → (if !Locked) run accel, jump buffer+coyote, gravity multipliers
@@ -669,8 +707,8 @@ Game.Dialogue.Play(data)
 
 ### 5.8 Pause
 ```
-Esc in a level → PauseMenu.SetPaused(true): timeScale 0, BlockGameplay, PauseChanged(true)
-Resume → reverse. Restart / Back to hub → unpause, then load (SceneLoader also resets timeScale).
+Esc in a level → PauseMenu.SetPaused(true): Game.Time.Pause(this), BlockGameplay, PauseChanged(true)
+Resume → reverse (Serenity's slow motion, if on, comes back). Restart / Back to hub → unpause, then load (SceneLoader also resets Game.Time).
 ```
 
 ---
@@ -685,7 +723,7 @@ Player                      Rigidbody2D (Dynamic, gravity 3, freeze rot, interpo
 │                           PlayerMotor · PlayerCombat · AbilityLoadout(sync ✓) · PlayerController
 ├── Visual                  SpriteRenderer  ← artists replace this
 ├── MeleeHitbox (inactive)  BoxCollider2D trigger · Hitbox(Player, 1 dmg, reflects ✓)
-└── Abilities               LightShot · Dash · BlazeStrike · HeavySlam
+└── Abilities               LightShot · Dash · BlazeStrike · HeavySlam · DownDash   (DoubleJump sits on the root)
     ├── BlazeHitbox (inactive)  Hitbox 3 dmg
     └── SlamHitbox  (inactive)  Hitbox 2 dmg
 ```
@@ -713,6 +751,11 @@ Boss_<Color>       prefab instance
 ```
 Variants: **Orange** has no fixed ground: a `Chase` object (ChaseDirector + ChaseCourse + an inactive `BlockTemplate`) builds the endless track and drives the speed.
 **Blue** is a vertical ledge climb with a Goal `LevelTrigger(CompleteLevel)` at the top.
+**Violet** has no hand-placed geometry: a `Violet` object (VioletCourse + VioletApproach + an inactive `BlockTemplate` with Recolorable(Violet),
+drawn with `Art/tiles/violetTile`) builds the course, the foot of the king's hill and a separate arena (60 units further, out of sight) at
+runtime; `LevelController.startBossImmediately` is off (the arrival cinematic starts the fight). Set up by **ROYGBIV > Build Violet Level** (safe to re-run). If the menu was never run,
+`VioletSetup` (called from `VioletBoss.Awake`) builds the same thing at runtime (flat blocks instead of the tile art) and warns once.
+`VioletBoss` applies its own HP (24), threshold (0.5) and body size in Awake, and snaps to the real ground if nothing placed it.
 
 ### Other scenes
 `MainMenu`, `Hub` and `Ending` each contain a camera plus their IMGUI screen. `Sandbox` has a player, platforms and a 999-HP training dummy,
@@ -749,7 +792,7 @@ Build Settings order: MainMenu, Hub, Level_Yellow…Level_Violet, Ending, Sandbo
 2. Put one attack cycle in `RunPhase(phase)`, branching on `phase`.
 3. Add any serialized prefab references, then assign them on `Prefabs/Bosses/Boss_<Color>.prefab`.
 4. Tune `phaseThresholds` and `Health.maxHealth` on the prefab.
-5. Test: open `Level_<Color>`, press Play, use F1–F7 to grant earlier abilities and F8 for god mode.
+5. Test: open `Level_<Color>`, press Play, use F1–F7 to grant earlier abilities.
 
 ### Add a new ability
 1. Add a value at the **end** of `AbilityId`.
@@ -828,6 +871,6 @@ Useful habits:
   If it matters, lock the motor briefly in `PlayerController` when `Health.Damaged` fires.
 - **`Health.Invulnerable`** is one shared flag. If two systems fight over it, switch it to a counter or a set of sources.
 - **ScreenWarp** is a built-in pipeline post effect (`OnRenderImage`). Moving to URP means porting it to a full-screen pass.
-- **Indigo** and **Violet** abilities, and **Green's** reward, are undecided. Add them to `AbilityId` when they're designed.
+- **Violet** grants no ability (it's the last level).
 - **Single save slot** in PlayerPrefs.
 - The `InputSystem_Actions.inputactions` asset, `SampleScene` and the `Welcome` folder are unused leftovers from the template.

@@ -9,6 +9,9 @@ namespace Roygbiv
         public Team sourceTeam;
         public Vector2 knockback;
         public GameObject source;
+        /// <summary>Opt-in: lands even while the target is Invulnerable (Dash's i-frames, armored phases).
+        /// Post-hit i-frames still apply. Only Violet's needles use it.</summary>
+        public bool pierceInvulnerability;
 
         public DamageInfo(int amount, Team sourceTeam, Vector2 knockback = default, GameObject source = null)
         {
@@ -16,6 +19,7 @@ namespace Roygbiv
             this.sourceTeam = sourceTeam;
             this.knockback = knockback;
             this.source = source;
+            pierceInvulnerability = false;
         }
     }
 

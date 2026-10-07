@@ -12,7 +12,34 @@ namespace Roygbiv
     {
         public GameProgress Progress { get; private set; }
 
-        void Awake() => Progress = GameProgress.Load();
+        void Awake()
+        {
+            EnsureProgress();
+        }
+
+        internal void EnsureProgress()
+        {
+            if (Progress != null) return;
+            Progress = GameProgress.Load();
+            GrantCurrentRewards();
+        }
+
+        /// <summary>
+        /// A restored color always grants its CURRENT ability: a save that restored Blue before Down Dash existed
+        /// (or Indigo before Serenity) gets it now. Rewards only change by design, so this never takes anything away.
+        /// </summary>
+        void GrantCurrentRewards()
+        {
+            if (Game.Config == null) return;
+            bool changed = false;
+            foreach (var data in Game.Config.colorOrder)
+            {
+                if (!data || data.grantedAbility == AbilityId.None || !Progress.IsRestored(data.id) || Progress.HasAbility(data.grantedAbility)) continue;
+                Progress.Unlock(data.grantedAbility);
+                changed = true;
+            }
+            if (changed) Progress.Save();
+        }
 
         void OnEnable()
         {

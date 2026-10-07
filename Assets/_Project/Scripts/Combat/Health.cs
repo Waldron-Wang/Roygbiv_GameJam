@@ -22,7 +22,7 @@ namespace Roygbiv
         public float Fraction => maxHealth > 0 ? (float)Current / maxHealth : 0f;
         public bool IsDead => Current <= 0;
 
-        /// <summary>Set by abilities/bosses for i-frames or armored phases.</summary>
+        /// <summary>Set by abilities/bosses for i-frames or armored phases. A hit with pierceInvulnerability ignores it.</summary>
         public bool Invulnerable { get; set; }
 
         /// <summary>Optional veto checked on every hit: return false to ignore it (Yellow: only reflected orbs hurt).</summary>
@@ -36,7 +36,8 @@ namespace Roygbiv
 
         public bool TakeDamage(in DamageInfo info)
         {
-            if (IsDead || Invulnerable || Time.time < invulnerableUntil) return false;
+            if (IsDead || Time.time < invulnerableUntil) return false;
+            if (Invulnerable && !info.pierceInvulnerability) return false;
             if (!Combat.CanHurt(info.sourceTeam, team)) return false;
             if (DamageFilter != null && !DamageFilter(info)) return false;
 
@@ -56,6 +57,29 @@ namespace Roygbiv
         {
             if (IsDead) return;
             Current = Mathf.Min(maxHealth, Current + amount);
+            Changed?.Invoke(Current, maxHealth);
+        }
+
+        /// <summary>Sets HP directly, no hit (checkpoints: a boss resumed at its phase threshold). Raises Changed.</summary>
+        /// <summary>Sets max HP and fills up, without raising anything (setup in Awake, before the fight).</summary>
+        public void Configure(int max)
+        {
+            maxHealth = Mathf.Max(1, max);
+            Current = maxHealth;
+        }
+
+        /// <summary>Opt-in setup for damageable structures that must count every physical impact.</summary>
+        public void Configure(int max, Team ownerTeam, float hitCooldown)
+        {
+            Configure(max);
+            team = ownerTeam;
+            hitInvulnerability = Mathf.Max(0f, hitCooldown);
+        }
+
+        public void SetCurrent(int value)
+        {
+            if (IsDead) return;
+            Current = Mathf.Clamp(value, 1, maxHealth);
             Changed?.Invoke(Current, maxHealth);
         }
 

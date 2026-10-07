@@ -13,6 +13,8 @@ namespace Roygbiv
 
         public override AbilityId Id => AbilityId.BlazeStrike;
         public float ChargeFraction => Mathf.Clamp01(heldFor / chargeTime); // for UI / VFX
+        /// <summary>The strike's hitbox: things only a full Blaze Strike can break (Violet's crystal gate) check for it.</summary>
+        public Hitbox StrikeHitbox => strikeHitbox;
 
         public override bool HandleInput(in PlayerIntent intent)
         {

@@ -15,6 +15,8 @@ namespace Roygbiv
         public static GameManager Manager { get; internal set; }
         public static SceneLoader Scenes { get; internal set; }
         public static InputReader Input { get; internal set; }
+        /// <summary>Time scale owner: pause and slow motion go through here, never Time.timeScale directly.</summary>
+        public static TimeController Time { get; internal set; }
         public static ColorWorld Colors { get; internal set; }
         public static DialogueRunner Dialogue { get; internal set; }
         public static InstructionRunner Instructions { get; internal set; }
@@ -25,7 +27,7 @@ namespace Roygbiv
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetAll()
         {
-            Config = null; Manager = null; Scenes = null; Input = null;
+            Config = null; Manager = null; Scenes = null; Input = null; Time = null;
             Colors = null; Dialogue = null; Instructions = null; Audio = null;
         }
     }
