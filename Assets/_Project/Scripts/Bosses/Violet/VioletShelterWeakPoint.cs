@@ -5,9 +5,18 @@ namespace Roygbiv
     /// <summary>A destructible anchor. Only an actual player Light Shot can release its slab.</summary>
     public sealed class VioletShelterWeakPoint : MonoBehaviour
     {
+        [Tooltip("The slab this anchor holds up.")]
+        [SerializeField] VioletSlab slab;
+        [Tooltip("Set by the bake: sets itself up when the level starts.")]
+        [SerializeField, HideInInspector] bool placedInScene;
+
         Health health;
-        VioletSlab slab;
         bool broken;
+
+        void Awake()
+        {
+            if (placedInScene) Setup(slab);
+        }
 
         public void Setup(VioletSlab shelter)
         {
