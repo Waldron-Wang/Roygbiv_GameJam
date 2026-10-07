@@ -11,8 +11,8 @@ namespace Roygbiv
     ///   `rechargeTime` seconds and can't be used until that's over: a press then only gives a "not ready" blip.
     ///   Both are REAL seconds (unscaled time), so the slow motion doesn't stretch them, and neither counts down
     ///   while time is paused (pause menu, Tip card).
-    ///   It ends on its own on death, when the level is won or lost, when dialogue starts and when the scene
-    ///   unloads. It can't start during dialogue or while paused. A reload builds a fresh player, so it's always
+    ///   It ends on its own on death, when the level is won or lost, when dialogue or a cinematic starts and when
+    ///   the scene unloads. It can't start during dialogue or while paused. A reload builds a fresh player, so it's always
     ///   ready after a respawn.
     ///
     /// It only asks Game.Time for a scale (TimeController multiplies it with any others) and announces its state with
@@ -48,6 +48,7 @@ namespace Roygbiv
             GameEvents.LevelFailed += OnLevelEnded;
             GameEvents.PlayerDied += End;
             GameEvents.DialogueStarted += OnDialogueStarted;
+            GameEvents.CinematicChanged += OnCinematic;
             Announce();
         }
 
@@ -57,6 +58,7 @@ namespace Roygbiv
             GameEvents.LevelFailed -= OnLevelEnded;
             GameEvents.PlayerDied -= End;
             GameEvents.DialogueStarted -= OnDialogueStarted;
+            GameEvents.CinematicChanged -= OnCinematic;
             End(); // revoked or unloaded mid-use: never leave the world slowed down
             GameEvents.RaiseSerenityChanged(SerenityState.Unavailable, 0f);
         }
@@ -105,6 +107,7 @@ namespace Roygbiv
 
         void OnLevelEnded(ColorId _) => End();
         void OnDialogueStarted(DialogueData _) => End();
+        void OnCinematic(bool playing) { if (playing) End(); }
 
         void Update()
         {

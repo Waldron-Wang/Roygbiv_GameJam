@@ -56,6 +56,10 @@ namespace Roygbiv
         public static event Action<bool> PauseChanged;
         /// <summary>A big title should flash on screen (a boss's name, a phase): title, subtitle (may be empty).</summary>
         public static event Action<string, string> TitleCardShown;
+        /// <summary>A cinematic took the controls (true) or gave them back (false): letterbox bars, Serenity ends.</summary>
+        public static event Action<bool> CinematicChanged;
+        /// <summary>A full-screen wipe in this color over this many seconds: covered at the halfway point (a scene cut).</summary>
+        public static event Action<UnityEngine.Color, float> ScreenWipe;
 
         public static void RaiseLevelStarted(ColorId c) => LevelStarted?.Invoke(c);
         public static void RaiseLevelCompleted(ColorId c) => LevelCompleted?.Invoke(c);
@@ -85,6 +89,8 @@ namespace Roygbiv
         public static void RaiseSceneLoaded(string scene) => SceneLoaded?.Invoke(scene);
         public static void RaisePauseChanged(bool paused) => PauseChanged?.Invoke(paused);
         public static void RaiseTitleCardShown(string title, string subtitle) => TitleCardShown?.Invoke(title, subtitle);
+        public static void RaiseCinematicChanged(bool playing) => CinematicChanged?.Invoke(playing);
+        public static void RaiseScreenWipe(UnityEngine.Color color, float seconds) => ScreenWipe?.Invoke(color, seconds);
 
         // Domain reload is disabled in this project (faster Play mode), so statics survive between
         // play sessions. Wipe all subscribers at the start of each session.
@@ -99,6 +105,7 @@ namespace Roygbiv
             DialogueStarted = null; DialogueLineShown = null; DialogueEnded = null;
             InstructionShown = null; InstructionClosed = null;
             SceneLoaded = null; PauseChanged = null; TitleCardShown = null;
+            CinematicChanged = null; ScreenWipe = null;
         }
     }
 }

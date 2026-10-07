@@ -19,7 +19,9 @@ namespace Roygbiv
     ///   5 CRYSTAL GATE    -> Blaze Strike  a crystal wall only a charged Blaze Strike breaks
     ///   6 THE CURTAIN     -> Serenity      a needle curtain with a moving gap; a safe spot before it
     ///   7 THE GAUNTLET    -> mixed         waves, a wall then a beam as you land, rain + shelter, another curtain
-    ///   ARENA             one screen, walls both sides, two floating platforms, the king's dais at the right.
+    ///   THE HILL          the course ends at the foot of the king's hill: reaching it plays the arrival cinematic.
+    ///   ARENA             a separate area further on (the cinematic cuts to it): one screen, walls both sides,
+    ///                     two floating platforms.
     /// Blocks are copies of `blockTemplate` (an inactive sprite with Recolorable(Violet), gray until Violet is
     /// restored), drawn with the violet tile art when `tileSprite` is set. Hazards keep their own colors.
     /// </summary>
@@ -128,15 +130,24 @@ namespace Roygbiv
         [SerializeField] float curtainCeiling = 4.4f;
         [SerializeField] VioletCurtain.Settings curtain = new();
 
+        [Header("The end of the course")]
+        [Tooltip("Floor between the last piece and the foot of the hill; the arrival triggers halfway along it.")]
+        [SerializeField] float hillApproach = 8f;
+        [Tooltip("The foot of his hill: a low rise (width, height) with an invisible stop behind it. Low, so it never hides the distant king.")]
+        [SerializeField] Vector2 hill = new(8f, 1.4f);
+        [SerializeField] Color hillColor = new(0.2f, 0.12f, 0.3f);
+
         [Header("Arena")]
+        [Tooltip("How far past the hill the arena is built (out of sight of the course).")]
+        [SerializeField] float arenaGap = 60f;
         [Tooltip("Inner width (one screen at 16:9 is ~24.9).")]
         [SerializeField] float arenaWidth = 24f;
         [Tooltip("Height of the arena walls.")]
         [SerializeField] float arenaWallHeight = 16f;
         [Tooltip("Floating platforms: distance in from each wall, height and length.")]
         [SerializeField] Vector3 platforms = new(5.5f, 3.2f, 4f);
-        [Tooltip("The king's dais at the right: width and height (it sinks when the duel starts).")]
-        [SerializeField] Vector2 dais = new(4f, 2f);
+        [Tooltip("Where the king stands in the arena: this far in from the right wall.")]
+        [SerializeField] float arenaKingInset = 5f;
         [Tooltip("Camera height above the arena floor while the duel is locked.")]
         [SerializeField] float arenaCameraHeight = 5f;
 
@@ -155,15 +166,18 @@ namespace Roygbiv
         /// <summary>Feet position of each approach checkpoint.</summary>
         public readonly List<Vector2> Checkpoints = new();
         public bool Built { get; private set; }
-        public float ArenaEntryX { get; private set; }
+        /// <summary>Where the run starts (the first checkpoint).</summary>
+        public float StartX => Checkpoints.Count > 0 ? Checkpoints[0].x : 0f;
+        /// <summary>Reaching this x (the foot of the hill) plays the arrival cinematic.</summary>
+        public float EndX { get; private set; }
         public float ArenaMinX { get; private set; }
         public float ArenaMaxX { get; private set; }
         public float ArenaFloor => 0f;
+        /// <summary>Feet position of the player when the duel starts.</summary>
         public Vector2 ArenaSpawn { get; private set; }
+        /// <summary>Where the king stands when the duel starts (x).</summary>
+        public float ArenaKingX { get; private set; }
         public Vector2 ArenaCamera { get; private set; }
-        public Vector2 DaisFeet { get; private set; }
-        public VioletGate ArenaDoor { get; private set; }
-        public VioletGate Dais { get; private set; }
 
         /// <summary>Sets the building blocks from code (VioletSetup builds the level at runtime when the menu wasn't run).</summary>
         public void Configure(GameObject template, PhysicsMaterial2D material, Sprite tile)
@@ -191,7 +205,9 @@ namespace Roygbiv
                 if (p.checkpoint) AddCheckpoint(x);
                 x = BuildPiece(p, x);
             }
-            BuildArena(x);
+            x = BuildHill(x);
+            FlushGround();
+            BuildArena(x + arenaGap);
             FlushGround();
         }
 
@@ -344,33 +360,37 @@ namespace Roygbiv
             return x + len;
         }
 
+        /// <summary>The foot of the king's hill: a last stretch of floor, then a mound that blocks the way. Returns its far end.</summary>
+        float BuildHill(float x)
+        {
+            LayGround(x, x + hillApproach + hill.x, 0f);
+            EndX = x + hillApproach * 0.5f;
+            float h0 = x + hillApproach;
+            // The solid part is invisible: the hill sprite in front of it is what you see.
+            var stop = Block("Hill (stop)", Rect.MinMaxRect(h0 + 1f, 0f, h0 + hill.x, arenaWallHeight));
+            stop.GetComponent<SpriteRenderer>().enabled = false;
+            var shape = VioletShapes.Polygon($"Hill_{hill.x:0}_{hill.y:0}", Vector2.zero, 0.35f,
+                new(0f, 0f), new(hill.x * 0.08f, hill.y * 0.3f), new(hill.x * 0.2f, hill.y * 0.65f), new(hill.x * 0.36f, hill.y * 0.9f),
+                new(hill.x * 0.55f, hill.y), new(hill.x * 0.8f, hill.y * 0.96f), new(hill.x, hill.y * 0.85f), new(hill.x, 0f));
+            VioletShapes.Create("Hill", shape, root, new Vector2(h0 - root.position.x, -root.position.y), hillColor, 1);
+            return h0 + hill.x;
+        }
+
+        /// <summary>The duel's arena, a sealed area of its own: floor, a wall on each side, two floating platforms.</summary>
         void BuildArena(float x)
         {
-            float inner0 = x + 1f, inner1 = inner0 + arenaWidth;
-            LayGround(x - 0.01f, inner1 + 1.5f, 0f);
-
-            ArenaEntryX = inner0 + 1.5f;
+            float inner0 = x + 1.5f, inner1 = inner0 + arenaWidth;
+            LayGround(x, inner1 + 1.5f, 0f);
             ArenaMinX = inner0;
             ArenaMaxX = inner1;
-            ArenaSpawn = new Vector2(inner0 + 2f, 0f);
+            ArenaSpawn = new Vector2(inner0 + 3f, 0f);
+            ArenaKingX = inner1 - arenaKingInset;
             ArenaCamera = new Vector2((inner0 + inner1) * 0.5f, arenaCameraHeight);
 
-            // The door is the arena's left wall: sunk while the player walks in, it rises behind them.
-            var door = Block("ArenaDoor", Rect.MinMaxRect(x, 0f, inner0, arenaWallHeight));
-            Lower(door);
-            ArenaDoor = door.AddComponent<VioletGate>();
-            ArenaDoor.Setup(-arenaWallHeight * 0.5f - 0.2f, arenaWallHeight * 0.5f, false);
+            Block("ArenaWall", Rect.MinMaxRect(x, 0f, inner0, arenaWallHeight));
             Block("ArenaWall", Rect.MinMaxRect(inner1, 0f, inner1 + 1.5f, arenaWallHeight));
-
             Block("Platform", Rect.MinMaxRect(inner0 + platforms.x - platforms.z * 0.5f, platforms.y - 0.5f, inner0 + platforms.x + platforms.z * 0.5f, platforms.y));
             Block("Platform", Rect.MinMaxRect(inner1 - platforms.x - platforms.z * 0.5f, platforms.y - 0.5f, inner1 - platforms.x + platforms.z * 0.5f, platforms.y));
-
-            float d1 = inner1 - 1f, d0 = d1 - dais.x;
-            var daisBlock = Block("Dais", Rect.MinMaxRect(d0, 0f, d1, dais.y));
-            Lower(daisBlock);
-            Dais = daisBlock.AddComponent<VioletGate>();
-            Dais.Setup(-dais.y * 0.5f - 0.1f, dais.y * 0.5f, true);
-            DaisFeet = new Vector2((d0 + d1) * 0.5f, dais.y);
         }
 
         // ---------- Pieces ----------

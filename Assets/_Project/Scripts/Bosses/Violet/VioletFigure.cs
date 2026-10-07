@@ -27,6 +27,11 @@ namespace Roygbiv
         [HideInInspector] public float armResponse = 10f;
         /// <summary>0..1: how solid the second greatsword in the left hand is.</summary>
         [HideInInspector] public float secondSword;
+        /// <summary>Overall size, about the feet (the distant king of the approach is drawn bigger than life, far away).</summary>
+        [HideInInspector] public float scale = 1f;
+        /// <summary>0..1: faded toward hazeColor, so he reads as far away.</summary>
+        [HideInInspector] public float haze;
+        [HideInInspector] public Color hazeColor = new(0.22f, 0.16f, 0.34f);
 
         const float HipHeight = 1.35f;
 
@@ -41,7 +46,7 @@ namespace Roygbiv
         float animTime, flash, jolt, spinPhase, glintAt = 2f;
         Vector2 lastPos, smoothVel;
         bool hasCape = true, swordsShattered, crownFallen;
-        int baseOrder;
+        int baseOrder, builtOrder;
 
         public Transform Pose => pose;
         public bool HasCape => hasCape;
@@ -49,7 +54,7 @@ namespace Roygbiv
         /// <summary>Builds the rig under `parent` with the feet at local `feet`. sortingBase = the lowest order it uses.</summary>
         public void Build(Transform parent, Vector2 feet, int sortingBase)
         {
-            baseOrder = sortingBase;
+            baseOrder = builtOrder = sortingBase;
             pose = new GameObject("Pose").transform;
             pose.SetParent(parent, false);
             pose.localPosition = feet;
@@ -127,6 +132,24 @@ namespace Roygbiv
         {
             flash = 1f;
             jolt = 1f;
+        }
+
+        /// <summary>Moves every part to a new lowest sorting order (behind the level for the distant king, back in front for the duel).</summary>
+        public void SetSortingBase(int order)
+        {
+            if (!pose || order == baseOrder) return;
+            int delta = order - baseOrder;
+            foreach (var sr in pose.GetComponentsInChildren<SpriteRenderer>(true)) sr.sortingOrder += delta;
+            baseOrder = order;
+        }
+
+        /// <summary>The sortingBase it was built with.</summary>
+        public int BuiltSortingBase => builtOrder;
+
+        /// <summary>Shows or hides the greatsword in his right hand (it's planted in the ground for the arrival).</summary>
+        public void ShowHandSword(bool show)
+        {
+            if (sword) sword.gameObject.SetActive(show);
         }
 
         /// <summary>A small jolt with no flash (a cast going off, a ring fired).</summary>
@@ -268,7 +291,7 @@ namespace Roygbiv
             else spinPhase = 0f;
 
             float breath = Mathf.Sin(animTime * 1.9f);
-            pose.localScale = new Vector3(facingScale, 1f + breath * 0.012f - curCrouch * 0.05f, 1f);
+            pose.localScale = new Vector3(facingScale * scale, (1f + breath * 0.012f - curCrouch * 0.05f) * scale, 1f);
 
             float hipY = HipHeight - curCrouch * 0.38f - curKneel * 0.6f;
             hips.localPosition = new Vector3(Random.Range(-1f, 1f) * jolt * 0.06f, hipY + breath * 0.02f, 0f);
@@ -344,9 +367,15 @@ namespace Roygbiv
             {
                 var sr = parts[i];
                 if (!sr || sr == bladeEdge || sr == offBladeEdge || sr == offBlade || sr == offHilt || sr == visor) continue;
-                var c = Color.Lerp(partColors[i], Color.white, flash * 0.85f);
+                var c = Color.Lerp(Color.Lerp(partColors[i], hazeColor, haze), Color.white, flash * 0.85f);
                 c.a = partColors[i].a;
                 sr.color = c;
+            }
+            if (haze > 0f)
+            {
+                // Glows dim with distance too.
+                if (visor) visor.color = Color.Lerp(visor.color, hazeColor, haze * 0.6f);
+                if (bladeEdge) bladeEdge.color = new Color(bladeEdge.color.r, bladeEdge.color.g, bladeEdge.color.b, bladeEdge.color.a * (1f - haze * 0.5f));
             }
         }
     }

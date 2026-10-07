@@ -22,6 +22,8 @@ namespace Roygbiv
         /// <summary>The furthest checkpoint reached, or Start.</summary>
         public static int Index { get; private set; } = Start;
         public static bool IntroSeen { get; set; }
+        /// <summary>The arrival cinematic has played once this session: from now on confirm skips it. Never cleared mid-session.</summary>
+        public static bool ArrivalSeen { get; set; }
         /// <summary>Approach checkpoints in the course (set when the course is built).</summary>
         public static int SegmentCount { get; set; }
         public static int ArenaIndex => SegmentCount;
@@ -54,6 +56,7 @@ namespace Roygbiv
         {
             Clear();
             SegmentCount = 0;
+            ArrivalSeen = false;
             SceneManager.sceneLoaded -= OnSceneLoaded;
         }
 

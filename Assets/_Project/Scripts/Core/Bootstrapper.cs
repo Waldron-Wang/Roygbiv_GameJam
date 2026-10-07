@@ -38,6 +38,7 @@ namespace Roygbiv
             systems.AddComponent<InstructionView>();
             systems.AddComponent<SerenityView>();
             systems.AddComponent<TitleCardView>();
+            systems.AddComponent<CinematicView>();
             systems.AddComponent<DebugHud>();
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             systems.AddComponent<DebugCheats>();

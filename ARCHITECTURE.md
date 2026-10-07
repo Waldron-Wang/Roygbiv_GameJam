@@ -257,10 +257,12 @@ Helpers available to subclasses: `Player`, `AimDirection`, `Fire(...)`, `Wait(..
   - Orange has a `ChaseDirector` that drives `PlayerMotor.autoRunSpeed` and `CameraFollow.autoScrollSpeed`, and a `ChaseCourse` that builds an endless track.
   - Blue is a vertical layout.
   - Indigo casts a curse each phase: input modifiers + a `ScreenWarp` look (any boss can use `ScreenWarp.Main`).
-  - **Violet** (the final exam) is a long approach + a duel. A `Violet` object holds `VioletCourse` (builds the course and the
-    arena at runtime from an Inspector list, one segment per ability) and `VioletApproach` (intro camera pull, the king's
-    long-range attacks while the player crosses the course, then the arena lock + `StartBoss`). `VioletCheckpoint` remembers
-    the last checkpoint across death reloads (one per segment, the arena, Twin Blades). Built by **ROYGBIV > Build Violet Level**.
+  - **Violet** (the final exam) is a run + a duel. A `Violet` object holds `VioletCourse` (builds the course, the foot of the
+    king's hill and a separate arena at runtime from an Inspector list, one segment per ability) and `VioletApproach`: the intro
+    camera pull; the run (camera look-ahead, the king always on screen as a big distant figure in the background, every attack
+    starting with his gesture); the arrival cinematic (letterbox, wipe cut to the arena, he draws his planted greatsword,
+    name card); then `StartBoss`. `VioletCheckpoint` remembers the last checkpoint across death reloads (one per segment, the
+    arena, Twin Blades). **ROYGBIV > Build Violet Level** sets it up in the scene; without it `VioletSetup` builds it at runtime.
 
 ### Recoloring the world (`ColorWorld`, `Recolorable`) — art-style agnostic
 - `ColorWorld` stores a value from 0 to 1 for each color, animated when the color is restored. It also sets shader globals:

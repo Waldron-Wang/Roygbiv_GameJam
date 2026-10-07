@@ -11,9 +11,10 @@ namespace Roygbiv.EditorTools
     ///   Boss_Violet.prefab  24 HP, one threshold at 0.5 (duel / Twin Blades), a tall body collider.
     ///   Level_Violet        removes the skeleton's flat arena (Ground / Wall / Platform under Environment),
     ///                       adds a "Violet" object (VioletCourse + VioletApproach + an inactive BlockTemplate with
-    ///                       Recolorable(Violet) and the violet tile art), turns off startBossImmediately (the arena
-    ///                       entrance starts the fight), and stretches the KillZone under the whole course.
+    ///                       Recolorable(Violet) and the violet tile art), turns off startBossImmediately (the arrival
+    ///                       cinematic starts the fight), and stretches the KillZone under the course and the arena.
     /// Safe to re-run: existing objects are reused and only these fields are (re)set. Touches no other scene or prefab.
+    /// OPTIONAL: without it, VioletSetup builds the same thing at runtime (with flat blocks instead of the tile art).
     /// </summary>
     public static class VioletBuilder
     {
@@ -80,8 +81,8 @@ namespace Roygbiv.EditorTools
                     if (child.name is "Ground" or "Wall" or "Platform") { Object.DestroyImmediate(child.gameObject); removed++; }
                     else if (child.name == "KillZone")
                     {
-                        child.position = new Vector3(190f, -20f, 0f);
-                        child.localScale = new Vector3(600f, 2f, 1f);
+                        child.position = new Vector3(250f, -20f, 0f);
+                        child.localScale = new Vector3(800f, 2f, 1f);
                     }
                 }
             }
@@ -122,7 +123,7 @@ namespace Roygbiv.EditorTools
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
-            Debug.Log($"[ROYGBIV] Level_Violet: removed {removed} old arena objects, Violet course + director ready, boss starts at the arena entrance.");
+            Debug.Log($"[ROYGBIV] Level_Violet: removed {removed} old arena objects, Violet course + director ready, the arrival cinematic starts the duel.");
         }
 
         static void Set(Object target, string field, object value)

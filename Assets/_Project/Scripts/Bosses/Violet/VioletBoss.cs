@@ -9,9 +9,12 @@ namespace Roygbiv
     /// VIOLET — royalty, wisdom, creativity. The final exam: a KING with a crown, a long cape and a one-handed
     /// greatsword, who can only be beaten by using every ability at the right moment.
     ///
-    /// PHASE 1, THE APPROACH (not a BossBase phase: the fight hasn't started). He stands on a dais at the far end of
-    /// a long course and bombards the player from afar; he can't be hurt. VioletApproach runs that part and asks him
-    /// for the matching poses (FarGesture). Entering the arena calls StartFight: he leaps down and the duel begins.
+    /// PHASE 1, THE RUN (not a BossBase phase: the fight hasn't started). He's a big distant figure in the background
+    /// (SetDistant / PlaceDistant: behind the level, no collision, hazy), pinned near the right of the view on a far
+    /// hill, growing as the player nears the end of the course. He only stands and casts: every long-range attack
+    /// starts with his gesture (FarGesture); VioletApproach spawns the attacks. He can't be reached or hurt.
+    /// ARRIVAL: VioletApproach cuts to the arena (PlaceInArena) and plays his beat (ArrivalBeat: the greatsword is
+    /// planted beside him, he draws it, swings it overhead and points it at the player), then calls StartFight.
     /// PHASE 2, THE DUEL (BossBase phase 0). Hurt by everything, except while casting (a glowing aura: hits clang off).
     ///   Crescent Slash  wind-up, then a slash wave at ground height (jump it) or head height (Down Dash under / dash).
     ///   Earthsplitter   leaps onto the player, slams the sword into the floor: eruptions run both ways (double jump);
@@ -68,6 +71,8 @@ namespace Roygbiv
         [Header("Look")]
         [Tooltip("Lowest sorting order the procedural king uses.")]
         [SerializeField] int sortingBase = 6;
+        [Tooltip("Lowest sorting order while he's the distant figure of the run: behind the level geometry (order 0).")]
+        [SerializeField] int distantSortingBase = -80;
         [Tooltip("Color of his slashes, beams and eruptions.")]
         [SerializeField] Color attackColor = new(0.76f, 0.4f, 1f);
         [Tooltip("Tip color of his eruptions.")]
@@ -246,8 +251,6 @@ namespace Roygbiv
         [SerializeField] float decreeCharge = 2.2f;
         [Tooltip("Seconds (game time) the storm lasts. In Serenity at 0.35x, 1.3 s is ~3.7 real seconds: inside its 4.")]
         [SerializeField] float decreeStorm = 1.3f;
-        [Tooltip("Height above the floor he hovers at during the decree.")]
-        [SerializeField] float decreeHeight = 6.5f;
         [Tooltip("Seconds between needle walls (they come from alternating sides).")]
         [SerializeField] float decreeWallInterval = 0.3f;
         [Tooltip("Vertical spacing of the needles in a wall.")]
@@ -290,7 +293,8 @@ namespace Roygbiv
         float halfHeight = 1.6f, halfWidth = 0.8f;
         State state = State.Throne;
         int cycle, gridCycle, lanceCycle;
-        bool transitionPending, descendPending, untouchable, twinBlades, restoringCheckpoint, startOnFloor;
+        bool transitionPending, untouchable, twinBlades, restoringCheckpoint, startOnFloor, distant;
+        GameObject plantedSword;
         float realClock, lastDecreeAt = float.NegativeInfinity;
         bool arenaKnown;
 
@@ -397,35 +401,70 @@ namespace Roygbiv
             arenaKnown = true;
         }
 
-        /// <summary>Stand with the feet at `feet` (the dais).</summary>
-        public void PlaceAt(Vector2 feet)
+        /// <summary>
+        /// The run: he's a distant figure behind the level (no collision, drawn behind the geometry), or back to a
+        /// solid, full-size king for the duel.
+        /// </summary>
+        public void SetDistant(bool on)
         {
-            var p = new Vector2(feet.x, feet.y + halfHeight);
-            if (Body) Body.position = p;
-            transform.position = p;
+            distant = on;
+            foreach (var c in GetComponents<Collider2D>()) c.enabled = !on;
+            figure.SetSortingBase(on ? distantSortingBase : figure.BuiltSortingBase);
+            if (!on)
+            {
+                figure.scale = 1f;
+                figure.haze = 0f;
+            }
+        }
+
+        /// <summary>The run: feet on a far hill line at `feet`, `scale` times life size, `haze` faded toward the distance.</summary>
+        public void PlaceDistant(Vector2 feet, float scale, float haze)
+        {
+            if (!distant) SetDistant(true);
+            Teleport(new Vector2(feet.x, feet.y + halfHeight)); // the figure scales about its feet
+            figure.scale = scale;
+            figure.haze = haze;
             figure.facing = -1;
+        }
+
+        /// <summary>The arrival: full size, on the arena floor at `x`, facing the player.</summary>
+        public void PlaceInArena(float x)
+        {
+            SetDistant(false);
+            Teleport(new Vector2(Mathf.Clamp(x, arenaMinX + 1.5f, arenaMaxX - 1.5f), GroundedY));
+            if (Player) figure.facing = Player.position.x < transform.position.x ? -1 : 1;
+            ThronePose();
+            figure.SnapArms();
         }
 
         protected override void OnFightStarted()
         {
-            StopAllCoroutines(); // any long-range gesture from the approach (the brain starts right after this)
-            descendPending = !startOnFloor;
+            StopAllCoroutines(); // any gesture or cinematic beat still running (the brain starts right after this)
+            ClearPlantedSword();
+            figure.ShowHandSword(true);
+            if (distant) SetDistant(false);
+            if (!startOnFloor && Body) Teleport(new Vector2(Body.position.x, GroundedY)); // feet on the floor, always
             if (Player && bodyCollider)
                 foreach (var c in Player.GetComponentsInChildren<Collider2D>())
                     if (!c.isTrigger) Physics2D.IgnoreCollision(bodyCollider, c);
         }
 
         /// <summary>
-        /// Checkpoint respawn: the duel starts with him already on the arena floor at `x` (no leap off the dais), and at
-        /// Twin Blades if `twin` (health at its threshold, the cape already gone, no transition). Call right BEFORE
-        /// StartFight: StartFight runs the first step of the fight immediately.
+        /// The duel starts with him on the arena floor at `x`, and at Twin Blades if `twin` (checkpoint: health at its
+        /// threshold, the cape already gone, no transition). Call right BEFORE StartFight: StartFight runs the first
+        /// step of the fight immediately.
         /// </summary>
         public void PrepareFloorStart(float x, bool twin)
         {
             startOnFloor = true;
-            Teleport(new Vector2(Mathf.Clamp(x, arenaMinX + 2f, arenaMaxX - 2f), GroundedY));
-            IdlePose();
-            figure.SnapArms();
+            if (distant) SetDistant(false);
+            var spot = new Vector2(Mathf.Clamp(x, arenaMinX + 2f, arenaMaxX - 2f), GroundedY);
+            if (!Body || Vector2.Distance(Body.position, spot) > 0.3f)
+            {
+                Teleport(spot);
+                figure.SnapArms();
+            }
+            IdlePose(); // eases out of the arrival's pointing pose
             if (twin) RestoreTwinBlades();
         }
 
@@ -453,7 +492,6 @@ namespace Roygbiv
         protected override IEnumerator RunPhase(int phase)
         {
             if (transitionPending) { yield return Transition(); yield break; }
-            if (descendPending) { yield return Descend(); yield break; }
             if (twinBlades && DecreeDue) { yield return RoyalDecree(phase); yield break; }
 
             var rotation = Rotation[Mathf.Min(phase, Rotation.Length - 1)];
@@ -564,30 +602,43 @@ namespace Roygbiv
                     figure.swordArm = 205f; figure.swordTwist = 0f; figure.bladeGlow = 1f; figure.lean = -8f; figure.crouch = 0.25f;
                     yield return new WaitForSeconds(windUp);
                     figure.armResponse = 45f; figure.swordArm = -25f; figure.lean = 22f;
+                    FarFlash(figure.SwordTip);
                     break;
                 case Far.Slam:
                     figure.swordArm = 190f; figure.swordTwist = 0f; figure.crouch = 0.6f; figure.bladeGlow = 1f;
                     yield return new WaitForSeconds(windUp);
                     figure.armResponse = 50f; figure.swordArm = 55f; figure.swordTwist = 50f; figure.crouch = 0.75f; figure.lean = 25f;
+                    FarFlash(figure.SwordTip);
                     break;
                 case Far.Cast:
                     figure.offArm = 105f; figure.handGlow = 1f; figure.capeWind = 0.6f; figure.lean = -4f;
                     yield return new WaitForSeconds(windUp);
                     figure.armResponse = 30f; figure.offArm = 125f;
+                    FarFlash(figure.OffHand);
                     break;
                 case Far.RaiseSword:
                     figure.swordArm = 178f; figure.swordTwist = 0f; figure.bladeGlow = 1f; figure.offArm = 150f; figure.handGlow = 1f; figure.capeWind = 1f;
                     yield return new WaitForSeconds(windUp);
                     figure.armResponse = 30f; figure.swordArm = 120f;
+                    FarFlash(figure.SwordTip);
+                    FarFlash(figure.OffHand);
                     break;
                 case Far.Throw:
                     figure.offArm = 170f; figure.handGlow = 1f;
                     yield return new WaitForSeconds(windUp);
                     figure.armResponse = 35f; figure.offArm = 70f;
+                    FarFlash(figure.OffHand);
                     break;
             }
             yield return new WaitForSeconds(0.45f);
             ThronePose();
+        }
+
+        /// <summary>The moment an attack leaves him: a burst of light at the blade or the hand, so it reads as thrown by him.</summary>
+        void FarFlash(Vector2 at)
+        {
+            float s = Mathf.Max(1f, figure.scale);
+            VioletHits.Burst(at, VioletShapes.Glow, 12, 5f * s, 0.35f * s);
         }
 
         void ThronePose()
@@ -609,25 +660,114 @@ namespace Roygbiv
             figure.bladeGlow = 0f; figure.handGlow = 0f; figure.spinSpeed = 0f; figure.headTilt = 0f;
         }
 
-        // ---------- Duel: openings ----------
+        // ---------- The arrival (cinematic) ----------
 
-        IEnumerator Descend()
+        /// <summary>First shot of the arrival: his greatsword stands planted in the floor beside him, his hand empty on the pommel.</summary>
+        public void PlantSword()
         {
-            descendPending = false;
-            state = State.Descend;
-            float x = Mathf.Clamp(Center + 4f, arenaMinX + 2f, arenaMaxX - 2f);
-            figure.facing = Player && Player.position.x < x ? -1 : 1;
-            figure.crouch = 0.6f;
-            yield return Wait(0.35f);
-            figure.swordArm = 160f;
-            yield return LeapTo(x, 3.5f, 0.75f, false);
-            Land(0.35f);
-            // A short roar to open the duel.
-            figure.lean = -14f; figure.headTilt = -12f; figure.swordArm = 120f; figure.offArm = 120f; figure.capeWind = 1f;
-            VioletHits.ShakeCamera(0.3f, 0.6f);
-            yield return Wait(0.8f);
-            IdlePose();
-            state = State.Idle;
+            ClearPlantedSword();
+            figure.ShowHandSword(false);
+            plantedSword = new GameObject("PlantedGreatsword");
+            const float sunk = 0.8f, bladeLength = 2.85f;
+            plantedSword.transform.position = new Vector3(transform.position.x + figure.facing * 1.15f, floorY + bladeLength - sunk, 0f);
+            // Drawn behind the floor (order 0), so the sunk part of the blade is hidden in it.
+            VioletShapes.Create("Blade", VioletShapes.Blade, plantedSword.transform, Vector2.zero, VioletShapes.Steel, -2);
+            VioletShapes.Create("Edge", VioletShapes.BladeEdge, plantedSword.transform, Vector2.zero, new Color(VioletShapes.Glow.r, VioletShapes.Glow.g, VioletShapes.Glow.b, 0.5f), -1);
+            VioletShapes.Create("Hilt", VioletShapes.Hilt, plantedSword.transform, Vector2.zero, VioletShapes.Bright, figure.BuiltSortingBase + 15);
+            figure.armResponse = 8f;
+            figure.swordArm = 66f; figure.swordTwist = 0f; figure.offArm = 12f; figure.lean = 2f; figure.crouch = 0f; figure.capeWind = 0.5f;
+            figure.SnapArms();
+        }
+
+        /// <summary>
+        /// The arrival beat. Full: he grips the planted greatsword, DRAWS it out of the floor, swings it once overhead
+        /// (a wide trail, the screen shakes) and points it at the player, cape billowing, crown glinting, and the name
+        /// card appears (~2.3 s). Short (respawn at the arena): he raises the sword and points it (~0.8 s).
+        /// </summary>
+        public IEnumerator ArrivalBeat(bool full)
+        {
+            state = State.WindUp;
+            if (full && plantedSword)
+            {
+                figure.Glint();
+                yield return Wait(0.35f);
+                figure.armResponse = 14f;
+                figure.crouch = 0.15f; figure.lean = 6f; // grips the hilt
+                yield return Wait(0.25f);
+
+                // The draw: the blade slides up out of the floor with his arm.
+                figure.armResponse = 10f;
+                figure.swordArm = 120f;
+                Vector3 from = plantedSword.transform.position;
+                for (float t = 0f; t < 0.35f; t += Time.deltaTime)
+                {
+                    plantedSword.transform.position = from + Vector3.up * (1.6f * t / 0.35f);
+                    if (Random.value < 0.6f)
+                        VioletHits.Puff(new Vector2(from.x + Random.Range(-0.3f, 0.3f), floorY + 0.1f), new Vector2(Random.Range(-2f, 2f), Random.Range(0.5f, 2f)),
+                            0.3f, 0.7f, new Color(0.55f, 0.45f, 0.65f, 0.6f), 0.5f, 9);
+                    yield return null;
+                }
+                ClearPlantedSword();
+                figure.ShowHandSword(true);
+                figure.swordArm = 175f; figure.swordTwist = 0f; figure.bladeGlow = 1f; figure.crouch = 0f; figure.lean = -6f;
+                figure.SnapArms();
+                yield return Wait(0.12f);
+
+                // One great swing overhead.
+                figure.armResponse = 40f;
+                figure.swordArm = 210f;
+                yield return Wait(0.15f);
+                figure.swordArm = -40f; figure.lean = 20f; figure.crouch = 0.3f; figure.capeWind = 1.4f;
+                SwingTrail();
+                VioletHits.ShakeCamera(0.35f, 0.35f);
+                yield return Wait(0.3f);
+            }
+            else
+            {
+                ClearPlantedSword();
+                figure.ShowHandSword(true);
+                figure.armResponse = 12f;
+                figure.swordArm = 175f; figure.swordTwist = 0f; figure.bladeGlow = 1f; figure.capeWind = 1f;
+                yield return Wait(0.45f);
+            }
+
+            // Points the greatsword at the player.
+            PointPose();
+            figure.Glint();
+            if (full) GameEvents.RaiseTitleCardShown("VIOLET", "The Sovereign");
+            yield return Wait(full ? 0.9f : 0.35f);
+        }
+
+        /// <summary>Skipped: straight to the end of the beat (sword in hand, pointing at the player).</summary>
+        public void FinishArrival()
+        {
+            StopAllCoroutines();
+            ClearPlantedSword();
+            figure.ShowHandSword(true);
+            PointPose();
+            figure.SnapArms();
+        }
+
+        void PointPose()
+        {
+            if (Player) figure.facing = Player.position.x < transform.position.x ? -1 : 1;
+            figure.armResponse = 20f;
+            figure.swordArm = 92f; figure.swordTwist = 0f; figure.lean = 8f; figure.crouch = 0.1f;
+            figure.capeWind = 1.5f; figure.bladeGlow = 0.7f; figure.offArm = 20f;
+        }
+
+        void SwingTrail()
+        {
+            var at = figure.Chest + new Vector2(figure.facing * 0.6f, 0.4f);
+            var sr = VioletShapes.Create("SwingTrail", VioletShapes.Crescent, null, at, new Color(VioletShapes.Glow.r, VioletShapes.Glow.g, VioletShapes.Glow.b, 0.85f), 30);
+            sr.transform.localScale = new Vector3(-figure.facing * 2.6f, 5.2f, 1f);
+            sr.gameObject.AddComponent<VioletDebris>().Launch(Vector2.zero, 0.4f, 0.01f).NoGravity();
+        }
+
+        void ClearPlantedSword()
+        {
+            if (plantedSword) Destroy(plantedSword);
+            plantedSword = null;
         }
 
         // ---------- Duel: attacks ----------
@@ -884,7 +1024,7 @@ namespace Roygbiv
             // From the end of the arena away from the player, across all of it.
             bool fromRight = Player.position.x < Center;
             float startX = fromRight ? arenaMaxX - 2f : arenaMinX + 2f, endX = fromRight ? arenaMinX + 2f : arenaMaxX - 2f;
-            if (Mathf.Abs(transform.position.x - startX) > 1f) yield return LeapTo(startX, 2.5f, 0.55f, true);
+            if (Mathf.Abs(transform.position.x - startX) > 1f) yield return WalkTo(startX, PerPhase(walkSpeedPerPhase, phase) * 2.2f); // strides there, feet on the floor
             if (Interrupted || !Player) yield break;
 
             state = State.WindUp;
@@ -1018,14 +1158,16 @@ namespace Roygbiv
             var warp = ScreenWarp.Main;
             if (warp) warp.BlendTo(decreeLook, 0.6f);
 
-            var hover = new Vector2(Center, floorY + decreeHeight);
-            yield return Glide(hover, 0.8f);
-            for (float t = 0f; t < decreeCharge - 0.8f && !Health.IsDead; t += Time.deltaTime)
+            // He stays on his feet: strides to the middle of the arena and casts from there, arms raised.
+            float walkStart = Time.time;
+            yield return WalkTo(Center, PerPhase(walkSpeedPerPhase, phase) * 1.8f);
+            figure.swordArm = 175f; figure.offArm = 175f; figure.lean = -10f;
+            for (float t = Time.time - walkStart; t < decreeCharge && !Health.IsDead; t += Time.deltaTime)
             {
                 if (Random.value < 0.5f)
                 {
-                    var from = (Vector2)transform.position + Random.insideUnitCircle.normalized * Random.Range(3f, 6f);
-                    VioletHits.Puff(from, ((Vector2)transform.position - from) * 2f, 0.3f, 0.05f, VioletShapes.Glow, 0.45f, 25);
+                    var from = figure.Chest + Random.insideUnitCircle.normalized * Random.Range(3f, 6f);
+                    VioletHits.Puff(from, (figure.Chest - from) * 2f, 0.3f, 0.05f, VioletShapes.Glow, 0.45f, 25);
                 }
                 yield return null;
             }
@@ -1049,15 +1191,13 @@ namespace Roygbiv
                     nextRing += decreeRingInterval;
                     int count = Mathf.Max(3, decreeRingOrbs);
                     float offset = Random.Range(0f, 360f);
-                    for (int i = 0; i < count; i++) FireOrb(FromAngle(offset + i * 360f / count), transform.position, false, 4.5f);
+                    for (int i = 0; i < count; i++) FireOrb(FromAngle(offset + i * 360f / count), figure.Chest, false, 4.5f);
                 }
                 yield return null;
             }
             yield return WaitOrInterrupt(0.6f);
             if (warp) warp.Clear(0.8f);
             figure.bladeGlow = 0f; figure.handGlow = 0f; figure.capeWind = 0f;
-            yield return Glide(new Vector2(Center, GroundedY), 0.6f);
-            Land(0.3f);
             Untouchable(false);
             yield return Recover(phase, 0.6f);
         }
@@ -1163,8 +1303,8 @@ namespace Roygbiv
             if (x < arenaMinX + 1.5f || x > arenaMaxX - 1.5f) x = Player.position.x - side * distance; // no room: the other side
             x = Mathf.Clamp(x, arenaMinX + halfWidth + 0.5f, arenaMaxX - halfWidth - 0.5f);
             if (Mathf.Abs(x - transform.position.x) < 1.5f) yield break;
-            if (Mathf.Abs(x - transform.position.x) > 9f) yield return LeapTo(x, 3f, 0.6f, true); // too far to walk: a bound
-            else yield return WalkTo(x, PerPhase(walkSpeedPerPhase, phase));
+            float speed = PerPhase(walkSpeedPerPhase, phase);
+            yield return WalkTo(x, Mathf.Abs(x - transform.position.x) > 9f ? speed * 2f : speed); // far: long strides, still on the floor
         }
 
         IEnumerator WalkTo(float x, float speed)
@@ -1197,17 +1337,6 @@ namespace Roygbiv
                 var p = Vector2.Lerp(start, end, t);
                 p.y += Mathf.Sin(t * Mathf.PI) * height;
                 Body.MovePosition(p);
-            }
-        }
-
-        IEnumerator Glide(Vector2 target, float time)
-        {
-            Vector2 start = Body.position;
-            for (float t = 0f; t < 1f && !Health.IsDead;)
-            {
-                yield return new WaitForFixedUpdate();
-                t = Mathf.Min(1f, t + Time.fixedDeltaTime / Mathf.Max(0.05f, time));
-                Body.MovePosition(Vector2.Lerp(start, target, Mathf.SmoothStep(0f, 1f, t)));
             }
         }
 
