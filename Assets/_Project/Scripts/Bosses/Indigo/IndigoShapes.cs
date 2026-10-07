@@ -12,6 +12,10 @@ namespace Roygbiv
 
         static Sprite disc, ring, thinRing;
         static Font font;
+        static Material lineMaterial;
+
+        /// <summary>Plain vertex-colored material for LineRenderers (the default sprite shader, which every build has).</summary>
+        public static Material LineMaterial => lineMaterial ? lineMaterial : lineMaterial = new Material(Shader.Find("Sprites/Default")) { name = "IndigoLine" };
 
         public static Sprite Disc => disc ? disc : disc = Make("Disc", 0f);
         public static Sprite Ring => ring ? ring : ring = Make("Ring", 0.78f);

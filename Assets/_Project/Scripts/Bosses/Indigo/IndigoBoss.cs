@@ -34,7 +34,11 @@ namespace Roygbiv
     /// It can be hurt by anything, any time it isn't casting. 12 HP, thresholds 0.75 / 0.5 / 0.25 = 3 hits a phase.
     /// Everything is undone on defeat or when the scene unloads.
     ///
-    /// Animation is procedural (a diamond body, a halo and an eye made at runtime); art can read CurrentState.
+    /// Its body is abstract line art (IndigoLineBody): a diamond at first, then each curse twists it into its own curve
+    /// (MIRROR an infinity loop, SWAP a self-crossing knot, ECHO a rippling ring with trailing echoes, INVERSION
+    /// inward-bowed cusps). While it casts, the outline frays and slides through tangled in-between forms, then snaps
+    /// clean as the curse lands; on defeat it unravels and settles into a circle.
+    /// Animation is procedural (line body, halo and eye made at runtime); art can read CurrentState.
     /// Reward: TBD.
     /// </summary>
     public class IndigoBoss : BossBase
@@ -63,6 +67,12 @@ namespace Roygbiv
 
             [Header("Screen")]
             public WarpLook look;
+
+            [Header("Body")]
+            [Tooltip("The outline it twists into while casting this curse.")]
+            public IndigoShape shape = IndigoShape.Diamond;
+            [Tooltip("Fading copies of its outline trailing behind it.")]
+            [Range(0, 4)] public int echoes = 1;
         }
 
         // Each phase opens with its new attack so the player sees it right away.
@@ -188,7 +198,14 @@ namespace Roygbiv
         [SerializeField] float attackPoseHold = 0.4f;
 
         [Header("Look")]
-        [Tooltip("Turns the placeholder square on its corner. Turn off once there's art.")]
+        [Tooltip("Draw the body as glowing line art that changes shape every phase (the Visual sprite is hidden). Off = show the Visual sprite.")]
+        [SerializeField] bool lineBody = true;
+        [Tooltip("Its outline before the first curse.")]
+        [SerializeField] IndigoShape restShape = IndigoShape.Diamond;
+        [Tooltip("Outline radius, in units.")]
+        [SerializeField] float bodyRadius = 1.15f;
+        [SerializeField] float lineWidth = 0.09f;
+        [Tooltip("Without the line body: turns the placeholder square on its corner. Turn off once there's art.")]
         [SerializeField] bool diamondPlaceholder = true;
         [SerializeField] float haloSize = 3.4f;
         [SerializeField] float eyeSize = 0.9f;
@@ -215,6 +232,7 @@ namespace Roygbiv
         Vector2 gazeDir = Vector2.left, lastPosition;
         float animTime, eyeOpen, glow, castCharge, jolt, squash, hurtFlash, tilt, spin, sink;
         SpriteRenderer lightPool;
+        float shapeChaos, chaosKick, defeatClock; // the outline: how frayed the cast / a hit leaves it
 
         public State CurrentState => state;
         /// <summary>The curse on the player right now, or null while it's casting (or before the fight).</summary>
@@ -232,10 +250,14 @@ namespace Roygbiv
             if (bodyCollider is BoxCollider2D box) bodySize = Vector2.Scale(box.size, transform.lossyScale);
 
             var visual = transform.Find("Visual");
-            if (visual && diamondPlaceholder && visual.TryGetComponent<SpriteRenderer>(out var sr) && sr.sprite && sr.sprite.name == "Square")
+            if (visual && visual.TryGetComponent<SpriteRenderer>(out var sr))
             {
-                visual.localRotation = Quaternion.Euler(0f, 0f, 45f);
-                visual.localScale *= 0.75f;
+                if (lineBody) sr.enabled = false; // still colored by Recolorable: the lines read their color from it
+                else if (diamondPlaceholder && sr.sprite && sr.sprite.name == "Square")
+                {
+                    visual.localRotation = Quaternion.Euler(0f, 0f, 45f);
+                    visual.localScale *= 0.75f;
+                }
             }
             self = BuildFigure(transform, visual);
             lightPool = IndigoShapes.Create("LightPool", IndigoShapes.Disc, null, transform.position, 1f, UnityEngine.Color.clear, 5);
@@ -268,6 +290,7 @@ namespace Roygbiv
             // Lift the old curse right away, so the clean screen and normal controls announce the change.
             castPending = true;
             cycle = 0;
+            chaosKick = 0.8f; // the blow that ends a phase cracks its outline
             Health.Invulnerable = true; // no chewing through two phases before the cast
             LiftCurse(liftTime);
         }
@@ -294,6 +317,10 @@ namespace Roygbiv
         {
             state = State.Defeated;
             castPending = false;
+            shapeChaos = 0f;
+            defeatClock = 0f;
+            chaosKick = 1f;
+            ForEachLine(l => { l.MorphTo(IndigoShape.Circle); l.Echoes = 2; }); // it unravels, then settles into a calm circle
             Health.Invulnerable = false;
             if (sigil) sigil.Release();
             Dispel();
@@ -313,6 +340,7 @@ namespace Roygbiv
         {
             hurtFlash = 1f;
             jolt = 1f;
+            chaosKick = Mathf.Max(chaosKick, 0.3f);
             if (decoys.Count > 0) ShatterDecoys(); // seen through: every copy fades at once
         }
 
@@ -332,6 +360,11 @@ namespace Roygbiv
             var curse = CurseFor(phase);
             if (curse != null) accent = curse.accent; // the halo already shows what's coming
 
+            // Its outline comes apart while it rises, and only finds the new shape as the sigil charges.
+            var shape = curse?.shape ?? restShape;
+            ForEachLine(l => { l.MorphTo(shape); l.Echoes = 2; });
+            shapeChaos = 0.3f;
+
             yield return Glide(CastSpot(), riseTime, 0.5f, false);
 
             onCast.Invoke();
@@ -341,9 +374,14 @@ namespace Roygbiv
             {
                 castCharge = t / castTime;
                 if (sigil) sigil.Charge = castCharge;
+                float morph = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.15f, 0.9f, castCharge));
+                ForEachLine(l => l.Morph = morph);
+                shapeChaos = Mathf.Lerp(0.3f, 0.15f, castCharge) + 0.75f * Mathf.Pow(Mathf.Sin(castCharge * Mathf.PI), 0.7f);
                 yield return null;
             }
             castCharge = 0f;
+            shapeChaos = 0f; // it snaps clean into the new shape as the curse lands
+            ForEachLine(l => { l.Morph = 1f; l.Echoes = curse?.echoes ?? 1; });
             if (Health.IsDead) yield break;
 
             if (sigil) sigil.Release();
@@ -768,6 +806,7 @@ namespace Roygbiv
             f.bodyScale = self.bodyScale;
             f.bodyRotation = self.bodyRotation;
             f.bodyBase = self.bodyBase;
+            if (f.line && self.line) f.line.CopyFrom(self.line);
             f.bobOffset = Random.Range(0f, 10f);
             f.fade = 0f;
             return f;
@@ -1025,6 +1064,7 @@ namespace Roygbiv
         {
             public Transform root, body;
             public SpriteRenderer bodySprite, halo, white, pupil;
+            public IndigoLineBody line;
             public Vector3 bodyPos, bodyScale = Vector3.one;
             public Quaternion bodyRotation = Quaternion.identity;
             public Color bodyBase = UnityEngine.Color.white;
@@ -1047,6 +1087,7 @@ namespace Roygbiv
                     order = f.bodySprite.sortingOrder;
                 }
             }
+            if (lineBody) f.line = IndigoLineBody.Create(root, restShape, lineWidth, order);
             f.halo = IndigoShapes.Create("Halo", IndigoShapes.ThinRing, root, Vector2.zero, haloSize, UnityEngine.Color.clear, order - 1);
             f.white = IndigoShapes.Create("Eye", IndigoShapes.Disc, root, Vector2.zero, eyeSize, eyeWhite, order + 1);
             f.pupil = IndigoShapes.Create("Pupil", IndigoShapes.Disc, root, Vector2.zero, eyeSize * 0.42f, pupilColor, order + 2);
@@ -1070,19 +1111,35 @@ namespace Roygbiv
             squash = Mathf.MoveTowards(squash, 0f, dt * 1.5f);
             hurtFlash = Mathf.MoveTowards(hurtFlash, 0f, dt / 0.12f);
             sink = Mathf.MoveTowards(sink, state == State.Defeated ? 0.6f : 0f, dt * 0.4f);
+            chaosKick = Mathf.MoveTowards(chaosKick, 0f, dt * 1.4f);
+            if (state == State.Defeated)
+            {
+                defeatClock += dt;
+                float calm = Mathf.Min(1f, defeatClock / 1.6f);
+                ForEachLine(l => l.Morph = calm);
+            }
 
             Vector2 pos = transform.position;
             var velocity = (pos - lastPosition) / dt;
             lastPosition = pos;
             tilt = Mathf.Lerp(tilt, Mathf.Clamp(-velocity.x * 1.5f, -20f, 20f), 1f - Mathf.Exp(-8f * dt));
 
-            // Casting spins it up; otherwise it settles back onto a corner (the diamond looks the same every 90°).
+            // Casting spins it up; otherwise it settles back upright (a sprite diamond looks the same every 90°).
+            float upright = lineBody ? 360f : 90f;
             if (castCharge > 0f) spin += dt * 720f * castCharge * castCharge;
-            else spin = Mathf.MoveTowardsAngle(spin, Mathf.Round(spin / 90f) * 90f, dt * 360f);
+            else spin = Mathf.MoveTowardsAngle(spin, Mathf.Round(spin / upright) * upright, dt * 360f);
 
             Animate(self, LookDirection(self), self.fade);
             AnimateLightPool();
             AnimateDecoys(decoys);
+        }
+
+        /// <summary>Every outline on screen: its own and its copies', so they always match.</summary>
+        void ForEachLine(Action<IndigoLineBody> apply)
+        {
+            if (self?.line) apply(self.line);
+            foreach (var f in decoys)
+                if (f.line) apply(f.line);
         }
 
         void AnimateDecoys(List<Figure> figures)
@@ -1106,7 +1163,19 @@ namespace Roygbiv
             var offset = new Vector3(0f, Mathf.Sin((animTime + f.bobOffset) * 2.1f) * bobAmount - sink, 0f);
             float pump = 1f + 0.12f * Mathf.Max(glow, castCharge) + 0.25f * jolt;
 
-            if (f.body)
+            if (f.line)
+            {
+                f.line.transform.localPosition = offset;
+                f.line.transform.localRotation = Quaternion.Euler(0f, 0f, tilt + spin);
+                f.line.transform.localScale = new Vector3(bodyRadius * pump * (1f + squash), bodyRadius * pump * (1f - squash), 1f);
+                f.line.Chaos = Mathf.Clamp01(0.03f + shapeChaos + chaosKick); // a faint shimmer even at rest
+                float flash = f == self ? hurtFlash : 0f;
+                var bodyColor = self.bodySprite ? self.bodySprite.color : self.bodyBase; // Recolorable keeps this up to date
+                var coreColor = UnityEngine.Color.Lerp(UnityEngine.Color.Lerp(bodyColor, UnityEngine.Color.white, 0.8f), UnityEngine.Color.white, flash);
+                var glowColor = UnityEngine.Color.Lerp(accent, UnityEngine.Color.white, flash);
+                f.line.Draw(coreColor, glowColor, alpha);
+            }
+            else if (f.body)
             {
                 f.body.localPosition = f.bodyPos + offset;
                 f.body.localRotation = Quaternion.Euler(0f, 0f, tilt + spin) * f.bodyRotation;
@@ -1179,6 +1248,7 @@ namespace Roygbiv
             {
                 title = "MIRROR", accent = new Color(0.55f, 0.45f, 1f),
                 mirrorMove = true,
+                shape = IndigoShape.Infinity, echoes = 1,
                 look = new WarpLook
                 {
                     tint = new Color(0.45f, 0.35f, 1f, 0.25f), vignette = new Color(0.12f, 0.05f, 0.3f, 0.55f),
@@ -1190,6 +1260,7 @@ namespace Roygbiv
             {
                 title = "SWAP", accent = new Color(1f, 0.35f, 0.75f),
                 swapJumpAndAttack = true, swapShootAndDash = true,
+                shape = IndigoShape.Knot, echoes = 1,
                 look = new WarpLook
                 {
                     hueShift = 0.5f, glitch = 0.55f, jitter = 0.003f, chromatic = 0.012f,
@@ -1200,6 +1271,7 @@ namespace Roygbiv
             {
                 title = "ECHO", accent = new Color(0.3f, 0.9f, 1f),
                 inputDelay = 0.2f,
+                shape = IndigoShape.Ripple, echoes = 2,
                 look = new WarpLook
                 {
                     smear = 0.8f, smearZoom = 0.012f, desaturate = 0.35f, tint = new Color(0.2f, 0.7f, 1f, 0.2f),
@@ -1211,6 +1283,7 @@ namespace Roygbiv
             {
                 title = "INVERSION", accent = new Color(1f, 0.85f, 0.4f),
                 mirrorMove = true, swapJumpAndAttack = true,
+                shape = IndigoShape.Cusps, echoes = 2,
                 look = new WarpLook
                 {
                     roll = 180f, hueCycle = 0.15f, chromatic = 0.018f, wave = 0.006f, waveFrequency = 11f,

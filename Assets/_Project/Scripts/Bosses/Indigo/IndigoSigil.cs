@@ -122,10 +122,10 @@ namespace Roygbiv
             float throb = 1f + 0.06f * Mathf.Sin(age * Mathf.Lerp(6f, 22f, charge));
             inner.transform.localScale = Vector3.one * 3.3f * scale * throb;
             inner.transform.localRotation = Quaternion.Euler(0f, 0f, -spin);
-            inner.color = WithAlpha(hot, alpha * 0.7f);
+            inner.color = WithAlpha(hot, alpha * 0.5f);
 
             glow.transform.localScale = Vector3.one * Mathf.Lerp(2f, 5f, charge) * scale;
-            glow.color = WithAlpha(hot, alpha * Mathf.Lerp(0.08f, 0.35f, charge));
+            glow.color = WithAlpha(hot, alpha * Mathf.Lerp(0.05f, 0.2f, charge)); // faint, so the boss's outline reads in front of it
 
             for (int i = 0; i < Runes; i++)
             {

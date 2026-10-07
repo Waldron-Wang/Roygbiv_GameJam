@@ -37,7 +37,7 @@ namespace Roygbiv
         [Range(0f, 1f)] public float glitch;
         [Tooltip("The picture twitches every frame, in screen widths.")]
         [Range(0f, 0.02f)] public float jitter;
-        [Tooltip("Motion trails: how much of the last frame stays on screen.")]
+        [Tooltip("Motion trails: how much of the last frame stays on screen (per frame at 60 fps; any frame rate looks the same).")]
         [Range(0f, 0.95f)] public float smear;
         [Tooltip("The trails zoom inward every frame: a tunnel of echoes.")]
         [Range(0f, 0.05f)] public float smearZoom;
@@ -271,8 +271,10 @@ namespace Roygbiv
             bool fresh = EnsureHistory(src);
             if (fresh) Graphics.Blit(warped, history);
             material.SetTexture(HistoryId, history);
-            material.SetFloat(SmearId, look.smear);
-            material.SetFloat(SmearZoomId, look.smearZoom);
+            // Smear and its zoom are tuned per frame at 60 fps; scale them by the real frame time so trails look the same at any frame rate.
+            float frames = Mathf.Max(Time.deltaTime, 1f / 240f) * 60f;
+            material.SetFloat(SmearId, Mathf.Pow(look.smear, frames));
+            material.SetFloat(SmearZoomId, look.smearZoom * frames);
 
             var trailed = RenderTexture.GetTemporary(src.descriptor);
             Graphics.Blit(warped, trailed, material, 1);

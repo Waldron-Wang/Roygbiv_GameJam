@@ -272,6 +272,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.Recolorable
   color: 5
   grayBrightness: 0.45
+  desaturate: 0
 --- !u!61 &390795781
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -426,6 +427,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.Recolorable
   color: 5
   grayBrightness: 0.45
+  desaturate: 0
 --- !u!61 &616008146
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -580,6 +582,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.Recolorable
   color: 5
   grayBrightness: 0.45
+  desaturate: 0
 --- !u!61 &616637300
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -720,6 +723,8 @@ MonoBehaviour:
   offset: {x: 0, y: 1.5}
   smoothTime: 0.15
   autoScrollSpeed: 0
+  autoScrollLead: 4
+  leftBehindGrace: 1
 --- !u!81 &739240825
 AudioListener:
   m_ObjectHideFlags: 0
@@ -738,7 +743,7 @@ Camera:
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 2
-  m_BackGroundColor: {r: 0.07, g: 0.07, b: 0.09, a: 1}
+  m_BackGroundColor: {r: 0.4, g: 0.4, b: 0.4, a: 1}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
@@ -879,6 +884,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.Recolorable
   color: 5
   grayBrightness: 0.45
+  desaturate: 0
 --- !u!61 &1017130970
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -1101,6 +1107,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.Recolorable
   color: 5
   grayBrightness: 0.45
+  desaturate: 0
 --- !u!61 &1541745535
 BoxCollider2D:
   m_ObjectHideFlags: 0
