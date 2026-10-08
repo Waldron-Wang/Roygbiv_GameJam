@@ -122,7 +122,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.Health
   team: 2
-  maxHealth: 12
+  maxHealth: 16
   hitInvulnerability: 0.2
 --- !u!114 &8420959027777328958
 MonoBehaviour:
@@ -142,7 +142,216 @@ MonoBehaviour:
   - 0.75
   - 0.5
   - 0.25
-  projectilePrefab: {fileID: 8066445332528177978, guid: 5325d2bc32a8b421b98c9c1653e8fbab, type: 3}
+  curses:
+  - title: MIRROR
+    hint: 
+    accent: {r: 0.55, g: 0.45, b: 1, a: 1}
+    mirrorMove: 1
+    swapJumpAndAttack: 0
+    swapShootAndDash: 0
+    inputDelay: 0
+    look:
+      tint: {r: 0.45, g: 0.35, b: 1, a: 0.25}
+      desaturate: 0
+      hueShift: 0
+      hueCycle: 0
+      invert: 0
+      vignette: {r: 0.12, g: 0.05, b: 0.3, a: 0.55}
+      chromatic: 0.012
+      wave: 0.004
+      waveFrequency: 9
+      mirrorGhost: 0.3
+      glitch: 0
+      jitter: 0
+      smear: 0
+      smearZoom: 0
+      roll: 0
+      sway: 4
+      swaySpeed: 0.22
+      zoomPulse: 0.03
+  - title: SWAP
+    hint: 
+    accent: {r: 1, g: 0.35, b: 0.75, a: 1}
+    mirrorMove: 0
+    swapJumpAndAttack: 1
+    swapShootAndDash: 1
+    inputDelay: 0
+    look:
+      tint: {r: 0, g: 0, b: 0, a: 0}
+      desaturate: 0
+      hueShift: 0.5
+      hueCycle: 0
+      invert: 0
+      vignette: {r: 0.3, g: 0, b: 0.25, a: 0.5}
+      chromatic: 0.012
+      wave: 0
+      waveFrequency: 0
+      mirrorGhost: 0
+      glitch: 0.55
+      jitter: 0.003
+      smear: 0
+      smearZoom: 0
+      roll: 0
+      sway: 2
+      swaySpeed: 0.5
+      zoomPulse: 0
+  - title: ECHO
+    hint: 
+    accent: {r: 0.3, g: 0.9, b: 1, a: 1}
+    mirrorMove: 0
+    swapJumpAndAttack: 0
+    swapShootAndDash: 0
+    inputDelay: 0.2
+    look:
+      tint: {r: 0.2, g: 0.7, b: 1, a: 0.2}
+      desaturate: 0.35
+      hueShift: 0
+      hueCycle: 0
+      invert: 0
+      vignette: {r: 0, g: 0.08, b: 0.2, a: 0.6}
+      chromatic: 0.01
+      wave: 0.008
+      waveFrequency: 6
+      mirrorGhost: 0
+      glitch: 0
+      jitter: 0
+      smear: 0.8
+      smearZoom: 0.012
+      roll: 0
+      sway: 3
+      swaySpeed: 0.18
+      zoomPulse: 0.05
+  - title: INVERSION
+    hint: 
+    accent: {r: 1, g: 0.85, b: 0.4, a: 1}
+    mirrorMove: 1
+    swapJumpAndAttack: 1
+    swapShootAndDash: 0
+    inputDelay: 0
+    look:
+      tint: {r: 0, g: 0, b: 0, a: 0}
+      desaturate: 0
+      hueShift: 0
+      hueCycle: 0.15
+      invert: 0
+      vignette: {r: 0.1, g: 0, b: 0.2, a: 0.65}
+      chromatic: 0.018
+      wave: 0.006
+      waveFrequency: 11
+      mirrorGhost: 0
+      glitch: 0.15
+      jitter: 0
+      smear: 0.45
+      smearZoom: 0.006
+      roll: 180
+      sway: 6
+      swaySpeed: 0.3
+      zoomPulse: 0.06
+  castHeight: 7.5
+  riseTime: 0.9
+  castTime: 2.6
+  liftTime: 0.35
+  landTime: 0.6
+  defeatClearTime: 1.5
+  labelOffset: 3.6
+  onCast:
+    m_PersistentCalls:
+      m_Calls: []
+  onCurse:
+    m_PersistentCalls:
+      m_Calls: []
+  groundY: 0
+  floorMinX: -20
+  floorMaxX: 20
+  arenaMinX: -16
+  arenaMaxX: 16
+  hoverHeight: 3.6
+  sideOffset: 6
+  glideTimePerPhase:
+  - 1
+  - 0.9
+  - 0.85
+  - 0.7
+  orbPrefab: {fileID: 8066445332528177978, guid: 5325d2bc32a8b421b98c9c1653e8fbab, type: 3}
+  gazeBeamsPerPhase: 01000000010000000200000002000000i
+  gazeTrackTimePerPhase:
+  - 1.1
+  - 1
+  - 1
+  - 0.85
+  gazeTurnSpeedPerPhase:
+  - 90
+  - 110
+  - 120
+  - 150
+  gazeLockTime: 0.35
+  gazeBeamTime: 0.45
+  gazeWidth: 0.9
+  gazeRange: 45
+  gazeDamage: 1
+  mandalaOrbsPerPhase: 0a0000000c0000000c0000000e000000i
+  mandalaRingsPerPhase: 01000000020000000100000002000000i
+  spiralTimePerPhase:
+  - 0
+  - 0
+  - 1.4
+  - 1.2
+  mandalaWindUp: 0.6
+  mandalaRingGap: 0.5
+  spiralArms: 3
+  spiralInterval: 0.11
+  spiralTurn: 19
+  blinkFadeTime: 0.25
+  blinkMarkTimePerPhase:
+  - 0.9
+  - 0.8
+  - 0.75
+  - 0.6
+  blinkLockTime: 0.25
+  blinkHeight: 6
+  blinkDropTime: 0.16
+  crushDamage: 1
+  rippleSpeed: 12
+  rippleHeight: 0.7
+  rippleDamage: 1
+  meditateTimePerPhase:
+  - 1.8
+  - 1.5
+  - 1.3
+  - 1.1
+  decoysPerPhase: 02000000020000000200000003000000i
+  shufflesPerPhase: 02000000020000000300000004000000i
+  swapTimePerPhase:
+  - 0.5
+  - 0.5
+  - 0.42
+  - 0.36
+  illusionSpacing: 4.5
+  splitTime: 0.6
+  illusionVolleys: 2
+  illusionVolleyGap: 0.9
+  illusionLinger: 2
+  decoyBurstOrbs: 6
+  decoyBurstFuse: 0.3
+  starsPerPhase: 03000000030000000400000005000000i
+  starSpacing: 3.2
+  starWidth: 1.3
+  starHeight: 18
+  starWarnTime: 0.9
+  starBurnTime: 0.35
+  starStagger: 0.15
+  restTimePerPhase:
+  - 1.3
+  - 1.1
+  - 1
+  - 0.8
+  attackPoseHold: 0.4
+  diamondPlaceholder: 1
+  haloSize: 3.4
+  eyeSize: 0.9
+  lightPoolSize: {x: 2.6, y: 0.45}
+  eyeWhite: {r: 0.95, g: 0.93, b: 1, a: 1}
+  pupilColor: {r: 0.08, g: 0.03, b: 0.2, a: 1}
 --- !u!1 &3173141961783652111
 GameObject:
   m_ObjectHideFlags: 0
@@ -153,7 +362,6 @@ GameObject:
   m_Component:
   - component: {fileID: 4633998270801873776}
   - component: {fileID: 8258111926353892352}
-  - component: {fileID: 1688776278340473989}
   m_Layer: 0
   m_Name: Visual
   m_TagString: Untagged
@@ -236,17 +444,3 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
   m_BlendShapeWeights: []
---- !u!114 &1688776278340473989
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3173141961783652111}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: eb034f814fe864008899798fb35fc5c4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.Recolorable
-  color: 5
-  grayBrightness: 0.45
