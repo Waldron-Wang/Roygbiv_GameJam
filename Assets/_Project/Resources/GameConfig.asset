@@ -23,6 +23,23 @@ MonoBehaviour:
   mainMenuScene: MainMenu
   hubScene: Hub
   endingScene: Ending
+  prologue: {fileID: 11400000, guid: 5c1e7a3b9d2f4e60a1b8c7d6e5f40a40, type: 2}
   returnToHubDelay: 2.5
   recolorDuration: 2
   respawnDelay: 1.5
+  menuMusic: {fileID: 0}
+  hubMusic: {fileID: 0}
+  endingMusic: {fileID: 0}
+  musicFadeSeconds: 1.5
+  musicDuckVolume: 0.4
+  introMusicVolume: 0.35
+  bossMusicFadeOut: 0.8
+  bossMusicSilence: 0.8
+  bossMusicFadeIn: 1.5
+  bossIntroZoom: 0.6
+  bossIntroPanSeconds: 1.2
+  bossIntroBeforeMusic: 0.6
+  bossIntroAfterMusic: 1.4
+  bossIntroReturnSeconds: 0.9
+  stopMusicOnBossDefeated: 1
+  colorRestoredStinger: {fileID: 0}

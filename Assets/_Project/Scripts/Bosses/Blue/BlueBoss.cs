@@ -173,7 +173,7 @@ namespace Roygbiv
         void OnDestroy()
         {
             SetWind(0f);
-            ClearTears();
+            ClearTears(splash: false); // the scene is unloading: spawning splash puffs now would leak them past it
             ClearStreaks();
             if (arena) Destroy(arena.gameObject);
             if (flood) Destroy(flood.gameObject);
@@ -416,10 +416,14 @@ namespace Roygbiv
             tears.Add(BlueTear.Throw(() => from, null, tear, flood, null));
         }
 
-        void ClearTears()
+        void ClearTears(bool splash = true)
         {
             foreach (var t in tears)
-                if (t) t.Splash();
+                if (t)
+                {
+                    if (splash) t.Splash();
+                    else Destroy(t.gameObject);
+                }
             tears.Clear();
         }
 

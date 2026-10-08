@@ -15,6 +15,10 @@ MonoBehaviour:
   caption: "Each curse <color=#7B6CFF>scrambles</color> your controls. Read the sigil"
   subCaption: 
   accent: {r: 0.48235294, g: 0.42352942, b: 1, a: 1}
+  nudge: "When your hands lie, the <color=#7B6CFF>sigil</color> tells the truth"
+  nudgeAfterDeaths: 1
+  demoAfterDeaths: 3
+  onlyDuringBossFight: 0
   demo: 6
   keys:
   - Left

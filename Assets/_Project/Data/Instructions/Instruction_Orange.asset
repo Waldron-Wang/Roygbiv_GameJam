@@ -15,6 +15,10 @@ MonoBehaviour:
   caption: "Shoot the <color=#FF9A2E>latch</color> [RMB] / [C] to trap it, then catch it 3 times"
   subCaption: 
   accent: {r: 1, g: 0.6039216, b: 0.18039216, a: 1}
+  nudge: "You'll never outrun it. Look up: something there can <color=#FF9A2E>hold it still</color>"
+  nudgeAfterDeaths: 1
+  demoAfterDeaths: 3
+  onlyDuringBossFight: 0
   demo: 2
   keys:
   - RMB

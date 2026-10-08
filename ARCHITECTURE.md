@@ -74,12 +74,12 @@ Assets/_Project/
     ├── Player/      PlayerController, PlayerMotor, PlayerCombat
     ├── Abilities/   AbilityBase, AbilityLoadout, LightShot, Dash, BlazeStrike, DoubleJump, DownDash, Serenity (HeavySlam: no longer granted)
     ├── Bosses/      BossBase + one folder per color
-    ├── Levels/      LevelController, LevelTrigger, ShootableSwitch, CameraFollow
+    ├── Levels/      LevelController, BossIntro (boss reveal cutscene), LevelTrigger, ShootableSwitch, CameraFollow
     ├── Effects/     ScreenWarp (camera disorientation: color, wobble, glitch, trails, roll), DashAfterImage
     ├── World/       ColorWorld, Recolorable
     ├── Dialogue/    DialogueData, DialogueRunner
     ├── Instructions/ InstructionData, InstructionRunner   (optional how-to cards, opened from the Tip button)
-    ├── Audio/       AudioManager, SceneMusic
+    ├── Audio/       AudioManager (how it sounds), MusicDirector (what plays), MusicTrack, SceneMusic
     ├── UI/          IMGUI screens, all drawn with UiKit (one look: panels, notches, scanlines, keycaps) on a 1920×1080 canvas
     ├── Debug/       DebugCheats
     └── Editor/      SkeletonBuilder  (menu: ROYGBIV > Build Skeleton)
@@ -194,7 +194,7 @@ Player death: `Health.Died` → `GameEvents.PlayerDied` → `LevelController.Fai
 ### Colors & progression (`ColorData`, `GameConfig`)
 - `ColorId` is in spectrum order (ROYGBIV). **The play order is set in `GameConfig.colorOrder`**:
   Yellow → Orange → Red → Green → Blue → Indigo → Violet.
-- Each `ColorData` holds the display name, tint, emotion, scene name, granted ability, story fragment and music layer.
+- Each `ColorData` holds the display name, tint, emotion, scene name, granted ability, story fragment and level / boss music.
 - A color unlocks once every color before it in the play order has been restored (`GameManager.IsUnlocked`).
 
 ### Input (`InputReader` → `PlayerIntent` → gameplay)
@@ -286,7 +286,7 @@ Helpers available to subclasses: `Player`, `AimDirection`, `Fire(...)`, `Wait(..
 | Assistant programmer | `Scripts/Core`, `Levels`, integration | `GameConfig`, scenes in Build Settings |
 | Level / narrative designer | `Scenes/Level_*`, `Data/Dialogue`, `Data/Colors` | `LevelTrigger`, `ShootableSwitch`, `DialogueData` assets |
 | Artist / animator | `Art/`, sprites on prefabs, later `Recolorable.Apply` / shaders | Replace `Visual` children on prefabs |
-| Audio / VFX | `Audio/`, `ColorData.musicLayer`, `SceneMusic` | Listen to `GameEvents` (never edit gameplay code to trigger a sound) |
+| Audio / VFX | `Audio/`, `MusicTrack` assets, `ColorData.levelMusic` / `bossMusic`, `GameConfig` music | Listen to `GameEvents` (never edit gameplay code to trigger a sound) |
 
 **Merge-conflict rules for Unity:** one person per scene at a time. Build reusable things as **prefabs**.
 Talk to each other before editing someone else's scene or prefab.

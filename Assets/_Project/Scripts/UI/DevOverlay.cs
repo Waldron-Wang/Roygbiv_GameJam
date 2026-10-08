@@ -8,7 +8,7 @@ namespace Roygbiv
     /// <summary>
     /// Editor and development builds only (see Bootstrapper; release builds don't even contain it). A debug readout in
     /// the UiKit look, hidden until F12 toggles it: scene and level, the boss (type, state, HP, phase, fighting),
-    /// the player (HP, abilities on / stolen), Serenity, time scale and pause, input blocks and modifiers, Violet's
+    /// the player (HP, abilities on / stolen), Serenity, time scale and pause, the music track, input blocks and modifiers, Violet's
     /// checkpoint, and the cheat keys (DebugCheats). Reads only.
     /// </summary>
     public class DevOverlay : MonoBehaviour
@@ -74,6 +74,7 @@ namespace Roygbiv
             }
             if (serenity != SerenityState.Unavailable) Line("SERENITY", $"{serenity} {serenityFraction:0.00}");
             if (Game.Time) Line("TIME", $"scale {Time.timeScale:0.00}{(Game.Time.IsPaused ? "  paused" : "")}");
+            if (Game.Audio) Line("MUSIC", Game.Audio.CurrentMusic ? Game.Audio.CurrentMusic.name : "silence");
             if (Game.Input) Line("INPUT", $"{(Game.Input.GameplayEnabled ? "on" : "BLOCKED")}  move {Game.Input.Intent.move}");
             if (LevelController.Current && LevelController.Current.Color == ColorId.Violet)
                 Line("VIOLET", $"checkpoint {VioletCheckpoint.Index} / arena {VioletCheckpoint.ArenaIndex}");

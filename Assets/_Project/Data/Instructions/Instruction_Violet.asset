@@ -15,6 +15,10 @@ MonoBehaviour:
   caption: "Use <color=#C266FF>every ability</color> to reach the king"
   subCaption: 
   accent: {r: 0.7607843, g: 0.4, b: 1, a: 1}
+  nudge: 
+  nudgeAfterDeaths: 0
+  demoAfterDeaths: 0
+  onlyDuringBossFight: 0
   demo: 7
   keys:
   - Shift

@@ -232,8 +232,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.Health
   team: 2
-  maxHealth: 11
-  hitInvulnerability: 0.2
+  maxHealth: 15
+  hitInvulnerability: 0.3
 --- !u!114 &3330547317606462125
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -249,9 +249,9 @@ MonoBehaviour:
   color: 2
   displayName: Sun-Construct
   phaseThresholds:
-  - 0.75
-  - 0.5
-  - 0.3
+  - 0.8
+  - 0.6
+  - 0.4
   orbPrefab: {fileID: 8066445332528177978, guid: f2a4236f4ba54db2bf116aa8935ae13b, type: 3}
   aimedCountPerPhase: 01000000010000000100000003000000i
   spreadCount: 3

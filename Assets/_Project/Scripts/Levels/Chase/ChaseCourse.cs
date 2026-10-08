@@ -66,8 +66,10 @@ namespace Roygbiv
         [Tooltip("Pit width at phase 0; grows per phase.")]
         [SerializeField] float pitWidth = 3f;
         [SerializeField] float pitWidthPerPhase = 0.75f;
-        [Tooltip("Hot beam: a low hurdle under a beam that hurts. Bottom of the beam above ground: a full jump hits it, a short hop doesn't.")]
-        [SerializeField] float hotBeamHeight = 3.2f;
+        [Tooltip("Hot beam: a low hurdle under a beam that hurts. Bottom of the beam above ground: a full jump hits it, a short hop " +
+                 "doesn't. The player is 1.8 tall; a tap (jump held up to ~0.15 s) peaks at ~2.1, a full jump at ~2.9, so 4 leaves " +
+                 "a fair window. 3.2 only cleared a one-frame tap.")]
+        [SerializeField] float hotBeamHeight = 4f;
         [SerializeField] Vector2 hotBeamHurdleSize = new(0.6f, 0.5f);
         [Tooltip("Too tall to jump: shoot it or melee it.")]
         [SerializeField] Vector2 crateSize = new(1.2f, 3.4f);

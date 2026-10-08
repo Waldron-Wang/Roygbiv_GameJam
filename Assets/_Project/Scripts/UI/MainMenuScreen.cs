@@ -9,14 +9,17 @@ namespace Roygbiv
     ///   flickers the same way. A strip under it shows the seven colors.
     ///   One button, START: keeps the save and goes to the hub (a fresh save is just an empty one). Erasing progress
     ///   lives in the hub ("Reset progress"). Click it; Z / Enter work too, without a hint.
+    ///   On a fresh save START first plays the Prologue (the story, GameConfig.prologue) over the menu, then goes
+    ///   straight into the first level (GameManager.ShouldPlayPrologue / FinishPrologue).
     /// </summary>
     public class MainMenuScreen : MonoBehaviour
     {
         static readonly Rect StartButton = new(960f - 230f, 600f, 460f, 96f);
 
         readonly GlitchTitle title = new();
-        float openedAt = -1f;
-        bool started;
+        readonly Prologue prologue = new();
+        float openedAt = -1f, startedAt = -1f;
+        bool started, leaving;
 
         static float Now => Time.unscaledTime;
 
@@ -24,6 +27,14 @@ namespace Roygbiv
         {
             if (openedAt < 0f) openedAt = Now;
             if (!Game.Input || Game.Scenes.IsLoading) return;
+            if (prologue.Playing)
+            {
+                if (Now - startedAt < 0.3f) return; // not the press that started it
+                prologue.Tick();
+                // Keep drawing its dark last frame under the scene fade, so the menu never flashes back.
+                if (prologue.Finished && !leaving) { leaving = true; Game.Manager.FinishPrologue(); }
+                return;
+            }
             if (Game.Input.Intent.confirmPressed && Now - openedAt > 0.5f) StartGame();
         }
 
@@ -31,13 +42,21 @@ namespace Roygbiv
         {
             if (started || !Game.Manager) return;
             started = true;
-            Game.Manager.ContinueGame();
+            startedAt = Now;
+            if (Game.Manager.ShouldPlayPrologue) prologue.Begin(Game.Config.prologue);
+            else Game.Manager.ContinueGame();
         }
 
         void OnGUI()
         {
             if (openedAt < 0f) return;
             var e = Event.current;
+            if (prologue.Playing)
+            {
+                if (e.type == EventType.MouseDown && e.button == 0 && Now - startedAt > 0.3f) { prologue.Click(); e.Use(); return; }
+                if (e.type == EventType.Repaint) prologue.Draw();
+                return;
+            }
             title.Tick(Now);
             var full = UiKit.Fill();
             var view = UiKit.Fit();

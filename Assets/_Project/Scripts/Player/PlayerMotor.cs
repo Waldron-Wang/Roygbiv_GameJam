@@ -54,7 +54,8 @@ namespace Roygbiv
             moveInput = move;
             jumpHeld = jumpIsHeld;
             if (jumpPressed) lastJumpPressedTime = Time.time;
-            if (!Locked && !Rooted && Mathf.Abs(move.x) > 0.1f) FacingSign = move.x > 0 ? 1 : -1;
+            if (autoRunSpeed > 0f) FacingSign = 1; // the Orange chase: always facing the run (dash, swings and shots go right)
+            else if (!Locked && !Rooted && Mathf.Abs(move.x) > 0.1f) FacingSign = move.x > 0 ? 1 : -1;
         }
 
         /// <summary>Springs etc.: throws the player up to full height whether or not jump is held.</summary>

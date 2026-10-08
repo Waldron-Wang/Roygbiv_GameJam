@@ -739,6 +739,7 @@ MonoBehaviour:
   runway: 30
   buildAhead: 25
   maxGroundLength: 120
+  groundDepth: 14
   gapSecondsPerPhase:
   - {x: 1.4, y: 2.2}
   - {x: 1.1, y: 1.8}
@@ -766,7 +767,7 @@ MonoBehaviour:
   tallHurdleSize: {x: 1, y: 1.8}
   pitWidth: 3
   pitWidthPerPhase: 0.75
-  hotBeamHeight: 3.2
+  hotBeamHeight: 3.7
   hotBeamHurdleSize: {x: 0.6, y: 0.5}
   crateSize: {x: 1.2, y: 3.4}
   springWallHeight: 3.5

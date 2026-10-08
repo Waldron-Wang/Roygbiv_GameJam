@@ -11,7 +11,8 @@ namespace Roygbiv.EditorTools
     /// and the demo's sprites from Art/Player, Art/Boss and Art/Placeholder), then points each ColorData's
     /// `instruction` at its card if that field is empty: that's what gives the level its Tip button. Cards that
     /// already exist are left alone, so Inspector tweaks survive a re-run; ROYGBIV > Reset Instructions to Defaults
-    /// rewrites them (it asks first). Green, Blue, Indigo and Violet draw their bosses in code (DemoBosses), so their
+    /// rewrites them (it asks first). Each card's `nudge` is the vague first hint that keeps the Tip from spoiling a
+    /// first try (see InstructionData); Yellow (the parry tutorial) and Violet have none, so theirs are open from the start. Green, Blue, Indigo and Violet draw their bosses in code (DemoBosses), so their
     /// cards carry only the player's frames.
     /// </summary>
     public static class InstructionBuilder
@@ -34,6 +35,8 @@ namespace Roygbiv.EditorTools
             public string boss, bossHurt;   // Art/Boss file names
             public string[] bossMove;
             public bool dontLink;           // make the asset, but no Tip button for this color
+            public string nudge;            // vague first hint (no demo); empty = the full card from the start
+            public bool duringFight;        // no Tip button before the boss fight starts (Yellow's intro level)
         }
 
         // Keys match InputReader: attack = Left Click (hold + release = Blaze Strike), Light Shot = Right Click or C,
@@ -42,6 +45,7 @@ namespace Roygbiv.EditorTools
         {
             new()
             {
+                duringFight = true,
                 color = ColorId.Yellow, accent = "#FFD93B", demo = InstructionDemo.Reflect,
                 caption = "Press [LMB] to reflect the <color=#FFD93B>light orbs</color> back at it",
                 keys = new[] { "LMB" },
@@ -50,6 +54,7 @@ namespace Roygbiv.EditorTools
             },
             new()
             {
+                nudge = "You'll never outrun it. Look up: something there can <color=#FF9A2E>hold it still</color>",
                 color = ColorId.Orange, accent = "#FF9A2E", demo = InstructionDemo.ShootLatch,
                 caption = "Shoot the <color=#FF9A2E>latch</color> [RMB] / [C] to trap it, then catch it 3 times",
                 keys = new[] { "RMB", "C" },
@@ -58,6 +63,7 @@ namespace Roygbiv.EditorTools
             },
             new()
             {
+                nudge = "Its <color=#FF4A3D>rage</color> can't burn forever. Push it past its limit",
                 color = ColorId.Red, accent = "#FF4A3D", demo = InstructionDemo.Overheat,
                 caption = "Hit it until it <color=#FF4A3D>overheats</color>, then strike!",
                 keys = new[] { "LMB" },
@@ -67,6 +73,7 @@ namespace Roygbiv.EditorTools
             new()
             {
                 // Steal: it takes the ability you used last (keys[0]) into a pod; break it up close (keys[1]).
+                nudge = "What it takes, it keeps close. So <color=#4CD964>get close</color>",
                 color = ColorId.Green, accent = "#4CD964", demo = InstructionDemo.Steal,
                 caption = "Break the <color=#4CD964>pods</color> up close to take your abilities back",
                 keys = new[] { "Shift", "LMB" },
@@ -76,6 +83,7 @@ namespace Roygbiv.EditorTools
             new()
             {
                 // Climb: hop up the ledges, a tear knocks you down, the water rises; catch it at the summit.
+                nudge = "Waiting only lets the water rise. <color=#3D8BFF>Keep climbing</color>",
                 color = ColorId.Blue, accent = "#3D8BFF", demo = InstructionDemo.Climb,
                 caption = "Climb before the <color=#3D8BFF>tears</color> flood the shaft, then catch it at the top",
                 keys = new[] { "Space" },
@@ -85,6 +93,7 @@ namespace Roygbiv.EditorTools
             new()
             {
                 // FlipControls: the slots are left, right, jump, attack, shoot, dash; each curse trades their keys.
+                nudge = "When your hands lie, the <color=#7B6CFF>sigil</color> tells the truth",
                 color = ColorId.Indigo, accent = "#7B6CFF", demo = InstructionDemo.FlipControls,
                 caption = "Each curse <color=#7B6CFF>scrambles</color> your controls. Read the sigil",
                 keys = new[] { "Left", "Right", "Space", "LMB", "RMB", "Shift" },
@@ -178,6 +187,12 @@ namespace Roygbiv.EditorTools
             d.bossHurt = BossSprite(c.bossHurt);
             d.bossMove = (c.bossMove ?? new string[0]).Select(BossSprite).Where(s => s).ToArray();
             d.prop = AssetDatabase.LoadAssetAtPath<Sprite>(Circle);
+            // No spoilers: nudge after the first death in the fight, the full card after the third. No nudge = open from the start.
+            d.nudge = c.nudge ?? "";
+            bool gated = !string.IsNullOrEmpty(c.nudge);
+            d.nudgeAfterDeaths = gated ? 1 : 0;
+            d.demoAfterDeaths = gated ? 3 : 0;
+            d.onlyDuringBossFight = c.duringFight;
         }
 
         /// <summary>Every sprite in Art/Player/&lt;folder&gt;, sorted by file name (same as PlayerAnimationBuilder).</summary>

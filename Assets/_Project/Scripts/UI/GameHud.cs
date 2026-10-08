@@ -8,11 +8,10 @@ namespace Roygbiv
     ///   Top left, a neutral dark panel:
     ///     HP          pips; a lost one flashes, the last one blinks red.
     ///     Colors      a little heart and the seven gems in play order: restored ones lit (a new one pops), this level's marked.
-    ///     Abilities   a slot per ability you HAVE, three to a row, appearing one by one as they're unlocked (with a glow);
-    ///                 a big keycap with its keys (as InputReader binds them) and its name under it. When Green steals one
-    ///                 it flashes red and stays struck through until it's returned (then it pops). The panel grows to fit.
     ///     Serenity    once unlocked: a segmented meter, ACTIVE (draining) / RECHARGING (filling) / READY [Q];
-    ///                 a press that's refused shakes it red.
+    ///                 a press that's refused shakes it red. The panel grows to fit it.
+    ///   No per-ability key list: it cluttered the panel (the Tip card teaches the keys). What Green steals shows on its
+    ///   boss bar (HOLDING).
     ///   Its text is UiKit.Label (22+ px on the 1080p canvas, outlined, on whole pixels); shapes are snapped to pixels.
     ///   Top center, while a boss is fighting: its name in its color, HP segments with a tick at every phase threshold
     ///   (damage trails behind), or catch pips for the bosses you catch (Orange, Blue). Red adds its rage meter (blinking
@@ -30,8 +29,6 @@ namespace Roygbiv
         BossBase boss;
         float bossSeen, bossGhost = 1f, bossHitAt = -10f, bossDefeatedAt = -10f, lastBossFraction = 1f;
 
-        readonly HashSet<AbilityId> stolen = new();
-        readonly Dictionary<AbilityId, float> stolenAt = new(), returnedAt = new(), unlockedAt = new();
         readonly Dictionary<ColorId, float> restoredAt = new();
 
         SerenityState serenity = SerenityState.Unavailable;
@@ -46,9 +43,6 @@ namespace Roygbiv
             GameEvents.BossHealthChanged += OnBossHealth;
             GameEvents.BossDefeated += OnBossDefeated;
             GameEvents.SceneLoaded += OnSceneLoaded;
-            GameEvents.AbilityStolen += OnStolen;
-            GameEvents.AbilityReturned += OnReturned;
-            GameEvents.AbilityUnlocked += OnUnlocked;
             GameEvents.ColorRestored += OnRestored;
             GameEvents.SerenityChanged += OnSerenity;
             GameEvents.SerenityDenied += OnSerenityDenied;
@@ -61,9 +55,6 @@ namespace Roygbiv
             GameEvents.BossHealthChanged -= OnBossHealth;
             GameEvents.BossDefeated -= OnBossDefeated;
             GameEvents.SceneLoaded -= OnSceneLoaded;
-            GameEvents.AbilityStolen -= OnStolen;
-            GameEvents.AbilityReturned -= OnReturned;
-            GameEvents.AbilityUnlocked -= OnUnlocked;
             GameEvents.ColorRestored -= OnRestored;
             GameEvents.SerenityChanged -= OnSerenity;
             GameEvents.SerenityDenied -= OnSerenityDenied;
@@ -102,24 +93,9 @@ namespace Roygbiv
             bossSeen = 0f;
             hpMax = 0;
             panelHeight = -1f;
-            stolen.Clear();
-            stolenAt.Clear();
-            returnedAt.Clear();
             cinematic = false;
         }
 
-        void OnStolen(AbilityId id)
-        {
-            stolen.Add(id);
-            stolenAt[id] = Now;
-        }
-
-        void OnReturned(AbilityId id)
-        {
-            if (stolen.Remove(id)) returnedAt[id] = Now;
-        }
-
-        void OnUnlocked(AbilityId id) => unlockedAt[id] = Now;
         void OnRestored(ColorId id) => restoredAt[id] = Now;
 
         void OnSerenity(SerenityState state, float fraction) => serenityFraction = fraction; // its state is read in Update
@@ -189,21 +165,15 @@ namespace Roygbiv
 
         // ---------- Player ----------
 
-        const float PanelWidth = 472f, SlotWidth = 144f, SlotHeight = 92f, KeyHeight = 40f, GridTop = 116f;
+        const float PanelWidth = 472f, SerenityTop = 116f;
         float panelHeight = -1f;
 
         void DrawPlayerPanel(Vector2 at, Color accent)
         {
-            var pc = PlayerController.Instance;
-            // Only what the player has (stolen counts: it's still theirs), in the order the colors grant them.
-            var have = new List<AbilityId>();
-            foreach (var id in AbilityList())
-                if (stolen.Contains(id) || (pc && pc.Loadout != null && pc.Loadout.Has(id))) have.Add(id);
             bool hasSerenity = serenity != SerenityState.Unavailable;
-            int rows = (have.Count + 2) / 3;
 
-            // The panel grows (smoothly) when a new row of abilities appears.
-            float target = GridTop + rows * SlotHeight + (hasSerenity ? 50f : 0f) + 8f;
+            // The panel grows (smoothly) when the Serenity meter appears.
+            float target = SerenityTop + (hasSerenity ? 50f : 0f) + 8f;
             panelHeight = panelHeight < 0f ? target : Mathf.MoveTowards(panelHeight, target, Time.unscaledDeltaTime * 500f);
             var panel = UiKit.Snap(new Rect(at.x, at.y, PanelWidth, panelHeight));
             UiKit.Panel(panel, Color.black, -1f, 16f, 0.82f);
@@ -251,59 +221,11 @@ namespace Roygbiv
                 if (here) CardGui.Box(UiKit.Snap(new Rect(c.x - 8f, c.y + 17f, 16f, 3f)), UiKit.Accent(data.id));
             }
 
-            // Abilities: three to a row, each appearing when it's unlocked.
-            float gridTop = panel.y + GridTop;
-            for (int i = 0; i < have.Count; i++)
-            {
-                var slot = new Rect(x + (i % 3) * SlotWidth, gridTop + (i / 3) * SlotHeight, SlotWidth, SlotHeight);
-                if (slot.yMax > panel.yMax + 4f) continue; // its row is still opening
-                DrawSlot(have[i], slot, accent);
-            }
-
             if (hasSerenity)
             {
-                var row = new Rect(x, gridTop + rows * SlotHeight + 4f, PanelWidth - 40f, 40f);
+                var row = new Rect(x, panel.y + SerenityTop + 4f, PanelWidth - 40f, 40f);
                 if (row.yMax <= panel.yMax + 4f) DrawSerenity(row);
             }
-        }
-
-        /// <summary>One ability: its keycap(s) (+ HOLD / x2) and its name under them, or STOLEN in red.</summary>
-        void DrawSlot(AbilityId id, Rect slot, Color accent)
-        {
-            var info = UiKit.Ability(id);
-            bool isStolen = stolen.Contains(id);
-            var keyColor = isStolen ? UiKit.Danger : AbilityAccent(id);
-
-            // As big as fits the slot.
-            float h = KeyHeight, width = UiKit.Keys(info.Keys, 0f, 0f, h, 0f, keyColor, false, UiKit.TextMin, info.Tag);
-            for (int k = 0; k < 3 && width > slot.width - 8f; k++)
-            {
-                h = Mathf.Max(30f, h * (slot.width - 8f) / width);
-                width = UiKit.Keys(info.Keys, 0f, 0f, h, 0f, keyColor, false, UiKit.TextMin, info.Tag);
-            }
-            float keyY = slot.y + 28f;
-            float kx = slot.center.x - width * 0.5f;
-            var center = new Vector2(slot.center.x, keyY);
-
-            // A newly unlocked one fades in; the glow ring below marks it.
-            float a = CardGui.Alpha;
-            if (unlockedAt.TryGetValue(id, out var ut)) CardGui.Alpha *= Mathf.Clamp01((Now - ut) / 0.35f);
-            float stolenFlash = isStolen && stolenAt.TryGetValue(id, out var st) ? Mathf.Clamp01(1f - (Now - st) / 0.6f) : 0f;
-            if (isStolen) CardGui.Glow(center, 40f, UiKit.WithAlpha(UiKit.Danger, 0.25f + 0.5f * stolenFlash));
-            UiKit.Keys(info.Keys, kx, keyY, h, 0f, keyColor, true, UiKit.TextMin, info.Tag);
-            if (isStolen)
-            {
-                float keysOnly = UiKit.Keys(info.Keys, 0f, 0f, h, 0f, keyColor, false, UiKit.TextMin);
-                CardGui.Line(new Vector2(kx - 4f, keyY + h * 0.5f + 2f), new Vector2(kx + keysOnly + 4f, keyY - h * 0.5f - 2f), 3f, UiKit.Danger);
-            }
-            var nameColor = isStolen ? Color.Lerp(UiKit.Danger, Color.white, Blink(2f) * 0.35f) : UiKit.TextColor;
-            UiKit.Label(new Rect(slot.x, slot.y + 52f, slot.width, 32f), isStolen ? "STOLEN" : info.Short, UiKit.TextMin, nameColor);
-            CardGui.Alpha = a;
-
-            float back = returnedAt.TryGetValue(id, out var rt) ? (Now - rt) / 0.5f : 2f;
-            float fresh = unlockedAt.TryGetValue(id, out var ut2) ? (Now - ut2) / 0.8f : 2f;
-            float pop = Mathf.Min(back, fresh);
-            if (pop >= 0f && pop < 1f) CardGui.Ring(center, 22f + 36f * pop, 3f * (1f - pop) + 1f, UiKit.WithAlpha(accent, 1f - pop));
         }
 
         void DrawSerenity(Rect row)
@@ -340,29 +262,7 @@ namespace Roygbiv
             var textColor = serenity == SerenityState.Recharging ? UiKit.TextColor : Color.Lerp(fill, Color.white, 0.4f);
             UiKit.Label(new Rect(textX, row.y, 170f, row.height), state, UiKit.TextMin, textColor, TextAnchor.MiddleLeft);
             if (serenity == SerenityState.Ready)
-                UiKit.Keys(new[] { "Q" }, textX + UiKit.LabelWidth(state, UiKit.TextMin) + 12f, row.center.y, 34f, 0f, AbilityAccent(AbilityId.Serenity), true, UiKit.TextMin);
-        }
-
-        static Color AbilityAccent(AbilityId id) => id switch
-        {
-            AbilityId.LightShot => UiKit.Accent(ColorId.Yellow),
-            AbilityId.Dash => UiKit.Accent(ColorId.Orange),
-            AbilityId.BlazeStrike => UiKit.Accent(ColorId.Red),
-            AbilityId.DoubleJump => UiKit.Accent(ColorId.Green),
-            AbilityId.DownDash => UiKit.Accent(ColorId.Blue),
-            AbilityId.Serenity => UiKit.Accent(ColorId.Indigo),
-            _ => UiKit.Neutral,
-        };
-
-        /// <summary>The abilities the colors grant, in play order (Violet grants none).</summary>
-        static List<AbilityId> AbilityList()
-        {
-            var list = new List<AbilityId>();
-            if (!Game.Config) return list;
-            foreach (var data in Game.Config.colorOrder)
-                if (data && data.grantedAbility != AbilityId.None && !list.Contains(data.grantedAbility))
-                    list.Add(data.grantedAbility);
-            return list;
+                UiKit.Keys(new[] { "Q" }, textX + UiKit.LabelWidth(state, UiKit.TextMin) + 12f, row.center.y, 34f, 0f, UiKit.Accent(ColorId.Indigo), true, UiKit.TextMin);
         }
 
         // ---------- Boss ----------

@@ -73,7 +73,8 @@ namespace Roygbiv
         }
 
         /// <summary>Violet remembers the last checkpoint across a restart (as across a death).</summary>
-        static bool AtCheckpoint => LevelController.Current && LevelController.Current.Color == ColorId.Violet && VioletCheckpoint.Index >= 0;
+        static bool AtCheckpoint => BossCheckpoint.Active ||
+            (LevelController.Current && LevelController.Current.Color == ColorId.Violet && VioletCheckpoint.Index >= 0);
 
         static string Label(Item item) => item switch
         {

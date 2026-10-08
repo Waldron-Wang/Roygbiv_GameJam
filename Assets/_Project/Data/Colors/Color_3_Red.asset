@@ -20,4 +20,9 @@ MonoBehaviour:
   instruction: {fileID: 11400000, guid: 604406a6bc2de814d819ca90e7fa74d8, type: 2}
   grantedAbility: 3
   storyFragment: {fileID: 11400000, guid: e368e69fce4404494b2c08e6ac6e18ad, type: 2}
-  musicLayer: {fileID: 0}
+  bossIntro: 1
+  respawnAtBoss: 1
+  levelMusic: {fileID: 11400000, guid: 5c1e7a3b9d2f4e60a1b8c7d6e5f40a33, type: 2}
+  bossMusic: {fileID: 0}
+  muffleUntilBoss: 1
+  restartOnBoss: 1

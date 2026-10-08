@@ -20,18 +20,28 @@ namespace Roygbiv
 
         void Awake() => GetComponent<Collider2D>().isTrigger = true;
 
+        public Action TriggerAction => action;
+
         void OnTriggerEnter2D(Collider2D other)
         {
-            if (fired && once) return;
             var player = other.GetComponentInParent<PlayerController>();
             if (player == null) return;
+            Fire(player);
+        }
+
+        /// <summary>Fires as if the player just walked in (BossCheckpoint uses it to re-close the arena gate).</summary>
+        public void Fire() => Fire(PlayerController.Instance);
+
+        void Fire(PlayerController player)
+        {
+            if (fired && once) return;
             fired = true;
 
             switch (action)
             {
                 case Action.StartBoss: LevelController.Current?.StartBoss(); break;
                 case Action.CompleteLevel: LevelController.Current?.Complete(); break;
-                case Action.KillPlayer: player.Health.Kill(); fired = false; break;
+                case Action.KillPlayer: if (player) player.Health.Kill(); fired = false; break;
             }
             onTriggered.Invoke();
         }

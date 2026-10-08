@@ -65,6 +65,19 @@ namespace Roygbiv
 
         public void ContinueGame() => Game.Scenes.Load(Game.Config.hubScene);
 
+        /// <summary>START should play the prologue first: a fresh save that hasn't seen it (Reset progress shows it again).</summary>
+        public bool ShouldPlayPrologue => Game.Config.prologue && !Progress.prologueSeen && Progress.RestoredCount == 0;
+
+        /// <summary>The prologue ended (or was skipped): remember it, and go straight into the first color's level.</summary>
+        public void FinishPrologue()
+        {
+            Progress.prologueSeen = true;
+            Progress.Save();
+            var first = Game.Config.colorOrder.Count > 0 ? Game.Config.colorOrder[0] : null;
+            if (first) EnterLevel(first.id);
+            else ContinueGame();
+        }
+
         /// <summary>
         /// Reloads the current level: the same reload dying does (RespawnSequence), so Violet resumes from its last
         /// checkpoint (VioletCheckpoint only forgets when another scene loads).

@@ -16,7 +16,7 @@ namespace Roygbiv
         {
             Orb,         // enemy energy orb: glow, bright core, glossy highlight, fading trail
             LightShot,   // the player's shot: white-hot core, pulsing halo, long streak
-            Fireball,    // flame: yellow-white core, flickering tail shading to red, embers
+            Fireball,    // flame (not parryable): a jagged flame pointing where it flies, no white or gloss, embers (the circle is hidden)
             Firecracker, // a tumbling red stick with gold bands and a sparking fuse (the circle is hidden)
             Barrel,      // a rolling barrel seen end-on: iron hoops, plank seams, dust
             Thorn,       // Green's shot: a barbed thorn pointing where it flies, with a leafy trail (the circle is hidden)
@@ -70,13 +70,23 @@ namespace Roygbiv
             core = Disc("Core", transform, Vector2.zero, 0.6f, Color.white, 2);
         }
 
+        // Deliberately unlike Yellow's parryable orb (a smooth round ball with a white core and a glossy shine):
+        // a spiky flame silhouette in reds and oranges, so "jagged and red = dodge it" reads at a glance.
         void BuildFireball()
         {
-            glowAlpha = 0.25f;
-            glow = Disc("Glow", transform, Vector2.zero, 2f, Color.clear, -2);
-            Trail(5, 0.95f, 0.35f, 0.3f);
-            core = Disc("Core", transform, Vector2.zero, 0.62f, new Color(1f, 0.85f, 0.3f), 1);
-            Disc("WhiteHot", core.transform, Vector2.zero, 0.5f, new Color(1f, 0.97f, 0.85f), 2);
+            body.enabled = false;
+            glowAlpha = 0.3f;
+            glow = Disc("Glow", transform, Vector2.zero, 1.8f, Color.clear, -2);
+            Trail(4, 0.7f, 0.25f, 0.3f);
+            spin = new GameObject("Flame").transform;
+            spin.SetParent(transform, false);
+            var flame = VioletShapes.Polygon("ShotFlame", Vector2.zero, 0.2f,
+                new(0.55f, 0f), new(0.47f, 0.22f), new(0.25f, 0.38f), new(0f, 0.36f), new(-0.35f, 0.48f), new(-0.2f, 0.2f),
+                new(-0.95f, 0.1f), new(-0.4f, 0f), new(-0.8f, -0.18f), new(-0.2f, -0.18f), new(-0.42f, -0.42f), new(0f, -0.34f),
+                new(0.25f, -0.38f), new(0.47f, -0.22f));
+            VioletShapes.Create("Outer", flame, spin, Vector2.zero, new Color(0.9f, 0.18f, 0.05f), order);
+            core = VioletShapes.Create("Inner", flame, spin, new Vector2(0.14f, 0f), new Color(1f, 0.55f, 0.1f), order + 1);
+            core.transform.localScale = Vector3.one * 0.6f;
         }
 
         void BuildFirecracker()
@@ -163,7 +173,8 @@ namespace Roygbiv
             if (glow)
             {
                 float pulse = 0.75f + 0.25f * Mathf.Sin(t * 8f);
-                var tint = style == Style.Firecracker ? new Color(1f, 0.7f, 0.2f) : c;
+                var tint = style == Style.Firecracker ? new Color(1f, 0.7f, 0.2f)
+                         : style == Style.Fireball ? Color.Lerp(c, DeepRed, 0.5f) : c;
                 glow.color = new Color(tint.r, tint.g, tint.b, glowAlpha * pulse);
             }
 
@@ -191,8 +202,10 @@ namespace Roygbiv
                     break;
 
                 case Style.Fireball:
-                    core.transform.localPosition = -back * 0.08f; // the hot side leads
-                    core.transform.localScale = Vector3.one * (0.62f + 0.08f * Mathf.PerlinNoise(t * 15f, 0.5f));
+                    // Points where it flies; the tongues flicker longer and shorter.
+                    if (back != Vector2.zero) spin.localRotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(-back.y, -back.x) * Mathf.Rad2Deg);
+                    spin.localScale = new Vector3(0.95f + 0.25f * Mathf.PerlinNoise(t * 14f, 0.5f), 0.92f + 0.16f * Mathf.PerlinNoise(t * 17f, 3f), 1f);
+                    core.transform.localScale = Vector3.one * (0.55f + 0.1f * Mathf.PerlinNoise(t * 20f, 7f));
                     if (Due(0.05f))
                         HeatPuff.Spawn((Vector2)transform.position + (Vector2)transform.TransformDirection(back) * 0.4f * scale,
                             Random.insideUnitCircle * 1.2f + Vector2.up * 0.8f, 0.14f * scale, 0.04f * scale,

@@ -53,8 +53,8 @@ There are two deliberate exceptions, so treat them with care:
 | Script | Uses (depends on) | Used by |
 |---|---|---|
 | `Ids` | — | everything |
-| `ColorData` | Ids, DialogueData | GameConfig, GameManager, AudioManager, HubScreen, GameHud |
-| `GameConfig` | ColorData | Game, Bootstrapper, GameManager, ColorWorld, AudioManager, UI, DebugCheats |
+| `ColorData` | Ids, DialogueData, MusicTrack | GameConfig, GameManager, MusicDirector, HubScreen, GameHud |
+| `GameConfig` | ColorData, MusicTrack | Game, Bootstrapper, GameManager, ColorWorld, AudioManager, MusicDirector, UI, DebugCheats |
 | `GameProgress` | Ids, `PlayerPrefs` | GameManager (writes); AbilityLoadout, ColorWorld, AudioManager, GreenBoss, UI (read via `Game.Progress`) |
 | `PlayerIntent` | — | InputReader, InputModifiers, AbilityBase & abilities, PlayerController, DialogueRunner, PauseMenu |
 | `DialogueData` | — | ColorData, LevelController, EndingScreen, DialogueRunner, GameEvents |
@@ -71,7 +71,8 @@ There are two deliberate exceptions, so treat them with care:
 | `InstructionData` | — | ColorData, InstructionRunner, InstructionView, GameEvents |
 | `InstructionRunner` | Game.Input, Game.Config, Game.Dialogue, Game.Scenes, Game.Time, GameEvents, InstructionData, `SceneManager` | InstructionView, PauseMenu |
 | `TimeController` | `Time.timeScale`, `Time.fixedDeltaTime` (its only writer) | PauseMenu, InstructionRunner, SceneLoader, SerenityAbility |
-| `AudioManager` | Game.Config, Game.Progress | SceneMusic, any gameplay that plays SFX |
+| `AudioManager` | Game.Config, Game.Progress, MusicTrack | MusicDirector, any gameplay that plays SFX |
+| `MusicDirector` | Game.Audio, Game.Config, GameEvents, SceneMusic, `SceneManager` | Bootstrapper |
 | `CombatInterfaces` | Ids (Team), Health | Health, Hitbox, Projectile, abilities, PlayerController, BossBase, ShootableSwitch |
 | **`Health`** | IDamageable, Combat, `Rigidbody2D` | PlayerController, BossBase, abilities (i-frames), LevelTrigger, CameraFollow, DebugCheats |
 | `Hitbox` | IDamageable, IReflectable, DamageInfo | PlayerCombat, BlazeStrike, HeavySlam |
@@ -92,7 +93,7 @@ There are two deliberate exceptions, so treat them with care:
 | Orange chase (`ChaseDirector`, `ChaseCourse`, `CageTrap`, `SpringPad`, `FlatSprite`) | CameraFollow, PlayerMotor, LevelController, OrangeBoss, ShootableSwitch, Breakable, Hazard | Level_Orange, OrangeBoss |
 | `Breakable`, `Hazard` | IDamageable / PlayerController | ChaseCourse |
 | `Recolorable` | Game.Colors | scenes, boss prefabs |
-| `SceneMusic` | Game.Audio | scenes |
+| `SceneMusic` | MusicTrack | scenes (optional), MusicDirector |
 | UI (`UiKit`, `GameHud`, `DevOverlay`, `DialogueView`, `PauseMenu`, `MainMenuScreen`, `HubScreen`, `EndingScreen`, …) | Game, GameEvents, LevelController, PlayerController, the bosses (read only) | nothing (top of the stack) |
 | `DebugCheats` | Game, LevelController, PlayerController, Input System `Keyboard` | nothing |
 | `SkeletonBuilder` (Editor) | everything | Unity menu |
@@ -109,12 +110,12 @@ BeforeSceneLoad         Bootstrapper.Init()
                           ├─ Game.Config = Resources/GameConfig
                           └─ new "[Systems]" (DontDestroyOnLoad), AddComponent in this order:
                              InputReader → TimeController → SceneLoader → GameManager → ColorWorld → DialogueRunner
-                             → InstructionRunner → AudioManager → PauseMenu → DialogueView
+                             → InstructionRunner → AudioManager → MusicDirector → PauseMenu → DialogueView
                              → InstructionView → SerenityView → TitleCardView → CinematicView → GameHud
                              → DevOverlay → DebugCheats   (the last two: editor / development builds only)
                              (each Awake runs immediately inside AddComponent)
 Scene loads             Awake → OnEnable for every scene object
-                        Start for everything (incl. [Systems]: ColorWorld.Start syncs colors, AudioManager.Start builds layers)
+                        Start for everything (incl. [Systems]: ColorWorld.Start syncs colors, MusicDirector picks the scene's music on sceneLoaded, before Start)
 Every frame             InputReader.Update   (DefaultExecutionOrder -100: always first)
                         …all other Updates (PlayerController reads the fresh Intent)
                         FixedUpdate: PlayerMotor physics
@@ -163,7 +164,7 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
 
 #### `ColorData.cs` — ScriptableObject, one per color (`Data/Colors/Color_N_<Name>`)
 - **Purpose:** All per-color design data in one asset.
-- **Fields:** `id`, `displayName`, `tint`, `emotion`, `sceneName`, `instruction`, `grantedAbility`, `storyFragment`, `musicLayer`.
+- **Fields:** `id`, `displayName`, `tint`, `emotion`, `sceneName`, `instruction`, `grantedAbility`, `storyFragment`, `levelMusic`, `bossMusic`, `muffleUntilBoss`, `restartOnBoss`.
 - **Talks to:** read via `Game.Config.Get(colorId)`.
 - **Gotchas:** `sceneName` must match a scene in Build Settings exactly. `grantedAbility` needs a matching ability
   component on the Player prefab, or you'll see the warning "has no component for ability".
@@ -288,6 +289,12 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
   Lines are rich text: the story fragments color the color word and ability name with `<color=#...>`.
 
 #### `InstructionData.cs` + `InstructionRunner.cs` (`Scripts/Instructions`)
+- **No spoilers:** the Tip is earned. Deaths *during the boss fight* are counted per visit to the level (reloads keep the
+  count, any other scene clears it). Before `nudgeAfterDeaths` the button is hidden; then it offers only the card's `nudge`
+  (one vague line, no demo, plus "N more tries until the full tip"); from `demoAfterDeaths` the full demo card.
+  Defaults: nudge after 1, demo after 3. Yellow (the parry tutorial) and Violet are 0 / 0: the full card from the start.
+  `onlyDuringBossFight` hides the button until the boss is fighting (Yellow: its card appears as the fight starts, not in the intro level).
+  A dot in the level's color on the button means it offers something not opened yet (`HasUnread`).
 - **Purpose:** An optional how-to card for the level's boss, opened by the player from the on-screen **Tip button**;
   nothing pops up on its own. `InstructionData` (*Create > ROYGBIV > Instruction*, one per color in `Data/Instructions`,
   referenced by `ColorData.instruction`) holds a one-line `caption` (+ optional `subCaption`, unused by the current cards),
@@ -319,10 +326,31 @@ Format for each entry: **Purpose**, then **API** (the public members you'll actu
     or **Reset Instructions to Defaults**.
 
 #### `AudioManager.cs` (`Scripts/Audio`)
-- **Purpose:** Music, one-shot SFX, and adaptive music layers.
-- **API:** `PlayMusic(clip)`, `StopMusic()`, `PlaySfx(clip, volume)`.
-- **Adaptive music:** Each `ColorData.musicLayer` becomes a looping source. It fades in once that color is restored, while music is playing.
-- **Gotchas:** The layer clips must match the base track's length and tempo, because they all restart together in `PlayMusic`.
+- **Purpose:** *How* music and SFX sound: crossfades, ducking, the pause low-pass, adaptive stems. It never decides *what* plays.
+- **API:** `PlayMusic(track, fade, restart)`, `StopMusic(fade)`, `CurrentMusic`, `Duck(owner, volume)/Unduck(owner, instant)`,
+  `Muffle(owner)/Unmuffle(owner, instant)`,
+  `MusicVolume`, `SfxVolume`, `PlaySfx(clip, volume)`.
+- **Decks:** each track plays on its own set of sources (main clip + stems), so the old one fades out while the new one fades in.
+  `PlayMusic` with the track already playing does nothing, so a death/restart doesn't restart the song.
+- **Adaptive stems:** a `MusicTrack.stems` entry fades in once its color is restored. Stems are scheduled on the same DSP tick as the main clip.
+- **Gotchas:** Stems must match the main clip's length and tempo. Fades use unscaled time (they keep going while paused).
+
+#### `MusicDirector.cs` (`Scripts/Audio`)
+- **Purpose:** Picks *what* music plays, from data and events only. Gameplay never mentions music.
+- **Scene music, first match wins:** a `SceneMusic` in the scene → `GameConfig.menuMusic / hubMusic / endingMusic` →
+  the `ColorData` whose `sceneName` is this scene (`levelMusic`). Nothing found = silence.
+- **Boss intro:** with `ColorData.muffleUntilBoss` (on for every color but Blue and Violet, whose boss is there from the start)
+  the level's music plays quiet and muffled (`GameConfig.introMusicVolume`) until `BossFightStarted` (the arena gate
+  trigger). Then it opens up; with `restartOnBoss` it fades out, holds a beat of silence and fades the song in from the
+  top, clear and full (`GameConfig.bossMusicFadeOut / Silence / FadeIn`).
+  A fight that starts within 1 s of the level just opens up. After a death the reloaded level is muffled again.
+- **Events:** `BossFightStarted` → open up / `bossMusic` (if set) · `BossDefeated` → fade out (`GameConfig.stopMusicOnBossDefeated`) ·
+  `ColorRestored` → `colorRestoredStinger` · dialogue / Tip card / cinematic → duck · pause → duck + muffle.
+- **Talks to:** `SceneManager.sceneLoaded` (so it also works when you press Play in any scene), `GameEvents`, `Game.Audio`.
+
+#### `MusicTrack.cs` — ScriptableObject, one per song (`Audio/Music/Music_<Name>`)
+- **Fields:** `clip`, `volume`, `loop`, `fadeIn` (negative = `GameConfig.musicFadeSeconds`), `stems` (color, clip, volume).
+- **Import settings for music clips:** Load Type *Streaming*, Vorbis, Preload off. Prefer WAV/OGG sources for seamless loops (MP3 adds a gap).
 
 ### 3.3 Combat primitives (`Scripts/Combat`)
 
@@ -508,6 +536,21 @@ Interactions to know about:
   `Complete()` and `Fail()` each fire **only once**, whichever comes first.
 - **Raises:** `LevelStarted`, `LevelCompleted`, `LevelFailed`. It **never** loads scenes or grants rewards itself.
 
+#### `BossIntro.cs` — boss reveal cutscene (added at runtime by LevelController)
+- **When:** `LevelController.StartBoss()` (the arena gate's LevelTrigger) if this color's `ColorData.bossIntro` is on:
+  Yellow, Red, Green, Indigo. Not for bosses started by `startBossImmediately` (Orange, Blue) or by Violet's own approach.
+- **Sequence:** input blocked, letterbox in, `BossIntroStarted` → camera pans + zooms to the boss → beat → `BossRevealed`
+  (music starts) → camera eases back → letterbox out, input back → `boss.StartFight()`. The boss is idle throughout
+  because its fight hasn't started. Plays on every attempt. Timings: `GameConfig` → *Boss reveal*.
+- **Gotchas:** it drives `CameraFollow.Hold` and `Camera.orthographicSize`, and restores both (also if the scene unloads mid-cutscene).
+
+#### `BossCheckpoint.cs` — arena-gate checkpoint (static, like `VioletCheckpoint`)
+- **When:** `ColorData.respawnAtBoss` (Yellow, Red, Green, Indigo). `LevelController.StartBoss()` remembers where the player stood.
+- **Respawn:** dying or the pause menu's *Restart from checkpoint* reloads the scene; `LevelController.Start` skips `introDialogue`,
+  moves the player back, and fires the arena's `LevelTrigger` (StartBoss) again via `LevelTrigger.Fire()`, so the gate shuts
+  and the fight (and its reveal) starts over with the boss at full health.
+- **Cleared** when any other scene loads (the hub after a win or *Back to hub*, the menu).
+
 #### `LevelTrigger.cs`
 - **Purpose:** A drop-in zone for level designers.
 - **Actions:**
@@ -559,7 +602,7 @@ Interactions to know about:
   The current look (a gray tint) only works well with white or flat sprites. **Change `Apply()` once the art style is decided.**
 
 #### `SceneMusic.cs`
-Calls `Game.Audio.PlayMusic(music)` on `Start`. Put one in each scene.
+Optional per-scene override read by `MusicDirector` (`music`, `bossMusic`; empty `music` = silence). Most scenes don't need one.
 
 #### UI (IMGUI, one look: `UiKit`)
 
@@ -585,7 +628,7 @@ textures. Don't fade text with its card: dim the panel, not the words.
 
 | Script | Where it lives | Reads / listens | Calls |
 |---|---|---|---|
-| `GameHud` | `[Systems]` | reads `PlayerController.Instance` (HP, loadout, Serenity's state), `LevelController.Current.Boss`, `Game.Progress`; listens `BossFightStarted/HealthChanged/Defeated`, `AbilityStolen/Returned/Unlocked`, `ColorRestored`, `SerenityChanged/Denied`, `CinematicChanged`, `SceneLoaded` | Top left: HP pips, the seven gems, then a slot per ability the player HAS (three to a row, each appearing with a glow as it's unlocked: none in Yellow; big keycap + its name; red + struck through while stolen), the Serenity meter. The panel grows as rows appear. Top center while a boss fights: name, HP segments with phase ticks (damage trails), catch pips for Orange / Blue, Red's rage + OVERHEAT, what Green is holding. Fades out during cinematics |
+| `GameHud` | `[Systems]` | reads `PlayerController.Instance` (HP, loadout, Serenity's state), `LevelController.Current.Boss`, `Game.Progress`; listens `BossFightStarted/HealthChanged/Defeated`, `ColorRestored`, `SerenityChanged/Denied`, `CinematicChanged`, `SceneLoaded` | Top left: HP pips, the seven gems, the Serenity meter once unlocked (no per-ability key list: the Tip card teaches keys). The panel grows when Serenity appears. Top center while a boss fights: name, HP segments with phase ticks (damage trails), catch pips for Orange / Blue, Red's rage + OVERHEAT, what Green is holding. Fades out during cinematics |
 | `DevOverlay` | `[Systems]`, editor / dev builds only | everything above, read only | Hidden until **F12**: scene, boss state/HP/phase, player, Serenity, time scale, input, Violet checkpoint, cheat keys |
 | `DialogueView` | `[Systems]` | `DialogueLineShown`, `DialogueEnded` | — |
 | `InstructionView` (+ `CardGui`, `InstructionDemos`, `DemoBosses`) | `[Systems]` | `InstructionShown`, `InstructionClosed`, `Game.Instructions.CanOpen / LevelCard`, `Game.Config` | `Game.Instructions.Toggle/Close` on clicks; `Game.Input.AddPointerBlocker`. Tip button top-right (the quiet gray "? Tip" pill); card on a 1920×1080 canvas, unscaled time |
@@ -594,6 +637,7 @@ textures. Don't fade text with its card: dim the panel, not the words.
 | `CinematicView` | `[Systems]` | `CinematicChanged`, `ScreenWipe`, `SceneLoaded` | Letterbox bars slide in / out (accent line and notches on their inner edge); a slanted wipe covers the screen by its halfway point (with a flash) and uncovers. Over the HUD. Unscaled time |
 | `PauseMenu` | `[Systems]` | `Intent.pausePressed` (only inside a level), `Navigate`, `confirmPressed` | `Game.Time.Pause/Resume`, `Game.Input.Block/Unblock`, `Game.Manager.RestartLevel` (the same reload as dying: Violet keeps its checkpoint, and the button says "Restart from checkpoint"), `Game.Manager.ReturnToHub`; raises `PauseChanged` |
 | `MainMenuScreen` | MainMenu scene | `Game.Progress` | One button, START: `Game.Manager.ContinueGame` (keeps the save, goes to the hub; erasing it is the hub's "Reset progress"). The title glitches (`GlitchTitle`): colorless, color bleeding in for a split second; each restored color stays more, all seven = full color |
+| `Prologue` | drawn by MainMenuScreen | `GameConfig.prologue` (`Data/Dialogue/Story_Prologue`), `Game.Input` | The story before the first level, on START for a save that hasn't seen it and has nothing restored (`GameManager.ShouldPlayPrologue`; `GameProgress.prologueSeen`). The HUD's heart + seven gems, large, in beats that follow the lines: whole → the gems → the Sovereign's decree (violet shockwave, drains gray) → cracks, gems scatter → a yellow spark → "Go" and fade. Last line = Go, the one before = Spark, earlier lines share the first four beats, so lines can be edited freely. Z / Enter / click next, Esc skips, auto-advances after 7 s. Then `GameManager.FinishPrologue` → straight into the first color's level |
 | `HubScreen` | Hub scene | `Game.Config.colorOrder`, `Game.Progress`, `Game.Manager.IsUnlocked` | `Game.Manager.EnterLevel`, `ReturnToMenu`, `NewGame` (from "Reset progress", after a "Start over?" dialog). The heart (seven bands, the next color flickering, "N / 7 COLORS RESTORED"), a card per district showing only its name and number, its boss (`DemoBosses.Portrait`) and its state (locked + why / available / restored); the selected one grows. Ambient dust and colors. `UiKit.HubTitle` isn't drawn |
 | `EndingScreen` | Ending scene | `endingDialogue` | `Game.Dialogue.Play`, `Game.Manager.ReturnToMenu`. The heart and the title in full color |
 
@@ -682,7 +726,9 @@ objects (hand edits included) and bakes the original layout again.
 | `SerenityDenied` | — | SerenityAbility (pressed while not ready) | SerenityView | "Not ready" SFX |
 | `PlayerHealthChanged` | `int current, int max` | PlayerController | — (GameHud reads the player's Health) | Hurt SFX, screen shake |
 | `PlayerDied` | — | PlayerController | **LevelController** | Death SFX/VFX |
-| `BossFightStarted` | `BossBase` | BossBase.StartFight | GameHud, DevOverlay | Boss music |
+| `BossIntroStarted` | `BossBase` | BossIntro (arena gate, `ColorData.bossIntro`) | MusicDirector (fade out) | Stinger, VFX |
+| `BossRevealed` | `BossBase` | BossIntro (camera on the boss) | MusicDirector (boss song from the top) | Title card, roar SFX |
+| `BossFightStarted` | `BossBase` | BossBase.StartFight | GameHud, DevOverlay, MusicDirector | Boss music |
 | `BossHealthChanged` | `BossBase` | BossBase | GameHud (hit flash, damage trail) | Hit SFX |
 | `BossPhaseChanged` | `BossBase` | BossBase | — | Phase transition VFX/music |
 | `BossDefeated` | `BossBase` | BossBase | GameHud | Explosion, slow-mo |
@@ -975,7 +1021,13 @@ follows the gap gets through, and it logs an error if not.
 - Nothing outside `World/` needs to change.
 
 ### Add music
-Put a `SceneMusic` in each scene. Give each `ColorData` a `musicLayer` stem with the same length and BPM as the base track.
+1. Drop the audio file in `Audio/Music` (Load Type *Streaming*).
+2. **Create > ROYGBIV > Music Track**, name it `Music_<Name>`, assign the clip, set the volume.
+3. Hook it up in data: a level → `ColorData.levelMusic` (and optionally `bossMusic`); menu / hub / ending → `GameConfig`.
+   Set `muffleUntilBoss` / `restartOnBoss` on the ColorData for how the intro level → boss fight transition sounds.
+   Only use a `SceneMusic` component for a scene that should play something else.
+4. Optional adaptive layers: add `stems` to the track (same length and BPM); each fades in when its color is restored.
+5. Check it with **F12**: the `MUSIC` line shows the current track.
 
 ---
 

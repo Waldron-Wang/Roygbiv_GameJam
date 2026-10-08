@@ -15,6 +15,10 @@ MonoBehaviour:
   caption: Press [LMB] to reflect the <color=#FFD93B>light orbs</color> back at it
   subCaption: 
   accent: {r: 1, g: 0.8509804, b: 0.23137255, a: 1}
+  nudge: 
+  nudgeAfterDeaths: 0
+  demoAfterDeaths: 0
+  onlyDuringBossFight: 1
   demo: 1
   keys:
   - LMB

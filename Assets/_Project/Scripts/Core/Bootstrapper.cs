@@ -56,6 +56,7 @@ namespace Roygbiv
             Game.Dialogue = systems.AddComponent<DialogueRunner>();
             Game.Instructions = systems.AddComponent<InstructionRunner>();
             Game.Audio = systems.AddComponent<AudioManager>();
+            systems.AddComponent<MusicDirector>(); // picks the music; listens to scene loads + GameEvents
 
             // UI (IMGUI, all in the UiKit look). It only listens to GameEvents and reads state.
             systems.AddComponent<PauseMenu>();

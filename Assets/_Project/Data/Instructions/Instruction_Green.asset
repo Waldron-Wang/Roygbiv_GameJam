@@ -15,6 +15,10 @@ MonoBehaviour:
   caption: "Break the <color=#4CD964>pods</color> up close to take your abilities back"
   subCaption: 
   accent: {r: 0.29803923, g: 0.8509804, b: 0.39215687, a: 1}
+  nudge: "What it takes, it keeps close. So <color=#4CD964>get close</color>"
+  nudgeAfterDeaths: 1
+  demoAfterDeaths: 3
+  onlyDuringBossFight: 0
   demo: 4
   keys:
   - Shift

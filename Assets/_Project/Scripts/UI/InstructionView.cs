@@ -13,7 +13,9 @@ namespace Roygbiv
     /// InputReader as a pointer blocker, so the click never reaches gameplay as an attack or a shot.
     ///
     /// Card: the UiKit panel and header in the accent around a light "screen" playing the demo (InstructionDemos),
-    /// the caption with keycaps, an X to close and a close hint. Laid out on UiKit's 1920x1080 canvas (Fit),
+    /// the caption with keycaps, an X to close and a close hint. At the Nudge stage (InstructionRunner.Stage) it's a
+    /// smaller card with only the nudge line and how many more tries until the full one. While the button offers
+    /// something new (HasUnread) it carries a small glowing dot in the level's color. Laid out on UiKit's 1920x1080 canvas (Fit),
     /// animated on unscaled time (the level is frozen underneath).
     /// To reskin: change UiKit (every screen follows), or this, CardGui and InstructionDemos; InstructionRunner and the data stay.
     /// </summary>
@@ -34,12 +36,14 @@ namespace Roygbiv
         // Tip button, in screen pixels at 1080p (scaled with the screen height).
         const float TipWidth = 112f, TipHeight = 42f, TipMargin = 14f;
         const float TipTop = 10f;
+        const float NudgeBody = 150f; // header -> hint row on a nudge card
 
         static readonly Color Paper = new(0.93f, 0.93f, 0.91f, 0.97f);
 
         InstructionData data;
         ColorData colorData;
         float openedAt;
+        bool nudgeOnly;
 
         // Screen space (IMGUI: origin top-left), as last laid out; InputReader hit-tests against these.
         Rect tipButton, closeButton;
@@ -71,6 +75,7 @@ namespace Roygbiv
             data = d;
             colorData = Game.Config.Get(color);
             openedAt = Time.unscaledTime;
+            nudgeOnly = Game.Instructions && Game.Instructions.OpenStage == InstructionRunner.TipStage.Nudge;
         }
 
         void Hide() => data = null;
@@ -118,6 +123,17 @@ namespace Roygbiv
             accent.a = 1f;
             if (open) DrawCard(panel, canvas, accent, closeButton.Contains(e.mousePosition));
             DrawTipButton(tipButton, open || tipButton.Contains(e.mousePosition), ui);
+            if (!open && runner.HasUnread) DrawUnread(tipButton, accent);
+        }
+
+        /// <summary>New help to read: a small dot in the level's color on the button's corner, breathing softly.</summary>
+        static void DrawUnread(Rect button, Color accent)
+        {
+            float pulse = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 3f);
+            var c = new Vector2(button.xMax - button.height * 0.18f, button.y + button.height * 0.18f);
+            float r = button.height * 0.16f;
+            CardGui.Glow(c, r * (3f + pulse), WithAlpha(accent, 0.35f + 0.25f * pulse));
+            CardGui.Disc(c, r, accent);
         }
 
         // ---------- Tip button ----------
@@ -177,7 +193,33 @@ namespace Roygbiv
             // Header: tab and the spaced-out color name; the X on the right.
             UiKit.Header(p, colorData ? colorData.displayName : data.name, accent);
             DrawClose(CloseRect(p), accent, closeHover);
+            if (nudgeOnly) DrawNudge(p, accent);
+            else DrawDemo(p, accent, t);
 
+            // Close hint, bottom right, once the keys are accepted (InstructionRunner.minShowTime). A gentle blink.
+            float alpha = CardGui.Alpha;
+            CardGui.Alpha *= Smooth((t - 0.25f) / 0.3f) * (0.75f + 0.25f * Mathf.Sin(t * 4f));
+            float width = CardGui.InlineWidth(Hint, HintSize, HintKeyScale, HintLabelScale);
+            CardGui.Inline(Hint, new Vector2(p.xMax - 34f - width * 0.5f, p.yMax - 40f), HintSize, new Color(1f, 1f, 1f, 0.88f), accent, null,
+                           true, HintKeyScale, HintLabelScale);
+            CardGui.Alpha = alpha;
+        }
+
+        // The nudge: one vague line, and how far the full card is.
+        void DrawNudge(Rect p, Color accent)
+        {
+            float maxWidth = p.width - 80f, y = p.y + StageTop + NudgeBody * 0.38f;
+            CardGui.Inline(data.nudge, new Vector2(p.center.x, y), FitFont(data.nudge, CaptionSize, maxWidth), Color.white, accent, null);
+            int left = Game.Instructions ? Game.Instructions.DeathsUntilDemo : 0;
+            if (left > 0)
+            {
+                string more = left == 1 ? "Still stuck? The full tip unlocks after 1 more try." : $"Still stuck? The full tip unlocks after {left} more tries.";
+                CardGui.Inline(more, new Vector2(p.center.x, y + SubCaptionGap + 8f), SubCaptionSize, new Color(1f, 1f, 1f, 0.6f), accent, null);
+            }
+        }
+
+        void DrawDemo(Rect p, Color accent, float t)
+        {
             // The screen the demo plays on: light, because the player art is a black silhouette.
             var stage = new Rect(p.x + 48f, p.y + StageTop, p.width - 96f, StageHeight);
             CardGui.Box(stage, Paper);
@@ -192,14 +234,6 @@ namespace Roygbiv
             CardGui.Inline(data.caption, new Vector2(p.center.x, captionY), FitFont(data.caption, CaptionSize, maxWidth), Color.white, accent, InstructionDemos.Press);
             if (HasSubCaption)
                 CardGui.Inline(data.subCaption, new Vector2(p.center.x, captionY + SubCaptionGap), FitFont(data.subCaption, SubCaptionSize, maxWidth), new Color(1f, 1f, 1f, 0.78f), accent, InstructionDemos.Press);
-
-            // Close hint, bottom right, once the keys are accepted (InstructionRunner.minShowTime). A gentle blink.
-            float alpha = CardGui.Alpha;
-            CardGui.Alpha *= Smooth((t - 0.25f) / 0.3f) * (0.75f + 0.25f * Mathf.Sin(t * 4f));
-            float width = CardGui.InlineWidth(Hint, HintSize, HintKeyScale, HintLabelScale);
-            CardGui.Inline(Hint, new Vector2(p.xMax - 34f - width * 0.5f, p.yMax - 40f), HintSize, new Color(1f, 1f, 1f, 0.88f), accent, null,
-                           true, HintKeyScale, HintLabelScale);
-            CardGui.Alpha = alpha;
         }
 
         /// <summary>The card's X, at the right end of the header (canvas units).</summary>
@@ -221,7 +255,8 @@ namespace Roygbiv
         /// <summary>Centered, and only as tall as its content: no empty gap where a missing sub-caption would go.</summary>
         Rect PanelRect()
         {
-            float h = StageTop + StageHeight + CaptionGap + (HasSubCaption ? SubCaptionGap : 0f) + HintRow;
+            float h = nudgeOnly ? StageTop + NudgeBody + HintRow
+                                : StageTop + StageHeight + CaptionGap + (HasSubCaption ? SubCaptionGap : 0f) + HintRow;
             return new Rect((UiKit.RefWidth - PanelWidth) * 0.5f, (UiKit.RefHeight - h) * 0.5f - 10f, PanelWidth, h);
         }
 

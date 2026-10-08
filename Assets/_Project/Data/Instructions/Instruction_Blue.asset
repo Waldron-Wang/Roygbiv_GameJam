@@ -15,6 +15,10 @@ MonoBehaviour:
   caption: "Climb before the <color=#3D8BFF>tears</color> flood the shaft, then catch it at the top"
   subCaption: 
   accent: {r: 0.23921569, g: 0.54509807, b: 1, a: 1}
+  nudge: "Waiting only lets the water rise. <color=#3D8BFF>Keep climbing</color>"
+  nudgeAfterDeaths: 1
+  demoAfterDeaths: 3
+  onlyDuringBossFight: 0
   demo: 5
   keys:
   - Space

@@ -10,6 +10,10 @@ namespace Roygbiv
     /// Show, don't tell. One per color (Data/Instructions), set on ColorData.instruction. It never pops up
     /// by itself: the player opens it from the on-screen Tip button (InstructionRunner), InstructionView draws it.
     ///
+    /// No spoilers on a first try: the Tip button stays hidden until the player has died in the boss fight
+    /// `nudgeAfterDeaths` times; then it offers only the `nudge` (a vague line, no demo). After `demoAfterDeaths`
+    /// deaths it offers the full card. 0 / 0 = the full card from the start (Yellow's parry tutorial, Violet).
+    ///
     /// Key tokens in caption / subCaption are drawn as keycaps:
     ///   [LMB] [RMB]                  left / right mouse button
     ///   [Left] [Right] [Up] [Down]   arrow keys
@@ -26,6 +30,17 @@ namespace Roygbiv
         [TextArea(1, 2)] public string subCaption;
         [Tooltip("Card frame and highlight color.")]
         public Color accent = Color.white;
+
+        [Header("Unlocking (no spoilers)")]
+        [Tooltip("A vague one-line hint shown before the full card: points the player the right way without " +
+                 "giving the answer. Empty = no nudge stage.")]
+        [TextArea(1, 2)] public string nudge;
+        [Tooltip("Deaths in this boss fight (this visit to the level) before the Tip button offers the nudge.")]
+        public int nudgeAfterDeaths = 1;
+        [Tooltip("Deaths before it offers the full card with the demo. 0 (with nudge 0) = available from the start.")]
+        public int demoAfterDeaths = 3;
+        [Tooltip("Hide the Tip button until the boss fight has started (not in the intro level before the arena gate).")]
+        public bool onlyDuringBossFight;
 
         [Header("Demo")]
         public InstructionDemo demo;

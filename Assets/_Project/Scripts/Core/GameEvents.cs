@@ -37,6 +37,10 @@ namespace Roygbiv
         // ---------- Combat ----------
         public static event Action<int, int> PlayerHealthChanged; // current, max
         public static event Action PlayerDied;
+        /// <summary>The boss reveal cutscene began (arena gate): the player is frozen, the camera heads for the boss.</summary>
+        public static event Action<BossBase> BossIntroStarted;
+        /// <summary>The reveal's big moment: the camera is on the boss (the boss music starts here).</summary>
+        public static event Action<BossBase> BossRevealed;
         public static event Action<BossBase> BossFightStarted;
         public static event Action<BossBase> BossHealthChanged;
         public static event Action<BossBase> BossPhaseChanged;
@@ -74,6 +78,8 @@ namespace Roygbiv
 
         public static void RaisePlayerHealthChanged(int current, int max) => PlayerHealthChanged?.Invoke(current, max);
         public static void RaisePlayerDied() => PlayerDied?.Invoke();
+        public static void RaiseBossIntroStarted(BossBase b) => BossIntroStarted?.Invoke(b);
+        public static void RaiseBossRevealed(BossBase b) => BossRevealed?.Invoke(b);
         public static void RaiseBossFightStarted(BossBase b) => BossFightStarted?.Invoke(b);
         public static void RaiseBossHealthChanged(BossBase b) => BossHealthChanged?.Invoke(b);
         public static void RaiseBossPhaseChanged(BossBase b) => BossPhaseChanged?.Invoke(b);
@@ -101,6 +107,7 @@ namespace Roygbiv
             ColorRestored = null; AbilityUnlocked = null; AbilityStolen = null; AbilityReturned = null;
             SerenityChanged = null; SerenityDenied = null;
             PlayerHealthChanged = null; PlayerDied = null;
+            BossIntroStarted = null; BossRevealed = null;
             BossFightStarted = null; BossHealthChanged = null; BossPhaseChanged = null; BossDefeated = null;
             DialogueStarted = null; DialogueLineShown = null; DialogueEnded = null;
             InstructionShown = null; InstructionClosed = null;

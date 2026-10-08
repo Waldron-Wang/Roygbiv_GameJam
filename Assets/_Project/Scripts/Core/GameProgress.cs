@@ -15,6 +15,8 @@ namespace Roygbiv
 
         public List<ColorId> restoredColors = new();
         public List<AbilityId> unlockedAbilities = new();
+        /// <summary>The story before the first level has played (or been skipped) for this save.</summary>
+        public bool prologueSeen;
 
         public int RestoredCount => restoredColors.Count;
         public bool IsRestored(ColorId color) => restoredColors.Contains(color);
