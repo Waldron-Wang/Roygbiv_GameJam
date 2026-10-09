@@ -2197,6 +2197,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.ParallaxLayer
   follow: 1
   verticalFollow: 1
+  cutsceneFollow: 0.75
   loop: 0
   designOrthoSize: 7
   cam: {fileID: 0}

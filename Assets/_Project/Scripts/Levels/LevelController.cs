@@ -31,6 +31,8 @@ namespace Roygbiv
         public static LevelController Current { get; private set; }
         public ColorId Color => color;
         public BossBase Boss => boss;
+        /// <summary>Won or lost: the flow (story, respawn, next scene) has taken over.</summary>
+        public bool IsFinished => finished;
         /// <summary>A level that builds itself at runtime (Violet) turns this off in Awake, before Start reads it.</summary>
         public bool StartBossImmediately { get => startBossImmediately; set => startBossImmediately = value; }
 

@@ -12,6 +12,10 @@ namespace Roygbiv
     /// (a few tiles wide) and tick Loop: the layer then wraps by one tile and never runs out.
     ///
     /// The layout you see in the Scene view is what the player sees when the camera sits at its authored position.
+    ///
+    /// Cutscenes (anything that takes the camera with CameraFollow.Hold: boss intros, Violet's pull-back) can pan and
+    /// zoom far from the player. A screen-locked layer (the crystal) would then look stuck to the screen, so with
+    /// cutsceneFollow below 1 it stays with the player's view instead and the camera visibly moves past it.
     /// </summary>
     [DefaultExecutionOrder(100)] // after CameraFollow, so the layer uses this frame's camera position
     public class ParallaxLayer : MonoBehaviour
@@ -20,6 +24,9 @@ namespace Roygbiv
         [Range(0f, 1f)] [SerializeField] float follow = 0.5f;
         [Tooltip("Vertical: same idea. Keep it high (0.9–1) so the art's top and bottom edges stay off screen.")]
         [Range(0f, 1f)] [SerializeField] float verticalFollow = 1f;
+        [Tooltip("During camera cutscenes: how much this layer follows the camera instead of staying with the player's " +
+                 "view (pan and zoom). 1 = as in play. Lower it for screen-locked layers such as the crystal.")]
+        [Range(0f, 1f)] [SerializeField] float cutsceneFollow = 1f;
         [Tooltip("Wrap horizontally by one tile of the children's art (children use Draw Mode = Tiled).")]
         [SerializeField] bool loop = true;
         [Tooltip("The camera size the art was laid out for. The layer scales with the camera's zoom so it always " +
@@ -28,6 +35,11 @@ namespace Roygbiv
         [Tooltip("Leave empty to use the main camera.")]
         [SerializeField] Camera cam;
 
+        const float CutsceneEaseOut = 0.6f; // seconds to settle back after a cutscene gives the camera back
+
+        CameraFollow follower;
+        float cutBlend;     // 1 while the camera is held by a cutscene, eases to 0 after
+        float cutSize;      // camera size when the cutscene took the camera
         Vector3 camHome;
         Vector2 offset;     // authored position relative to the camera
         Vector3 baseScale;
@@ -44,6 +56,7 @@ namespace Roygbiv
         {
             if (!cam) cam = Camera.main;
             if (!cam) return;
+            follower = cam.GetComponent<CameraFollow>();
             // Awake runs before CameraFollow.Start snaps onto the player, so these are the authored positions.
             camHome = cam.transform.position;
             offset = transform.position - camHome;
@@ -61,17 +74,36 @@ namespace Roygbiv
         {
             if (!ready) { Init(); if (!ready) return; }
 
-            float scale = designOrthoSize > 0f && cam.orthographic ? cam.orthographicSize / designOrthoSize : 1f;
-            var camPos = cam.transform.position;
-            float driftX = (camPos.x - camHome.x) * (1f - follow);
-            float driftY = (camPos.y - camHome.y) * (1f - verticalFollow);
+            Vector2 camPos = cam.transform.position;
+            if (follower && follower.IsHeld)
+            {
+                if (cutBlend <= 0f) cutSize = cam.orthographicSize;
+                cutBlend = 1f;
+            }
+            else cutBlend = Mathf.MoveTowards(cutBlend, 0f, Time.deltaTime / CutsceneEaseOut);
+
+            // The view this layer lines up with: the camera, or during a cutscene partly the player's view.
+            var view = camPos;
+            float viewSize = cam.orthographicSize;
+            float k = FullView > 0f ? 0f : cutBlend * (1f - cutsceneFollow); // the final showcase frames the camera itself
+            if (k > 0f)
+            {
+                var pc = PlayerController.Instance;
+                var playerView = pc ? (Vector2)pc.transform.position + follower.Offset : camPos;
+                view = Vector2.Lerp(camPos, playerView, k);
+                viewSize = Mathf.Lerp(viewSize, cutSize, k);
+            }
+
+            float scale = designOrthoSize > 0f && cam.orthographic ? viewSize / designOrthoSize : 1f;
+            float driftX = (view.x - camHome.x) * (1f - follow);
+            float driftY = (view.y - camHome.y) * (1f - verticalFollow);
             if (loop && tileWidth > 0f)
             {
                 float w = tileWidth * scale;
                 driftX = Mathf.Repeat(driftX + w * 0.5f, w) - w * 0.5f;
             }
 
-            var pos = new Vector2(camPos.x + offset.x * scale - driftX, camPos.y + offset.y * scale - driftY);
+            var pos = new Vector2(view.x + offset.x * scale - driftX, view.y + offset.y * scale - driftY);
 
             if (FullView > 0f && artHeight > 0f && cam.orthographic)
             {

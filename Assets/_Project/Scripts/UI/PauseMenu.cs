@@ -31,7 +31,9 @@ namespace Roygbiv
         {
             if (!Game.Input || !Game.Scenes || !Game.Instructions) return;
             // Not over the instruction card: it holds its own pause while open, and the Esc that closes it shouldn't also pause.
-            if (Game.Input.Intent.pausePressed && LevelController.Current != null && !Game.Scenes.IsLoading && !Game.Instructions.BlocksPause)
+            // Not once the level is won or lost either: Hub / Restart mid-story or mid-respawn would tangle the flow.
+            if (Game.Input.Intent.pausePressed && LevelController.Current != null && !LevelController.Current.IsFinished &&
+                !Game.Scenes.IsLoading && !Game.Instructions.BlocksPause)
             {
                 SetPaused(!IsPaused);
                 return;
