@@ -67,7 +67,10 @@ namespace Roygbiv
 
         void OnDamaged(DamageInfo _) => hurtUntil = Time.time + hurtPoseTime;
 
-        void OnAttacked()
+        void OnAttacked() => PlayAttack();
+
+        /// <summary>Plays the swing (Attack / RunAttack / JumpAttack, as for a basic attack). Blaze Strike uses it on release.</summary>
+        public void PlayAttack()
         {
             if (animator) animator.SetTrigger(AttackId);
         }

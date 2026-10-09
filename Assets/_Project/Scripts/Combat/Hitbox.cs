@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -19,6 +20,9 @@ namespace Roygbiv
 
         readonly HashSet<IDamageable> alreadyHit = new();
         float closeAt;
+
+        /// <summary>A hit landed (the target took it): the collider hit and the point on it nearest this hitbox.</summary>
+        public event Action<Collider2D, Vector2> Landed;
 
         // Save this GameObject INACTIVE in prefabs; Open() switches it on.
         void Awake() => GetComponent<Collider2D>().isTrigger = true;
@@ -50,7 +54,8 @@ namespace Roygbiv
             if (target == null || !alreadyHit.Add(target)) return;
 
             var dir = Mathf.Sign(other.transform.position.x - transform.position.x);
-            target.TakeDamage(new DamageInfo(damage, team, new Vector2(dir * knockback, knockback * 0.5f), gameObject));
+            if (target.TakeDamage(new DamageInfo(damage, team, new Vector2(dir * knockback, knockback * 0.5f), gameObject)))
+                Landed?.Invoke(other, other.ClosestPoint(transform.position));
         }
     }
 }

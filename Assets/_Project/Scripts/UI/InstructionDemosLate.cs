@@ -11,7 +11,6 @@ namespace Roygbiv
     static partial class InstructionDemos
     {
         static readonly Color DashColor = Hex(0xFF9A2E);   // Orange gives Dash: the color its thread and pod glow in
-        static readonly Color BlazeColor = Hex(0xFF4A3D);  // Red gives Blaze Strike
         static readonly Color SurfColor = new(0.35f, 0.6f, 1f);
         static readonly Color SerenityCore = new(0.294f, 0.169f, 1f);  // #4B2BFF
         static readonly Color SerenityEdge = new(0.482f, 0.424f, 1f);  // #7B6CFF
@@ -590,7 +589,9 @@ namespace Roygbiv
             const float period = 12.3f, kingFrom = 0.4f;
             // When each ability is used (it lights up in the row from then on).
             const float dashAt = 0.92f, jumpAt = 1.87f, doubleAt = 2.12f, surfAt = 3.45f, surfEnd = 4.2f, shootAt = 5.0f;
-            const float chargeAt = 7.65f, strikeAt = 8.35f, serenityAt = 9.45f, serenityEnd = 10.95f, pointAt = 11.4f;
+            // Blaze as in the game: the press swings at once, the heat shows 0.2s in, READY at 0.6s, then the release.
+            const float blazePressAt = 7.6f, blazeChargeAt = 7.8f, blazeReadyAt = 8.2f, strikeAt = 8.35f;
+            const float serenityAt = 9.45f, serenityEnd = 10.95f, pointAt = 11.4f;
             float[] usedAt = { dashAt, doubleAt, surfAt, shootAt, strikeAt, serenityAt };
             float t = time % period;
             float x = Interpolate(RunTimes, RunXs, t);
@@ -693,6 +694,7 @@ namespace Roygbiv
             bool standing = Mathf.Approximately(Interpolate(RunTimes, RunXs, t + 0.02f), x) && !slow;
             Sprite body;
             if (t >= strikeAt && t < strikeAt + 0.4f) body = AttackFrame(d, t - strikeAt);
+            else if (t >= blazePressAt && t < blazePressAt + 0.4f) body = AttackFrame(d, t - blazePressAt); // the tap's own swing
             else if (t >= shootAt && t < shootAt + 0.3f) body = AttackFrame(d, t - shootAt + 0.1f);
             else if (t >= jumpAt && t < landed && !(t >= onStep && t < offStep)) body = JumpFrame(d, t < doubleAt ? t - jumpAt : t - doubleAt);
             else if (standing) body = IdleFrame(d, time);
@@ -718,20 +720,18 @@ namespace Roygbiv
                 }
                 CardGui.Box(new Rect(feet.x - 140f, ground - 3f, 140f, 3f), WithAlpha(SurfColor, 0.6f));
             }
-            float charge = t >= chargeAt && t < strikeAt ? Seg(t, chargeAt, strikeAt) : 0f;
+            float charge = t >= blazeChargeAt && t < strikeAt ? Seg(t, blazeChargeAt, blazeReadyAt) : 0f;
+            bool blazeReady = t >= blazeReadyAt && t < strikeAt;
+            if (charge > 0f) BlazeUnderLight(feet, charge);
+            Runner(d, body, feet, false, surfing ? 72f : dashing ? 7f : 0f);
             if (charge > 0f)
             {
-                CardGui.Glow(feet + new Vector2(10f, -60f), 50f + 70f * charge, WithAlpha(BlazeColor, 0.25f + 0.45f * charge));
-                for (int i = 0; i < 5; i++)
-                {
-                    float k = Mathf.Repeat(time * 2f + i * 0.2f, 1f);
-                    CardGui.Diamond(feet + new Vector2(-30f + i * 16f, -20f - 100f * k), 8f * (1f - k), WithAlpha(BlazeColor, charge * (1f - k)));
-                }
+                DemoBlade(body, feet, out var blazeHand, out var blazeTip);
+                BlazeCharge(blazeHand, blazeTip, charge, blazeReady, t - blazeReadyAt, time);
             }
-            Runner(d, body, feet, false, surfing ? 72f : dashing ? 7f : 0f);
             float strike = Seg(t, strikeAt, strikeAt + 0.3f);
-            if (strike > 0f && strike < 1f) // the Blaze Strike's arc
-                CardGui.Sprite(VioletShapes.Crescent, feet + new Vector2(70f, -70f), new Vector2(110f, 190f), WithAlpha(BlazeColor, 1f - strike), true, -10f);
+            if (strike > 0f && strike < 1f) FlameCrescent(feet, strike, time);
+            BlazeHit(new Vector2(crystalX - 30f, ground - 90f), Seg(t, strikeAt + 0.05f, strikeAt + 0.3f));
             if (t >= shootAt + 0.05f && t < shootAt + 0.3f) // the Light Shot, up at the anchor
             {
                 var from = feet + new Vector2(30f, -76f);
@@ -756,7 +756,7 @@ namespace Roygbiv
             presses[1] = Mathf.Max(Tap(t, jumpAt), Tap(t, doubleAt));
             presses[2] = surfing ? 1f : 0f;
             presses[3] = Tap(t, shootAt);
-            presses[4] = charge > 0f ? 1f : Tap(t, strikeAt, 0f);
+            presses[4] = t >= blazePressAt && t < strikeAt ? 1f : t >= strikeAt && t < strikeAt + 0.08f ? 1f - (t - strikeAt) / 0.08f : 0f;
             presses[5] = Tap(t, serenityAt);
             AbilityRow(stage, keys, presses, usedAt, t, d.accent, surfing ? Tap(t, surfAt) : 0f);
             for (int i = 0; i < keys.Length; i++) Press[keys[i]] = Mathf.Max(presses[i], Press.TryGetValue(keys[i], out var p) ? p : 0f);
@@ -938,6 +938,167 @@ namespace Roygbiv
                 string label = i == 4 ? "HOLD  " + GauntletLabels[i] : GauntletLabels[i];
                 CardGui.Text(new Rect(c.x - slotW * 0.5f, y + 24f, slotW, 22f), label, 14, lit ? Color.Lerp(accent, Ink, 0.35f) : Ink, TextAnchor.MiddleCenter, FontStyle.Bold);
                 CardGui.Alpha = a;
+            }
+        }
+
+        // ---------- Blaze Strike, drawn as the game draws it (BlazeStrikeVisuals' default look) ----------
+
+        static Color BlazeHeat(float k) => BlazeStrikeLook.DefaultHeat(k);
+
+        /// <summary>The demo player's sword hand and blade tip on the card (BlazeStrikeAbility's anchors for this frame).</summary>
+        static void DemoBlade(Sprite body, Vector2 feet, out Vector2 hand, out Vector2 tip)
+        {
+            var a = BladeAnchor.Find(BladeAnchor.Defaults, body ? body.name : "");
+            var pivot = body ? new Vector2(feet.x, feet.y - body.pivot.y * PlayerUnit / body.pixelsPerUnit) : feet + new Vector2(0f, -0.6f * PlayerUnit);
+            hand = pivot + new Vector2(a.hand.x, -a.hand.y) * PlayerUnit;
+            tip = pivot + new Vector2(a.tip.x, -a.tip.y) * PlayerUnit;
+        }
+
+        /// <summary>The warm light under the feet while charging.</summary>
+        static void BlazeUnderLight(Vector2 feet, float charge) =>
+            CardGui.GlowRect(new Rect(feet.x - 48f, feet.y - 13f, 96f, 26f), WithAlpha(BlazeHeat(0.6f), 0.45f * Smooth(charge)));
+
+        /// <summary>
+        /// The charge on the player: embers streaking in to the hand, heat creeping up the blade from the hilt to the tip
+        /// (`charge` 0 -> 1: the blade is the gauge), the hand's flame growing from dark red to white-hot. At READY a
+        /// ring of flame bursts, the tip glints, and flames keep licking up the blade.
+        /// </summary>
+        static void BlazeCharge(Vector2 hand, Vector2 tip, float charge, bool ready, float sinceReady, float time)
+        {
+            if (!ready)
+                for (int i = 0; i < 10; i++)
+                {
+                    float cycle = time * 2.8f + i / 10f, k = Mathf.Repeat(cycle, 1f);
+                    float a = DemoBosses.Hash(i * 3.3f + Mathf.Floor(cycle) * 1.7f) * Mathf.PI * 2f;
+                    var dir = new Vector2(Mathf.Cos(a), Mathf.Sin(a));
+                    var p = hand + dir * Mathf.Lerp(Mathf.Lerp(50f, 90f, DemoBosses.Hash(i * 7.1f)), 4f, k * k);
+                    CardGui.Line(p, p + dir * (6f + 10f * k), 3f, WithAlpha(BlazeHeat(0.55f + 0.4f * k), Mathf.Sin(Mathf.PI * k) * Mathf.Min(1f, 0.5f + charge)));
+                }
+
+            var front = Vector2.Lerp(hand, tip, ready ? 1f : charge);
+            CardGui.Line(hand, front, 10f, WithAlpha(BlazeHeat(0.3f + 0.4f * charge), 0.4f));
+            CardGui.Line(hand, front, 4f, WithAlpha(BlazeHeat(0.6f + 0.4f * charge), 0.95f));
+            if (!ready) CardGui.Glow(front, 10f, WithAlpha(BlazeHeat(1f), Mathf.Min(1f, charge * 6f)));
+
+            float size = Mathf.Lerp(15f, 39f, Smooth(charge)) * (1f + 0.15f * Mathf.Sin(time * 31f) * Mathf.Sin(time * 13f));
+            CardGui.Glow(hand + new Vector2(0f, -size * 0.25f), size * 0.9f, WithAlpha(BlazeHeat(0.15f + 0.6f * charge), 0.8f));
+            CardGui.Lozenge(hand + new Vector2(0f, -size * 0.35f), size * 0.45f, size * 1.1f, WithAlpha(BlazeHeat(0.3f + 0.65f * charge), 0.9f));
+            if (charge > 0.45f) CardGui.Glow(hand, size * 0.45f, WithAlpha(BlazeHeat(1f), Seg(charge, 0.45f, 1f)));
+            if (!ready) return;
+
+            float burst = Seg(sinceReady, 0f, 0.28f);
+            if (burst < 1f) CardGui.Ring(hand, Mathf.Lerp(9f, 54f, 1f - (1f - burst) * (1f - burst)), 4f * (1f - burst) + 1f, WithAlpha(BlazeHeat(0.7f), 1f - burst));
+            float glint = burst < 1f ? Mathf.Lerp(57f, 19f, Smooth((burst - 0.15f) / 0.85f)) * Mathf.Clamp01(burst / 0.1f)
+                                     : 19f * (0.8f + 0.25f * Mathf.Sin(time * 17f) * Mathf.Sin(time * 5.3f));
+            Glint(tip, glint, 45f * burst + time * 40f);
+            for (int i = 0; i < 6; i++)
+            {
+                float k = Mathf.Repeat(time * 3.2f + i * 0.37f, 1f);
+                var p = Vector2.Lerp(hand, tip, (i + 0.5f) / 6f) + new Vector2(0f, -24f * k);
+                CardGui.Lozenge(p, 7f * (1f - k) + 2f, 15f * (1f - k) + 3f, WithAlpha(BlazeHeat(0.9f - 0.45f * k), 0.9f * (1f - k)));
+            }
+        }
+
+        /// <summary>A four-point glint: two thin streaks and a soft center.</summary>
+        static void Glint(Vector2 at, float size, float degrees)
+        {
+            if (size <= 0f) return;
+            CardGui.Glow(at, size * 0.4f, WithAlpha(BlazeHeat(0.9f), 0.8f));
+            var prev = CardGui.Rotate(at, degrees);
+            CardGui.Lozenge(at, size * 0.14f, size, WithAlpha(Color.white, 0.95f));
+            CardGui.Lozenge(at, size, size * 0.14f, WithAlpha(Color.white, 0.95f));
+            GUI.matrix = prev;
+        }
+
+        /// <summary>
+        /// The strike's flaming crescent, fitted to its hitbox as in the game (2.4 x 1.8 world units, 1.65 ahead at hip
+        /// height): a smear inside, the red ragged edge, the orange body, the white-hot rim, and embers sprayed along the
+        /// swing. `k` 0 -> 1 over its life: it sweeps down, then burns away from the top.
+        /// </summary>
+        static void FlameCrescent(Vector2 feet, float k, float time)
+        {
+            const float worldPx = PlayerUnit / 1.5f; // the game draws the player at 1.5x
+            const float top = 78f * Mathf.Deg2Rad;
+            const int steps = 24;
+            float w = 2.4f * worldPx, h = 1.8f * worldPx;
+            float rx = w * 0.85f, ry = h * 0.5f;
+            var e = new Vector2(feet.x + 1.65f * worldPx + w * 0.5f - rx, feet.y - 0.6f * PlayerUnit);
+            rx *= 0.88f;
+            ry *= 0.88f;
+            float head = 1f - Mathf.Pow(1f - Seg(k, 0f, 0.3f), 3f), burn = Seg(k, 0.3f, 1f);
+            float thin = 1f - 0.55f * burn, dim = 1f - burn * burn;
+            Vector2 At(float u, float s)
+            {
+                float a = Mathf.Lerp(top, -top, u);
+                return e + new Vector2(Mathf.Cos(a) * rx * s, -Mathf.Sin(a) * ry * s);
+            }
+            float Visible(float u) => Mathf.Clamp01((head * 1.15f - u) / 0.15f) * Mathf.Clamp01((u - (burn * 1.3f - 0.3f)) / 0.3f) * dim;
+            float Thickness(float u) => 0.42f * Mathf.Pow(Mathf.Sin(Mathf.PI * u), 0.65f) * thin;
+
+            var body = new Color(1f, 0.5f, 0.08f);
+            var edge = new Color(0.78f, 0.07f, 0.02f);
+            var core = new Color(1f, 0.96f, 0.82f);
+            for (int layer = 0; layer < 4; layer++)
+                for (int i = 0; i < steps; i++)
+                {
+                    float u0 = i / (float)steps, u1 = (i + 1f) / steps, um = (u0 + u1) * 0.5f;
+                    float vis = Visible(um), th = Thickness(um);
+                    if (vis <= 0.01f) continue;
+                    switch (layer)
+                    {
+                        case 0: ArcLine(At(u0, 1f - th * 1.45f), At(u1, 1f - th * 1.45f), th * rx * 0.9f, WithAlpha(body, 0.3f * vis)); break;
+                        case 1: ArcLine(At(u0, 1.02f), At(u1, 1.02f), th * rx * 0.35f + 4f, WithAlpha(edge, 0.95f * vis)); break;
+                        case 2: ArcLine(At(u0, 1f - th * 0.5f), At(u1, 1f - th * 0.5f), th * rx * 0.8f, WithAlpha(body, 0.92f * vis)); break;
+                        case 3: ArcLine(At(u0, 1f - th * 0.07f), At(u1, 1f - th * 0.07f), 2f + 3f * th / 0.42f, WithAlpha(core, vis)); break;
+                    }
+                }
+
+            for (int i = 0; i < 9; i++) // ragged flame licks off the outer edge, leaning back from the swing
+            {
+                float u = Mathf.Repeat((i + 0.5f) / 9f + time * 0.19f, 1f);
+                float vis = Visible(u);
+                if (vis <= 0.05f) continue;
+                var p = At(u, 1.03f);
+                var outward = (At(u, 1.3f) - p).normalized;
+                float length = 0.12f * rx * Mathf.Sqrt(Mathf.Sin(Mathf.PI * u)) * (0.5f + 0.5f * Mathf.PerlinNoise(i * 1.7f, time * 9f));
+                var prev = CardGui.Rotate(p, Mathf.Atan2(outward.y, outward.x) * Mathf.Rad2Deg - 8f);
+                CardGui.Lozenge(p + new Vector2(length * 0.5f, 0f), length, 6f, WithAlpha(edge, 0.85f * vis));
+                GUI.matrix = prev;
+            }
+
+            for (int i = 0; i < 10; i++) // embers thrown off along the swing as the blade passes
+            {
+                float u = (i + 0.5f) / 10f;
+                float passed = 0.3f * (1f - Mathf.Pow(1f - u, 1f / 3f)); // when `head` reached u
+                float s = (k - passed) * 0.3f; // seconds since (the crescent lives 0.3 s)
+                if (s < 0f || s > 0.3f) continue;
+                var p = At(u, 1f);
+                var along = (At(u + 0.02f, 1f) - p).normalized;
+                var outward = (At(u, 1.3f) - p).normalized;
+                p += (along * 0.7f + outward * 0.5f) * 6.5f * worldPx * s * (0.7f + 0.6f * DemoBosses.Hash(i * 2.3f));
+                CardGui.Diamond(p, 7f * (1f - s / 0.3f) + 2f, WithAlpha(BlazeHeat(0.95f - s * 1.5f), 1f - s / 0.3f), s * 600f);
+            }
+        }
+
+        /// <summary>A crescent segment: a line overlapping its neighbours a little, so the arc has no gaps.</summary>
+        static void ArcLine(Vector2 a, Vector2 b, float width, Color c)
+        {
+            var d = (b - a).normalized * 1.5f;
+            CardGui.Line(a - d, b + d, width, c);
+        }
+
+        /// <summary>The strike landing at `at`: a white-hot flash and sparks off it (`k` 0 -> 1).</summary>
+        static void BlazeHit(Vector2 at, float k)
+        {
+            if (k <= 0f || k >= 1f) return;
+            Glint(at, 70f * (1f - 0.5f * k), 20f * k);
+            for (int i = 0; i < 12; i++)
+            {
+                float a = (DemoBosses.Hash(i * 4.3f) - 0.5f) * 2.6f;
+                var dir = new Vector2(Mathf.Cos(a), Mathf.Sin(a));
+                if (i % 5 == 0) dir.x *= -0.6f;
+                var p = at + dir * (40f + 120f * DemoBosses.Hash(i * 1.9f)) * Mathf.Sqrt(k);
+                CardGui.Line(p - dir * 12f * (1f - k), p, 2.5f, WithAlpha(BlazeHeat(0.9f), 1f - k));
             }
         }
 
