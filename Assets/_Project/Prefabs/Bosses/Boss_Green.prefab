@@ -10,7 +10,6 @@ GameObject:
   m_Component:
   - component: {fileID: 2027142049467997218}
   - component: {fileID: 4249874757999558756}
-  - component: {fileID: 5193221723674656648}
   m_Layer: 0
   m_Name: Visual
   m_TagString: Untagged
@@ -93,20 +92,6 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
   m_BlendShapeWeights: []
---- !u!114 &5193221723674656648
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4270764765825357141}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: eb034f814fe864008899798fb35fc5c4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.Recolorable
-  color: 3
-  grayBrightness: 0.45
 --- !u!1 &5761407645484834017
 GameObject:
   m_ObjectHideFlags: 0
@@ -341,6 +326,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.AbilityLoadout
   syncWithProgress: 0
+  debugUnlockAll: 0
 --- !u!114 &3931366248084409297
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -373,15 +359,15 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   podSpots:
-  - {x: -6, y: 0.75}
-  - {x: 6, y: 0.75}
-  - {x: -17.5, y: -2.5}
-  - {x: 17.5, y: -2.5}
-  - {x: -12, y: -2.5}
-  - {x: 12, y: -2.5}
-  - {x: 0, y: -2.5}
+  - {x: -17, y: 0}
+  - {x: -12, y: 0}
+  - {x: -6, y: 0}
+  - {x: 0, y: 0}
+  - {x: 6, y: 0}
+  - {x: 12, y: 0}
+  - {x: 17, y: 0}
   podStalkHeight: 0.5
-  podHitsPerPhase: 030000000500000007000000i
+  podHitsPerPhase: 020000000300000004000000i
   podsTakeShots: 0
   podRipenTimePerPhase:
   - 12
@@ -390,7 +376,7 @@ MonoBehaviour:
   sporeRadius: 2.2
   sporeDamage: 1
   sporeColor: {r: 0.7, g: 0.75, b: 0.25, a: 0.7}
-  guardWarnTime: 0.45
+  guardWarnTime: 0.7
   guardCooldown: 1.2
   guardWidth: 2.4
   wiltTime: 5
@@ -417,7 +403,7 @@ MonoBehaviour:
   thornSpacing: 2.2
   thornWidth: 1
   thornHeight: 1.6
-  thornWarnTime: 0.7
+  thornWarnTime: 1.2
   thornTime: 0.5
   thornStagger: 0.12
   thornColor: {r: 0.2, g: 0.55, b: 0.15, a: 1}
@@ -432,9 +418,9 @@ MonoBehaviour:
   dashKnockback: 8
   strikeRange: 3.2
   strikeWindUp: 0.6
-  groundY: -2.5
-  floorMinX: -19.5
-  floorMaxX: 19.5
+  groundY: 0
+  floorMinX: -20
+  floorMaxX: 20
   rootSpots:
   - 12
   - -12
@@ -518,6 +504,7 @@ MonoBehaviour:
   speed: 18
   duration: 0.18
   invulnerableWhileDashing: 1
+  afterimage: {fileID: 0}
 --- !u!114 &1259718990640360030
 MonoBehaviour:
   m_ObjectHideFlags: 0

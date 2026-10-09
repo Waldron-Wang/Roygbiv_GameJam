@@ -36225,20 +36225,7 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 8420959027777328958, guid: f6a70de9e206046cba5371b7fb6e0d59, type: 3}
-      propertyPath: groundY
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8420959027777328958, guid: f6a70de9e206046cba5371b7fb6e0d59, type: 3}
-      propertyPath: floorMaxX
-      value: 20
-      objectReference: {fileID: 0}
-    - target: {fileID: 8420959027777328958, guid: f6a70de9e206046cba5371b7fb6e0d59, type: 3}
-      propertyPath: floorMinX
-      value: -20
-      objectReference: {fileID: 0}
-    m_RemovedComponents:
-    - {fileID: 1688776278340473989, guid: f6a70de9e206046cba5371b7fb6e0d59, type: 3}
+    m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
