@@ -5,10 +5,10 @@ namespace Roygbiv
     /// <summary>
     /// Drives the Animator + sprite facing on the player's "Visual" child from PlayerMotor / PlayerCombat state.
     /// Animator params (built by ROYGBIV > Build Player Animations):
-    ///   "Speed" (float)       abs horizontal velocity — Idle/Run, Attack/RunAttack.
+    ///   "Speed" (float)       abs horizontal velocity — Idle/Run, Attack/RunAttack, JumpAttack landing into Land/Run.
     ///   "Grounded" (bool)     smoothed IsGrounded — Jump / Land.
     ///   "JumpProgress" (float) 0 = rising fast, 0.5 = apex, 1 = falling fast — scrubs the Jump clip.
-    ///   "Attack" (trigger)    a swing started (grounded only; there's no air-attack art).
+    ///   "Attack" (trigger)    a swing started — Attack/RunAttack on the ground, JumpAttack in the air.
     ///   "Hurt" (bool)         true for hurtPoseTime after a hit, and while dead. Overrides everything.
     /// Its one write to the motor: Rooted (no running/turning) while the standing Attack state plays.
     /// </summary>
@@ -69,7 +69,7 @@ namespace Roygbiv
 
         void OnAttacked()
         {
-            if (animator && Grounded) animator.SetTrigger(AttackId);
+            if (animator) animator.SetTrigger(AttackId);
         }
 
         void LateUpdate()
@@ -85,8 +85,8 @@ namespace Roygbiv
             animator.SetBool(GroundedId, grounded);
             animator.SetFloat(JumpProgressId, Mathf.Min(Mathf.InverseLerp(motor.jumpVelocity, -motor.jumpVelocity, v.y), 0.999f));
             animator.SetBool(HurtId, hurt);
-            // An unconsumed trigger would fire a stray swing on landing / when the hurt pose ends.
-            if (!grounded || hurt) animator.ResetTrigger(AttackId);
+            // An unconsumed trigger would fire a stray swing when the hurt pose ends.
+            if (hurt) animator.ResetTrigger(AttackId);
 
             // Checked after the Animator has updated this frame, so it's in place before the next FixedUpdate.
             // Jumping leaves the Attack state, which releases the root.

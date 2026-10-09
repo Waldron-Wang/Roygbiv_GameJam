@@ -77,9 +77,7 @@ namespace Roygbiv
             motor.SetInput(intent.move, intent.jumpPressed, intent.jumpHeld);
 
             bool abilityUsedInput = loadout.HandleInput(intent);
-            // No basic attack while airborne (or on the frame a jump starts).
-            bool canAttack = motor.IsGrounded && !intent.jumpPressed;
-            if (!abilityUsedInput && canAttack && intent.attackPressed && combat != null)
+            if (!abilityUsedInput && intent.attackPressed && combat != null)
                 combat.TryAttack(FacingSign);
         }
 
