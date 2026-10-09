@@ -22,7 +22,7 @@ MonoBehaviour:
   storyFragment: {fileID: 11400000, guid: e5e3e998fbe0f42ea84b1fe522666f9c, type: 2}
   bossIntro: 0
   respawnAtBoss: 0
-  levelMusic: {fileID: 0}
+  levelMusic: {fileID: 11400000, guid: 5c1e7a3b9d2f4e60a1b8c7d6e5f40a37, type: 2}
   bossMusic: {fileID: 0}
   muffleUntilBoss: 0
   restartOnBoss: 1
