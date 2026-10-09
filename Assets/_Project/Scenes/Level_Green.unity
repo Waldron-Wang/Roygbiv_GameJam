@@ -760,70 +760,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 3931366248084409297, guid: c71fa39d44bc3448994e101b624538b6, type: 3}
-      propertyPath: groundY
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3931366248084409297, guid: c71fa39d44bc3448994e101b624538b6, type: 3}
-      propertyPath: floorMaxX
-      value: 20
-      objectReference: {fileID: 0}
-    - target: {fileID: 3931366248084409297, guid: c71fa39d44bc3448994e101b624538b6, type: 3}
-      propertyPath: floorMinX
-      value: -20
-      objectReference: {fileID: 0}
-    - target: {fileID: 3931366248084409297, guid: c71fa39d44bc3448994e101b624538b6, type: 3}
-      propertyPath: podSpots.Array.data[0].x
-      value: -17
-      objectReference: {fileID: 0}
-    - target: {fileID: 3931366248084409297, guid: c71fa39d44bc3448994e101b624538b6, type: 3}
-      propertyPath: podSpots.Array.data[0].y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3931366248084409297, guid: c71fa39d44bc3448994e101b624538b6, type: 3}
-      propertyPath: podSpots.Array.data[1].x
-      value: -12
-      objectReference: {fileID: 0}
-    - target: {fileID: 3931366248084409297, guid: c71fa39d44bc3448994e101b624538b6, type: 3}
-      propertyPath: podSpots.Array.data[1].y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3931366248084409297, guid: c71fa39d44bc3448994e101b624538b6, type: 3}
-      propertyPath: podSpots.Array.data[2].x
-      value: -6
-      objectReference: {fileID: 0}
-    - target: {fileID: 3931366248084409297, guid: c71fa39d44bc3448994e101b624538b6, type: 3}
-      propertyPath: podSpots.Array.data[2].y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3931366248084409297, guid: c71fa39d44bc3448994e101b624538b6, type: 3}
-      propertyPath: podSpots.Array.data[3].x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3931366248084409297, guid: c71fa39d44bc3448994e101b624538b6, type: 3}
-      propertyPath: podSpots.Array.data[3].y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3931366248084409297, guid: c71fa39d44bc3448994e101b624538b6, type: 3}
-      propertyPath: podSpots.Array.data[4].x
-      value: 6
-      objectReference: {fileID: 0}
-    - target: {fileID: 3931366248084409297, guid: c71fa39d44bc3448994e101b624538b6, type: 3}
-      propertyPath: podSpots.Array.data[4].y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3931366248084409297, guid: c71fa39d44bc3448994e101b624538b6, type: 3}
-      propertyPath: podSpots.Array.data[5].y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3931366248084409297, guid: c71fa39d44bc3448994e101b624538b6, type: 3}
-      propertyPath: podSpots.Array.data[6].x
-      value: 17
-      objectReference: {fileID: 0}
-    - target: {fileID: 3931366248084409297, guid: c71fa39d44bc3448994e101b624538b6, type: 3}
-      propertyPath: podSpots.Array.data[6].y
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 5447027617598194434, guid: c71fa39d44bc3448994e101b624538b6, type: 3}
       propertyPath: m_LocalPosition.x
       value: 12
@@ -868,8 +804,7 @@ PrefabInstance:
       propertyPath: m_Name
       value: Boss_Green
       objectReference: {fileID: 0}
-    m_RemovedComponents:
-    - {fileID: 5193221723674656648, guid: c71fa39d44bc3448994e101b624538b6, type: 3}
+    m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
