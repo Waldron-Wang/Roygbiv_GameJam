@@ -27,7 +27,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 2, y: 2, z: 1}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 5447027617598194434}
@@ -81,8 +81,8 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 8
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300000, guid: e475a2b094697464c892e7a30d8a6006, type: 3}
-  m_Color: {r: 0.2, g: 0.75, b: 0.3, a: 1}
+  m_Sprite: {fileID: 21300000, guid: 1c27a1b4472774cee91846ca66e3cacb, type: 3}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -201,6 +201,7 @@ GameObject:
   - component: {fileID: 3014037365775819542}
   - component: {fileID: 6927685251976844324}
   - component: {fileID: 3931366248084409297}
+  - component: {fileID: 2846193057716204831}
   m_Layer: 0
   m_Name: Boss_Green
   m_TagString: Untagged
@@ -311,7 +312,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.Health
   team: 2
-  maxHealth: 12
+  maxHealth: 16
   hitInvulnerability: 0.2
 --- !u!114 &6927685251976844324
 MonoBehaviour:
@@ -435,9 +436,30 @@ MonoBehaviour:
   wiltColor: {r: 0.45, g: 0.32, b: 0.12, a: 1}
   heartClosed: {r: 0.1, g: 0.25, b: 0.08, a: 1}
   heartOpen: {r: 1, g: 0.45, b: 0.65, a: 1}
+  heartHeight: 0.95
+  drawHeart: 0
   leafColor: {r: 0.35, g: 0.8, b: 0.3, a: 0.8}
   dirtColor: {r: 0.4, g: 0.3, b: 0.2, a: 0.7}
   attackPoseHold: 0.35
+--- !u!114 &2846193057716204831
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6604769543855086890}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d6e298fa1ab964b468000f4e41e8f0a7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.BossSprites
+  target: {fileID: 4249874757999558756}
+  idle: {fileID: 21300000, guid: 1c27a1b4472774cee91846ca66e3cacb, type: 3}
+  attack: {fileID: 21300000, guid: 629185a9661884401b22e338ccf6d070, type: 3}
+  hurt: {fileID: 21300000, guid: 6a53f086d7bf64165a85ef76c29c3626, type: 3}
+  move: []
+  moveFps: 8
+  hurtTime: 0.35
 --- !u!1 &7050507239072970501
 GameObject:
   m_ObjectHideFlags: 0
@@ -519,5 +541,147 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.BlazeStrikeAbility
   cooldown: 0.5
   strikeHitbox: {fileID: 6922506096305716030}
+  chargeDelay: 0.2
   chargeTime: 0.6
   activeTime: 0.2
+  hitstop: 0.05
+  hitstopSpeed: 0.05
+  strikeShake: 0.1
+  hitShake: 0.18
+  shakeTime: 0.15
+  chargeStartSfx: {fileID: 0}
+  chargeLoopSfx: {fileID: 0}
+  readySfx: {fileID: 0}
+  releaseSfx: {fileID: 0}
+  hitSfx: {fileID: 0}
+  sfxVolume: 1
+  bladeAnchors:
+  - sprite: 
+    hand: {x: -0.33, y: -0.03}
+    tip: {x: -1.09, y: -0.28}
+  - sprite: idle
+    hand: {x: -0.33, y: -0.03}
+    tip: {x: -1.09, y: -0.28}
+  - sprite: run
+    hand: {x: -0.39, y: 0.02}
+    tip: {x: -1.2, y: -0.22}
+  - sprite: runAttack_0001
+    hand: {x: 0.53, y: 0.71}
+    tip: {x: 0.71, y: 1.16}
+  - sprite: runAttack_0002
+    hand: {x: 0.54, y: 0.71}
+    tip: {x: 0.71, y: 1.1}
+  - sprite: jump
+    hand: {x: -0.28, y: 0.19}
+    tip: {x: -1.06, y: -0.23}
+  - sprite: jump_0001
+    hand: {x: -0.31, y: 0.14}
+    tip: {x: -1.03, y: -0.21}
+  - sprite: jump_0004
+    hand: {x: -0.25, y: -0.16}
+    tip: {x: -0.99, y: -0.53}
+  - sprite: jump_0005
+    hand: {x: -0.33, y: -0.02}
+    tip: {x: -1.05, y: -0.25}
+  - sprite: jumpAttack_0001
+    hand: {x: 0.4, y: 0.34}
+    tip: {x: -0.19, y: 0.57}
+  - sprite: jumpAttack_0002
+    hand: {x: 0.4, y: 0.34}
+    tip: {x: -0.19, y: 0.57}
+  - sprite: attack
+    hand: {x: -0.33, y: -0.01}
+    tip: {x: -1.1, y: -0.26}
+  - sprite: attack_0000
+    hand: {x: -0.03, y: 0.06}
+    tip: {x: -1.05, y: -0.24}
+  - sprite: attack_0001
+    hand: {x: 0.41, y: 0.29}
+    tip: {x: 0.72, y: 0.36}
+  - sprite: attack_0002
+    hand: {x: 0.15, y: 0.65}
+    tip: {x: 0.84, y: 1.13}
+  - sprite: attack_0003
+    hand: {x: 0.15, y: 0.65}
+    tip: {x: 0.84, y: 1.13}
+  - sprite: attack_0004
+    hand: {x: 0.25, y: 0.08}
+    tip: {x: 0.77, y: 0.03}
+  look:
+    heat:
+      serializedVersion: 2
+      key0: {r: 0.35, g: 0.02, b: 0.01, a: 1}
+      key1: {r: 0.85, g: 0.1, b: 0.02, a: 1}
+      key2: {r: 1, g: 0.42, b: 0.05, a: 0}
+      key3: {r: 1, g: 0.78, b: 0.3, a: 0}
+      key4: {r: 1, g: 0.97, b: 0.88, a: 0}
+      key5: {r: 0, g: 0, b: 0, a: 0}
+      key6: {r: 0, g: 0, b: 0, a: 0}
+      key7: {r: 0, g: 0, b: 0, a: 0}
+      ctime0: 0
+      ctime1: 19661
+      ctime2: 39321
+      ctime3: 55705
+      ctime4: 65535
+      ctime5: 0
+      ctime6: 0
+      ctime7: 0
+      atime0: 0
+      atime1: 65535
+      atime2: 0
+      atime3: 0
+      atime4: 0
+      atime5: 0
+      atime6: 0
+      atime7: 0
+      m_Mode: 0
+      m_ColorSpace: -1
+      m_NumColorKeys: 5
+      m_NumAlphaKeys: 2
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    strikeCore: {r: 1, g: 0.96, b: 0.82, a: 1}
+    strikeBody: {r: 1, g: 0.5, b: 0.08, a: 1}
+    strikeEdge: {r: 0.78, g: 0.07, b: 0.02, a: 1}
+    auraHeight: {x: 0.25, y: 0.65}
+    auraFlicker: 0.15
+    flickerSpeed: 12
+    fadeOut: 0.1
+    bladeBeads: 12
+    beadSize: 0.12
+    bladeFlameRate: 22
+    readyFlameRate: 48
+    flameSize: 0.16
+    flameRise: 1.2
+    emberRate: {x: 14, y: 50}
+    emberRadius: {x: 0.8, y: 1.5}
+    emberTime: {x: 0.22, y: 0.38}
+    emberSize: 0.06
+    emberFollow: 0.75
+    underLightSize: {x: 1.6, y: 0.45}
+    underLightAlpha: 0.35
+    shimmerSize: 0.9
+    shimmerStrength: 0.004
+    glintSize: 0.95
+    twinkleSize: 0.32
+    readyRingRadius: 0.9
+    readyBurstTime: 0.28
+    readyBurstEmbers: 18
+    sweepTime: 0.09
+    burnTime: 0.17
+    arcAngle: 78
+    arcDepth: 0.85
+    rimFit: 0.88
+    thickness: 0.42
+    lickLength: 0.12
+    lickCount: 9
+    smear: 0.3
+    strikeEmbers: 30
+    strikeEmberSpeed: {x: 4, y: 9}
+    rippleRadius: 1.6
+    rippleStrength: 0.012
+    rippleTime: 0.28
+    hitSparks: 22
+    hitSparkSpeed: {x: 5, y: 12}
+    hitFlashSize: 1.1
+    hitFlashTime: 0.12
+    sortingOffset: 2

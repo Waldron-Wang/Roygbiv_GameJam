@@ -642,7 +642,7 @@ namespace Roygbiv
             {
                 float u = i / (float)SlashSteps;
                 float theta = Mathf.Lerp(top, -top, u);
-                float taper = Mathf.Pow(Mathf.Sin(Mathf.PI * u), 0.65f);
+                float taper = Mathf.Pow(Mathf.Max(0f, Mathf.Sin(Mathf.PI * u)), 0.65f); // sin(PI) is a hair below 0 in float: Pow would NaN
                 float reveal = Mathf.Clamp01((head * 1.15f - u) / 0.15f);
                 float vanish = Mathf.Clamp01((u - (burnK * 1.3f - 0.3f)) / 0.3f);
                 float vis = reveal * vanish * dim;

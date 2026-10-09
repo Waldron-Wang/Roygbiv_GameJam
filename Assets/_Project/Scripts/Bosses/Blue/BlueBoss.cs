@@ -97,6 +97,10 @@ namespace Roygbiv
         [SerializeField] Color platformColor = new(0.2f, 0.4f, 0.95f);
         [SerializeField] Color eyeColor = new(0.08f, 0.1f, 0.25f);
         [SerializeField] float eyeSize = 0.22f;
+        [Tooltip("Draw two eyes on the side it faces. Off when the art has its own face: they stay as unseen spots its tears fall from.")]
+        [SerializeField] bool drawEyes = true;
+        [Tooltip("How high the eyes sit above its center, as a fraction of its height.")]
+        [SerializeField] float eyeHeight = 0.18f;
 
         struct Streak
         {
@@ -152,7 +156,10 @@ namespace Roygbiv
             if (visual) visualScale = visual.localScale;
             eyes = new SpriteRenderer[2];
             for (int i = 0; i < 2; i++)
+            {
                 eyes[i] = IndigoShapes.Create("Eye", IndigoShapes.Disc, transform, Vector2.zero, eyeSize, eyeColor, 9);
+                eyes[i].enabled = drawEyes;
+            }
 
             BuildSummit();
         }
@@ -591,8 +598,8 @@ namespace Roygbiv
             for (int i = 0; i < eyes.Length; i++)
             {
                 var eye = eyes[i];
-                float x = facing * bodySize.x * (0.12f + i * 0.2f) * swell;
-                eye.transform.localPosition = new Vector3(x, bodySize.y * 0.18f * swell, 0f) + (visual ? visual.localPosition : Vector3.zero);
+                float x = drawEyes ? facing * bodySize.x * (0.12f + i * 0.2f) * swell : 0f;
+                eye.transform.localPosition = new Vector3(x, bodySize.y * eyeHeight * swell, 0f) + (visual ? visual.localPosition : Vector3.zero);
                 eye.transform.localScale = state == State.Settled ? new Vector3(eyeSize, eyeSize * 0.25f, 1f) : Vector3.one * eyeSize;
             }
 

@@ -137,8 +137,15 @@ namespace Roygbiv
             if (firstTime && data != null && data.storyFragment != null)
                 yield return Game.Dialogue.Play(data.storyFragment);
 
+            if (AllColorsRestored)
+            {
+                yield return FinalShowcase.Play(); // the whole world, finally in color
+                Game.Scenes.Load(Game.Config.endingScene);
+                yield break;
+            }
+
             yield return new WaitForSeconds(Game.Config.returnToHubDelay);
-            Game.Scenes.Load(AllColorsRestored ? Game.Config.endingScene : Game.Config.hubScene);
+            Game.Scenes.Load(Game.Config.hubScene);
         }
 
         IEnumerator RespawnSequence()

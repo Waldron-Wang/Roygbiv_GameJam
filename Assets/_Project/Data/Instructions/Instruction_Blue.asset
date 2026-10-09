@@ -37,8 +37,8 @@ MonoBehaviour:
   - {fileID: 21300000, guid: 5382e58b0b1e74957b7bf5707a1bb2a6, type: 3}
   - {fileID: 21300000, guid: 799a22e56a2694a36889ae082b5ea229, type: 3}
   playerActionFps: 20
-  boss: {fileID: 0}
-  bossHurt: {fileID: 0}
+  boss: {fileID: 21300000, guid: 27e33fc5521dc4be4881fde62304eb73, type: 3}
+  bossHurt: {fileID: 21300000, guid: 62a34f78a57ac435eb42e5c3d50a18dc, type: 3}
   bossMove: []
   prop: {fileID: 21300000, guid: 678ff51dad73640708cff82daa23750c, type: 3}
   playerRun:

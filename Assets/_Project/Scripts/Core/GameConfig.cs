@@ -60,6 +60,14 @@ namespace Roygbiv
         public float bossIntroAfterMusic = 1.4f;
         [Tooltip("Seconds to ease back to the player.")]
         public float bossIntroReturnSeconds = 0.9f;
+        [Header("Final showcase (after the last color, before the Ending)")]
+        [Tooltip("How far the camera rises off the level, in screen heights.")]
+        public float finalShowcaseRise = 1.5f;
+        [Tooltip("Seconds for the camera to rise while the background eases into its whole picture.")]
+        public float finalShowcaseRiseSeconds = 3f;
+        [Tooltip("Seconds to hold on the full-color background before the Ending loads.")]
+        public float finalShowcaseHoldSeconds = 4f;
+
         [Tooltip("Fade the music out when a boss dies, so the recolor + story beat plays over silence.")]
         public bool stopMusicOnBossDefeated = true;
         [Tooltip("One-shot played when a color is restored (optional).")]

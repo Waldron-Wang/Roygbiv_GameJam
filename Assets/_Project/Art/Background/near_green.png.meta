@@ -1,0 +1,639 @@
+fileFormatVersion: 2
+guid: 5755ff212228940e8a70bf3988c01d00
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 6303835480923296645
+    second: near_green_0
+  - first:
+      213: -9088725360034200198
+    second: near_green_1
+  - first:
+      213: 3803874337857078659
+    second: near_green_2
+  - first:
+      213: -6876308041535334372
+    second: near_green_3
+  - first:
+      213: 9019165372898067185
+    second: near_green_4
+  - first:
+      213: 5063450575974144462
+    second: near_green_5
+  - first:
+      213: 7381262279546506904
+    second: near_green_6
+  - first:
+      213: -8248276053054221426
+    second: near_green_7
+  - first:
+      213: -4482974931158058394
+    second: near_green_8
+  - first:
+      213: -3735829860013621933
+    second: near_green_9
+  - first:
+      213: 6155964462571054186
+    second: near_green_10
+  - first:
+      213: -8530146555062859340
+    second: near_green_11
+  - first:
+      213: 5646960914026348262
+    second: near_green_12
+  - first:
+      213: -363080662424947381
+    second: near_green_13
+  - first:
+      213: -2069150763584062952
+    second: near_green_14
+  - first:
+      213: -1288131670764394035
+    second: near_green_15
+  - first:
+      213: -2186818844576176616
+    second: near_green_16
+  - first:
+      213: 7719241707724108874
+    second: near_green_17
+  - first:
+      213: 2642036460651190200
+    second: near_green_18
+  - first:
+      213: 95467565560163930
+    second: near_green_19
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 1
+  spriteExtrude: 1
+  spriteMeshType: 0
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 135
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationMethod: 0
+  spriteTessellationDetail: -1
+  spriteGeometrySubdivision: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: near_green_0
+      rect:
+        serializedVersion: 2
+        x: 5
+        y: 1868
+        width: 16
+        height: 15
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 583dfe288f8bb7750800000000000000
+      internalID: 6303835480923296645
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: near_green_1
+      rect:
+        serializedVersion: 2
+        x: 3684
+        y: 1873
+        width: 24
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a75c31e607c5ed180800000000000000
+      internalID: -9088725360034200198
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: near_green_2
+      rect:
+        serializedVersion: 2
+        x: 24
+        y: 1828
+        width: 30
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 38502367e831ac430800000000000000
+      internalID: 3803874337857078659
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: near_green_3
+      rect:
+        serializedVersion: 2
+        x: 3691
+        y: 1830
+        width: 44
+        height: 33
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c18df1ab4427290a0800000000000000
+      internalID: -6876308041535334372
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: near_green_4
+      rect:
+        serializedVersion: 2
+        x: 44
+        y: 1815
+        width: 7
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1f2c71efe138a2d70800000000000000
+      internalID: 9019165372898067185
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: near_green_5
+      rect:
+        serializedVersion: 2
+        x: 47
+        y: 1798
+        width: 17
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ec99fa6b87df44640800000000000000
+      internalID: 5063450575974144462
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: near_green_6
+      rect:
+        serializedVersion: 2
+        x: 3623
+        y: 1804
+        width: 42
+        height: 25
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 89e0c568fe28f6660800000000000000
+      internalID: 7381262279546506904
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: near_green_7
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 1475
+        width: 278
+        height: 319
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e83975881ac388d80800000000000000
+      internalID: -8248276053054221426
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: near_green_8
+      rect:
+        serializedVersion: 2
+        x: 3689
+        y: 1658
+        width: 39
+        height: 34
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 66ab75b4d0649c1c0800000000000000
+      internalID: -4482974931158058394
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: near_green_9
+      rect:
+        serializedVersion: 2
+        x: 3766
+        y: 1690
+        width: 35
+        height: 35
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 35d379c198aa72cc0800000000000000
+      internalID: -3735829860013621933
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: near_green_10
+      rect:
+        serializedVersion: 2
+        x: 3051
+        y: 1391
+        width: 57
+        height: 55
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a64e97120116e6550800000000000000
+      internalID: 6155964462571054186
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: near_green_11
+      rect:
+        serializedVersion: 2
+        x: 3507
+        y: 1120
+        width: 333
+        height: 507
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4b9c47f17e4de9980800000000000000
+      internalID: -8530146555062859340
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: near_green_12
+      rect:
+        serializedVersion: 2
+        x: 1166
+        y: 806
+        width: 156
+        height: 360
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6ee3e0d48090e5e40800000000000000
+      internalID: 5646960914026348262
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: near_green_13
+      rect:
+        serializedVersion: 2
+        x: 1282
+        y: 865
+        width: 165
+        height: 403
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b45f85baf0416faf0800000000000000
+      internalID: -363080662424947381
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: near_green_14
+      rect:
+        serializedVersion: 2
+        x: 2983
+        y: 1065
+        width: 306
+        height: 220
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 81af7d5e756e843e0800000000000000
+      internalID: -2069150763584062952
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: near_green_15
+      rect:
+        serializedVersion: 2
+        x: 3478
+        y: 1097
+        width: 17
+        height: 25
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: dc9682cf113af1ee0800000000000000
+      internalID: -1288131670764394035
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: near_green_16
+      rect:
+        serializedVersion: 2
+        x: 2503
+        y: 894
+        width: 329
+        height: 137
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 81628ecd8dbd6a1e0800000000000000
+      internalID: -2186818844576176616
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: near_green_17
+      rect:
+        serializedVersion: 2
+        x: 2458
+        y: 862
+        width: 37
+        height: 24
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a4476445f61402b60800000000000000
+      internalID: 7719241707724108874
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: near_green_18
+      rect:
+        serializedVersion: 2
+        x: 2563
+        y: 821
+        width: 43
+        height: 36
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8b79eb0b9266aa420800000000000000
+      internalID: 2642036460651190200
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: near_green_19
+      rect:
+        serializedVersion: 2
+        x: 3561
+        y: 535
+        width: 125
+        height: 72
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a5ee8ccbe3b235100800000000000000
+      internalID: 95467565560163930
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 5e97eb03825dee720800000000000000
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      near_green_0: 6303835480923296645
+      near_green_1: -9088725360034200198
+      near_green_10: 6155964462571054186
+      near_green_11: -8530146555062859340
+      near_green_12: 5646960914026348262
+      near_green_13: -363080662424947381
+      near_green_14: -2069150763584062952
+      near_green_15: -1288131670764394035
+      near_green_16: -2186818844576176616
+      near_green_17: 7719241707724108874
+      near_green_18: 2642036460651190200
+      near_green_19: 95467565560163930
+      near_green_2: 3803874337857078659
+      near_green_3: -6876308041535334372
+      near_green_4: 9019165372898067185
+      near_green_5: 5063450575974144462
+      near_green_6: 7381262279546506904
+      near_green_7: -8248276053054221426
+      near_green_8: -4482974931158058394
+      near_green_9: -3735829860013621933
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 8129080278832931069}
   - component: {fileID: 6179680471695520662}
   - component: {fileID: 4516304202367226398}
+  - component: {fileID: 7319025846612093417}
   m_Layer: 0
   m_Name: Boss_Blue
   m_TagString: Untagged
@@ -141,6 +142,9 @@ MonoBehaviour:
   phaseThresholds:
   - 0.8333333
   - 0.5
+  cornerInset: {x: 0.4, y: 1.3}
+  drawEyes: 0
+  eyeHeight: 0.47
 --- !u!1 &2280093305624796262
 GameObject:
   m_ObjectHideFlags: 0
@@ -169,7 +173,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1.4, y: 1.8, z: 1}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 5979329379074054089}
@@ -223,8 +227,8 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 8
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300000, guid: e475a2b094697464c892e7a30d8a6006, type: 3}
-  m_Color: {r: 0.2, g: 0.4, b: 0.95, a: 1}
+  m_Sprite: {fileID: 21300000, guid: 27e33fc5521dc4be4881fde62304eb73, type: 3}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -248,3 +252,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.Recolorable
   color: 4
   grayBrightness: 0.45
+--- !u!114 &7319025846612093417
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1627784153752855629}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d6e298fa1ab964b468000f4e41e8f0a7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Roygbiv.BossSprites
+  target: {fileID: 6752953445189097629}
+  idle: {fileID: 21300000, guid: 27e33fc5521dc4be4881fde62304eb73, type: 3}
+  attack: {fileID: 21300000, guid: bcf1655c4bf264721acf2b515c472c2c, type: 3}
+  hurt: {fileID: 21300000, guid: 62a34f78a57ac435eb42e5c3d50a18dc, type: 3}
+  move: []
+  moveFps: 8
+  hurtTime: 0.35

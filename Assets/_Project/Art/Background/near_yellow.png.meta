@@ -1,52 +1,40 @@
 fileFormatVersion: 2
-guid: 61bdb396c30bd4773870384f18e64510
+guid: d9ab1994e499148ddbd416e01667c451
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 229479578185809729
-    second: Near_yellow_0
+      213: -8448008017514211898
+    second: near_yellow_0
   - first:
-      213: 8994274601870752261
-    second: Near_yellow_1
+      213: -2266681562059212206
+    second: near_yellow_1
   - first:
-      213: -2245709090527821383
-    second: Near_yellow_2
+      213: -8122321541974001621
+    second: near_yellow_2
   - first:
-      213: 9187616143285034782
-    second: Near_yellow_3
+      213: -4425631713821571334
+    second: near_yellow_3
   - first:
-      213: 1776328147899452004
-    second: Near_yellow_4
+      213: 8514452322343789622
+    second: near_yellow_4
   - first:
-      213: -2685571195259596724
-    second: Near_yellow_5
+      213: 6757805085793125492
+    second: near_yellow_5
   - first:
-      213: 8175660821705393137
-    second: Near_yellow_6
+      213: 1931460635738117244
+    second: near_yellow_6
   - first:
-      213: -3310845628449020254
-    second: Near_yellow_7
+      213: -6524117321791354402
+    second: near_yellow_7
   - first:
-      213: 8461881175486151321
-    second: Near_yellow_8
+      213: 559754978723794153
+    second: near_yellow_8
   - first:
-      213: -4319951011322345326
-    second: Near_yellow_9
+      213: 4438254387192097715
+    second: near_yellow_9
   - first:
-      213: 317860378883698329
-    second: Near_yellow_10
-  - first:
-      213: 3120327395316281528
-    second: Near_yellow_11
-  - first:
-      213: 1128742171300614646
-    second: Near_yellow_12
-  - first:
-      213: -140303987732541084
-    second: Near_yellow_13
-  - first:
-      213: -7625948575285993829
-    second: Near_yellow_14
+      213: -8052176099276913124
+    second: near_yellow_10
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -79,7 +67,7 @@ TextureImporter:
   maxTextureSize: 2048
   textureSettings:
     serializedVersion: 2
-    filterMode: 0
+    filterMode: 1
     aniso: 1
     mipBias: 0
     wrapU: 1
@@ -90,10 +78,10 @@ TextureImporter:
   compressionQuality: 50
   spriteMode: 1
   spriteExtrude: 1
-  spriteMeshType: 1
+  spriteMeshType: 0
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 4
+  spritePixelsToUnits: 135
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -144,13 +132,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Near_yellow_0
+      name: near_yellow_0
       rect:
         serializedVersion: 2
-        x: 5
-        y: 25
-        width: 20
-        height: 20
+        x: 158
+        y: 1565
+        width: 319
+        height: 387
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -159,20 +147,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 14fb8f4e5764f2300800000000000000
-      internalID: 229479578185809729
+      spriteID: 6c5d960b775a2ca80800000000000000
+      internalID: -8448008017514211898
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Near_yellow_1
+      name: near_yellow_1
       rect:
         serializedVersion: 2
-        x: 60
-        y: 9
-        width: 22
-        height: 22
+        x: 3511
+        y: 1613
+        width: 153
+        height: 187
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -181,20 +169,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 50af2d0c81512dc70800000000000000
-      internalID: 8994274601870752261
+      spriteID: 25a7882f0212b80e0800000000000000
+      internalID: -2266681562059212206
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Near_yellow_2
+      name: near_yellow_2
       rect:
         serializedVersion: 2
-        x: 92
-        y: 25
-        width: 18
-        height: 18
+        x: 3576
+        y: 1785
+        width: 203
+        height: 156
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -203,20 +191,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 9b1493efa73a5d0e0800000000000000
-      internalID: -2245709090527821383
+      spriteID: b28f22b6797b74f80800000000000000
+      internalID: -8122321541974001621
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Near_yellow_3
+      name: near_yellow_3
       rect:
         serializedVersion: 2
-        x: 156
-        y: 29
-        width: 15
-        height: 15
+        x: 2448
+        y: 842
+        width: 49
+        height: 33
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -225,20 +213,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: e1f16294438f08f70800000000000000
-      internalID: 9187616143285034782
+      spriteID: af646fe776ff492c0800000000000000
+      internalID: -4425631713821571334
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Near_yellow_4
+      name: near_yellow_4
       rect:
         serializedVersion: 2
-        x: 253
-        y: 16
-        width: 18
-        height: 18
+        x: 3388
+        y: 867
+        width: 394
+        height: 299
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -247,20 +235,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 46a03140a09c6a810800000000000000
-      internalID: 1776328147899452004
+      spriteID: 6342d429649692670800000000000000
+      internalID: 8514452322343789622
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Near_yellow_5
+      name: near_yellow_5
       rect:
         serializedVersion: 2
-        x: 283
-        y: 15
-        width: 17
-        height: 17
+        x: 2552
+        y: 801
+        width: 51
+        height: 36
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -269,20 +257,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: c40d7870a3feabad0800000000000000
-      internalID: -2685571195259596724
+      spriteID: 4740700dbeb88cd50800000000000000
+      internalID: 6757805085793125492
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Near_yellow_6
+      name: near_yellow_6
       rect:
         serializedVersion: 2
-        x: 309
-        y: 16
-        width: 16
-        height: 16
+        x: 2496
+        y: 612
+        width: 137
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -291,20 +279,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 1f304d96338c57170800000000000000
-      internalID: 8175660821705393137
+      spriteID: c7412d2073dedca10800000000000000
+      internalID: 1931460635738117244
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Near_yellow_7
+      name: near_yellow_7
       rect:
         serializedVersion: 2
-        x: 332
-        y: 26
-        width: 20
-        height: 20
+        x: 3591
+        y: 569
+        width: 90
+        height: 75
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -313,20 +301,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 2a6242a41738d02d0800000000000000
-      internalID: -3310845628449020254
+      spriteID: ed947a1bcdda575a0800000000000000
+      internalID: -6524117321791354402
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Near_yellow_8
+      name: near_yellow_8
       rect:
         serializedVersion: 2
-        x: 364
-        y: 27
-        width: 17
-        height: 17
+        x: 3567
+        y: 525
+        width: 92
+        height: 66
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -335,20 +323,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 99aba6c9814ae6570800000000000000
-      internalID: 8461881175486151321
+      spriteID: 9ec861cff26a4c700800000000000000
+      internalID: 559754978723794153
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Near_yellow_9
+      name: near_yellow_9
       rect:
         serializedVersion: 2
-        x: 395
-        y: 15
-        width: 20
-        height: 20
+        x: 2235
+        y: 286
+        width: 263
+        height: 236
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -357,20 +345,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 298ca0b71737c04c0800000000000000
-      internalID: -4319951011322345326
+      spriteID: 3bb676ba9d8d79d30800000000000000
+      internalID: 4438254387192097715
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Near_yellow_10
+      name: near_yellow_10
       rect:
         serializedVersion: 2
-        x: 432
-        y: 14
-        width: 8
-        height: 19
+        x: 1925
+        y: 0
+        width: 326
+        height: 192
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -379,96 +367,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 99ea88b9454496400800000000000000
-      internalID: 317860378883698329
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Near_yellow_11
-      rect:
-        serializedVersion: 2
-        x: 33
-        y: 5
-        width: 18
-        height: 18
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 8b03fbcdb31ad4b20800000000000000
-      internalID: 3120327395316281528
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Near_yellow_12
-      rect:
-        serializedVersion: 2
-        x: 125
-        y: 2
-        width: 14
-        height: 14
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 6f1506346091aaf00800000000000000
-      internalID: 1128742171300614646
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Near_yellow_13
-      rect:
-        serializedVersion: 2
-        x: 186
-        y: 6
-        width: 18
-        height: 18
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 46191aa344a8d0ef0800000000000000
-      internalID: -140303987732541084
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Near_yellow_14
-      rect:
-        serializedVersion: 2
-        x: 217
-        y: 2
-        width: 18
-        height: 18
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: b9e9eaebc203b2690800000000000000
-      internalID: -7625948575285993829
+      spriteID: c1685bdff7ce04090800000000000000
+      internalID: -8052176099276913124
       vertices: []
       indices: 
       edges: []
@@ -487,21 +387,17 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Near_yellow_0: 229479578185809729
-      Near_yellow_1: 8994274601870752261
-      Near_yellow_10: 317860378883698329
-      Near_yellow_11: 3120327395316281528
-      Near_yellow_12: 1128742171300614646
-      Near_yellow_13: -140303987732541084
-      Near_yellow_14: -7625948575285993829
-      Near_yellow_2: -2245709090527821383
-      Near_yellow_3: 9187616143285034782
-      Near_yellow_4: 1776328147899452004
-      Near_yellow_5: -2685571195259596724
-      Near_yellow_6: 8175660821705393137
-      Near_yellow_7: -3310845628449020254
-      Near_yellow_8: 8461881175486151321
-      Near_yellow_9: -4319951011322345326
+      near_yellow_0: -8448008017514211898
+      near_yellow_1: -2266681562059212206
+      near_yellow_10: -8052176099276913124
+      near_yellow_2: -8122321541974001621
+      near_yellow_3: -4425631713821571334
+      near_yellow_4: 8514452322343789622
+      near_yellow_5: 6757805085793125492
+      near_yellow_6: 1931460635738117244
+      near_yellow_7: -6524117321791354402
+      near_yellow_8: 559754978723794153
+      near_yellow_9: 4438254387192097715
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

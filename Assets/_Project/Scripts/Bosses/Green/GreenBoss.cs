@@ -166,6 +166,10 @@ namespace Roygbiv
         [SerializeField] Color wiltColor = new(0.45f, 0.32f, 0.12f);
         [SerializeField] Color heartClosed = new(0.1f, 0.25f, 0.08f);
         [SerializeField] Color heartOpen = new(1f, 0.45f, 0.65f);
+        [Tooltip("Where its heart is, as a fraction of its body's height above its feet. Volleys, the covet thread and the heart's puffs start here.")]
+        [SerializeField] float heartHeight = 0.55f;
+        [Tooltip("Draw a diamond heart over the body. Off when the art has its own (the gem in its chest).")]
+        [SerializeField] bool drawHeart = true;
         [SerializeField] Color leafColor = new(0.35f, 0.8f, 0.3f, 0.8f);
         [SerializeField] Color dirtColor = new(0.4f, 0.3f, 0.2f, 0.7f);
         [SerializeField] float attackPoseHold = 0.35f;
@@ -220,7 +224,7 @@ namespace Roygbiv
         bool CovetReady => pods.Count == 0 && Time.time >= nextCovetAt;
         bool PodRoom => pods.Count < PerPhase(maxPodsPerPhase, Phase);
         float GroundedY => groundY + halfHeight;
-        Vector2 HeartPoint => PosePoint(0f, 0.55f);
+        Vector2 HeartPoint => PosePoint(0f, heartHeight);
 
         protected override void Awake()
         {
@@ -266,6 +270,7 @@ namespace Roygbiv
             glow.sortingOrder = glowSource.sortingOrder + 1;
             glow.color = UnityEngine.Color.clear;
 
+            if (!drawHeart) return;
             heart = FlatSprite.Create("Heart", pose, HeartPoint, Vector2.one * 0.55f, heartClosed, glowSource.sortingOrder + 2);
             heart.transform.localRotation = Quaternion.Euler(0f, 0f, 45f);
         }

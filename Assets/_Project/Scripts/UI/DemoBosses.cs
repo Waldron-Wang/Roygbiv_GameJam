@@ -15,6 +15,8 @@ namespace Roygbiv
     ///           with the same rig, angles and pose targets (KingPose).
     /// Coordinates are GUI pixels (y down); `unit` is GUI pixels per world unit. Every color goes through Tint, so a
     /// silhouette (Silhouette) or a fade (CardGui.Alpha) applies to all of it.
+    /// Green and Blue draw their art (their InstructionData's boss / bossHurt) in place of the placeholder shapes when
+    /// it's set, with the same motion, at the same size and pivot as in the game; hits and wilts show the hurt frame.
     /// If a boss's look changes, change it here too.
     /// </summary>
     static class DemoBosses
@@ -61,6 +63,16 @@ namespace Roygbiv
                                    float wilt = 0f, Color glow = default, float glowAmount = 0f, float flash = 0f)
         {
             var prev = CardGui.Rotate(feet, lean);
+            if (Art(ColorId.Green, heartOpen > 0f || wilt > 0.5f || flash > 0f) is { } art)
+            {
+                // The art's pivot is the 2x2 body's center (as on Boss_Green's Visual), one unit above its feet.
+                var tint = Color.Lerp(Color.white, glow, Mathf.Clamp01(glowAmount)) * Color.Lerp(Color.white, WiltColor, 0.55f * wilt);
+                tint.a = 1f;
+                CardGui.Sprite(art, new Vector2(feet.x, feet.y - unit * squash.y), new Vector2(unit * squash.x, unit * squash.y), Tint(tint), false, 0f);
+                GUI.matrix = prev;
+                Leaves(feet, unit, time, wilt);
+                return;
+            }
             float w = 2f * unit * squash.x, h = 2f * unit * squash.y;
             var body = new Rect(feet.x - w * 0.5f, feet.y - h, w, h);
             CardGui.Box(Expand(body, 2.5f), Tint(Outline));
@@ -75,8 +87,12 @@ namespace Roygbiv
             if (heartOpen > 0f) CardGui.Glow(heart, size * 1.6f, Tint(new Color(HeartOpen.r, HeartOpen.g, HeartOpen.b, 0.55f * heartOpen)));
             CardGui.Diamond(heart, size, Tint(Color.Lerp(HeartClosed, HeartOpen, heartOpen)));
             GUI.matrix = prev;
+            Leaves(feet, unit, time, wilt);
+        }
 
-            // A leaf now and then, drifting down off its crown (not while it's wilted).
+        /// <summary>A leaf now and then, drifting down off its crown (not while it's wilted).</summary>
+        static void Leaves(Vector2 feet, float unit, float time, float wilt)
+        {
             for (int i = 0; i < 3 && wilt < 0.5f; i++)
             {
                 float k = Mathf.Repeat(time * 0.45f + i * 0.37f, 1f);
@@ -126,6 +142,7 @@ namespace Roygbiv
         static readonly Color Foam = new(0.85f, 0.93f, 1f, 0.9f);
         static readonly Color Surface = new(0.35f, 0.6f, 1f, 0.62f);
         static readonly Color Deep = new(0.05f, 0.12f, 0.45f, 0.82f);
+        const float BlueArtEye = 0.47f; // Boss_Blue's eyeHeight: the eye in its hat, as a fraction of its height
 
         /// <summary>
         /// The Blue boss, its body centered on `center`. facing: the side its eyes are on. crying: sobbing shoulders and
@@ -143,6 +160,21 @@ namespace Roygbiv
             var body = new Rect(c.x - w * 0.5f, c.y - h * 0.5f, w, h);
 
             var prev = CardGui.Rotate(c, facing * 18f * Mathf.Sin(Mathf.Clamp01(lean) * Mathf.PI * 0.5f));
+            var art = Art(ColorId.Blue, jolt > 0f || flash > 0f);
+            if (art)
+            {
+                // The art's pivot is the 1.4x1.8 body's center (as on Boss_Blue's Visual); its eye is in its hat.
+                CardGui.Sprite(art, c, new Vector2(unit * swell * (1f + sob), unit * swell * (1f - sob)), Tint(Color.white), false, 0f);
+                GUI.matrix = prev;
+                for (int i = 0; crying && i < 3; i++)
+                {
+                    float k = Mathf.Repeat(time * 1.6f + i * 0.41f, 1f);
+                    var eye = c + new Vector2(0f, -1.8f * unit * BlueArtEye * swell + 0.15f * unit);
+                    var at = eye + new Vector2(facing * 0.4f * unit * k * 0.6f, 2.5f * unit * k * 0.6f);
+                    CardGui.Diamond(at, 0.12f * unit * (1f + k), Tint(new Color(TearColor.r, TearColor.g, TearColor.b, (1f - k) * (1f - k))), k * 200f);
+                }
+                return;
+            }
             CardGui.Box(Expand(body, 2.5f), Tint(Outline));
             CardGui.Box(body, Flashed(BlueBody, flash));
             GUI.matrix = prev;
@@ -452,13 +484,19 @@ namespace Roygbiv
         // ---------- A boss as a portrait (the hub's cards) ----------
 
         /// <summary>
-        /// The boss of color `id` standing in `box`, idling: the art sprite for Yellow, Orange and Red (their card's), the
-        /// procedural figure for the rest. silhouette: every part in that color (a locked district).
+        /// The boss of color `id` standing in `box`, idling: its art sprite (its card's) when it has one, the procedural
+        /// figure for the rest. silhouette: every part in that color (a locked district).
         /// </summary>
         public static void Portrait(ColorId id, Rect box, float time, Color? silhouette = null)
         {
             Silhouette = silhouette;
             var feet = new Vector2(box.center.x, box.yMax - box.height * 0.04f);
+            if (Art(id, false) is { } art)
+            {
+                CardGui.DrawSprite(art, box, Tint(Color.white));
+                Silhouette = null;
+                return;
+            }
             switch (id)
             {
                 case ColorId.Green:
@@ -483,18 +521,21 @@ namespace Roygbiv
                 case ColorId.Violet:
                     King(feet, box.height / 4.6f, -1, KingPose.Throne, time);
                     break;
-                default:
-                {
-                    var data = Game.Config ? Game.Config.Get(id) : null;
-                    var sprite = data && data.instruction ? data.instruction.boss : null;
-                    if (sprite) CardGui.DrawSprite(sprite, box, Tint(Color.white));
-                    break;
-                }
             }
             Silhouette = null;
         }
 
         // ---------- Helpers ----------
+
+        /// <summary>The boss's art from its how-to card (hurt: bossHurt, falling back to boss), or null if it has none.</summary>
+        static Sprite Art(ColorId id, bool hurt)
+        {
+            var data = Game.Config ? Game.Config.Get(id) : null;
+            var card = data ? data.instruction : null;
+            if (!card) return null;
+            var sprite = hurt && card.bossHurt ? card.bossHurt : card.boss;
+            return sprite ? sprite : null; // a real null, so `is { }` can't let a missing asset through
+        }
 
         static Rect Expand(Rect r, float by) => new(r.x - by, r.y - by, r.width + by * 2f, r.height + by * 2f);
 

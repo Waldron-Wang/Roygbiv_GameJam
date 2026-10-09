@@ -1,25 +1,28 @@
 fileFormatVersion: 2
-guid: 0a94e7fe8fafa4aa1a2034b525eb49d6
+guid: 49b97aac5ac704bd09cbd59d839b8908
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -1836121192933511622
-    second: Far_yellow_0
+      213: 122022058543529881
+    second: near_violet_0
   - first:
-      213: -3636278941813434469
-    second: Far_yellow_1
+      213: -4524681522705550854
+    second: near_violet_1
   - first:
-      213: 5003173916062021360
-    second: Far_yellow_2
+      213: -5294381336158816360
+    second: near_violet_2
   - first:
-      213: -1264767842063044584
-    second: Far_yellow_3
+      213: 6787971061383304038
+    second: near_violet_3
   - first:
-      213: 5927470549679451372
-    second: Far_yellow_4
+      213: -2673421684706255677
+    second: near_violet_4
   - first:
-      213: 8323304395427952875
-    second: Far_yellow_5
+      213: 6467672618488877185
+    second: near_violet_5
+  - first:
+      213: 6695745302675722480
+    second: near_violet_6
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -52,7 +55,7 @@ TextureImporter:
   maxTextureSize: 2048
   textureSettings:
     serializedVersion: 2
-    filterMode: 0
+    filterMode: 1
     aniso: 1
     mipBias: 0
     wrapU: 1
@@ -63,10 +66,10 @@ TextureImporter:
   compressionQuality: 50
   spriteMode: 1
   spriteExtrude: 1
-  spriteMeshType: 1
+  spriteMeshType: 0
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 4
+  spritePixelsToUnits: 135
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -117,13 +120,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Far_yellow_0
+      name: near_violet_0
       rect:
         serializedVersion: 2
-        x: 5
-        y: 39
-        width: 37
-        height: 37
+        x: 2478
+        y: 1690
+        width: 956
+        height: 470
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -132,20 +135,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: a3ea1a2d089c486e0800000000000000
-      internalID: -1836121192933511622
+      spriteID: 99fbf3e6a6281b100800000000000000
+      internalID: 122022058543529881
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Far_yellow_1
+      name: near_violet_1
       rect:
         serializedVersion: 2
-        x: 60
-        y: 30
-        width: 50
-        height: 50
+        x: 3422
+        y: 2094
+        width: 43
+        height: 66
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -154,20 +157,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: b971af87197598dc0800000000000000
-      internalID: -3636278941813434469
+      spriteID: af1bc5db02a1531c0800000000000000
+      internalID: -4524681522705550854
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Far_yellow_2
+      name: near_violet_2
       rect:
         serializedVersion: 2
-        x: 121
-        y: 6
-        width: 57
-        height: 57
+        x: 2434
+        y: 789
+        width: 471
+        height: 293
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -176,20 +179,64 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 0f670603b28de6540800000000000000
-      internalID: 5003173916062021360
+      spriteID: 897bbc0c9349686b0800000000000000
+      internalID: -5294381336158816360
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Far_yellow_3
+      name: near_violet_3
       rect:
         serializedVersion: 2
-        x: 194
-        y: 21
+        x: 3404
+        y: 838
+        width: 386
+        height: 276
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 663126357b7b33e50800000000000000
+      internalID: 6787971061383304038
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: near_violet_4
+      rect:
+        serializedVersion: 2
+        x: 3649
+        y: 1073
+        width: 112
+        height: 67
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3ccd144642916ead0800000000000000
+      internalID: -2673421684706255677
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: near_violet_5
+      rect:
+        serializedVersion: 2
+        x: 3390
+        y: 916
         width: 35
-        height: 35
+        height: 62
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -198,20 +245,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 810be724954a27ee0800000000000000
-      internalID: -1264767842063044584
+      spriteID: 180dc84baf9c1c950800000000000000
+      internalID: 6467672618488877185
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Far_yellow_4
+      name: near_violet_6
       rect:
         serializedVersion: 2
-        x: 240
-        y: 43
-        width: 58
-        height: 58
+        x: 3686
+        y: 626
+        width: 115
+        height: 137
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -220,30 +267,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: cecab325f0b924250800000000000000
-      internalID: 5927470549679451372
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Far_yellow_5
-      rect:
-        serializedVersion: 2
-        x: 314
-        y: 49
-        width: 41
-        height: 41
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: be83ee6bf31528370800000000000000
-      internalID: 8323304395427952875
+      spriteID: 0f01a7090e01cec50800000000000000
+      internalID: 6695745302675722480
       vertices: []
       indices: 
       edges: []
@@ -262,12 +287,13 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Far_yellow_0: -1836121192933511622
-      Far_yellow_1: -3636278941813434469
-      Far_yellow_2: 5003173916062021360
-      Far_yellow_3: -1264767842063044584
-      Far_yellow_4: 5927470549679451372
-      Far_yellow_5: 8323304395427952875
+      near_violet_0: 122022058543529881
+      near_violet_1: -4524681522705550854
+      near_violet_2: -5294381336158816360
+      near_violet_3: 6787971061383304038
+      near_violet_4: -2673421684706255677
+      near_violet_5: 6467672618488877185
+      near_violet_6: 6695745302675722480
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
